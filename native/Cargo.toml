@@ -1,0 +1,75 @@
+[package]
+name = "heaven_overlay"
+# Single source of truth for the version shown in the overlay footer.
+version = "3.5.4"
+edition = "2021"
+authors = ["Night DC : nighty3333"]
+description = "Heaven — in-game overlay (D3D11 + imgui) for Umamusume Pretty Derby (Global). Made by Night DC : nighty3333"
+license = "MIT"
+
+[lib]
+# cdylib → produces heaven_overlay.dll, loaded into the game process.
+crate-type = ["cdylib"]
+
+[features]
+# Default build = the full public overlay: SuperSkip, FPS unlock, UI speed, graphics
+# /display options, Team Trials capture, free camera + live race telemetry, and the
+# custom title intro. Just `cargo build --release`.
+default = ["racenet", "races_on", "freecam", "banner"]
+# `raceread` = the live race reader (race.rs): live frames + finish placement (the
+#   race-result skip needs placement to know you won).
+raceread = []
+# `racenet` = player-horse identity from the network response (msgpack only).
+racenet = ["raceread", "dep:rmpv"]
+# `races_on` = race-result auto-skip defaults ON.
+races_on = []
+# `freecam` = race free camera (3rd-person chase of the player's Uma) + live race
+#   telemetry HUD.
+freecam = []
+# `banner` = the custom title intro player (video + audio replacement of the title
+#   screen). The intro media is local-only — drop intro_full.bin / intro_song.ogg next
+#   to the DLL (build them with pack_intro.py); without them the game starts normally.
+banner = ["dep:jpeg-decoder", "dep:rodio", "dep:windows"]
+
+hachimi = []
+[dependencies]
+# hudhook gives us the D3D11 Present hook + imgui renderer + WndProc input hook.
+hudhook = "0.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+once_cell = "1"
+log = "0.4"
+# In-process IL2CPP method hooking via trampolining detours on the compiled method
+# pointers. RawDetour/GenericDetour are stable, so keep default features only.
+retour = { version = "0.3", default-features = false }
+# Typed D3D11/DXGI for the native intro video player (a dynamic-texture quad drawn via
+# an imgui RawCallback). Pinned to hudhook's version so the COM types match. `banner` only.
+windows = { version = "0.54", optional = true, features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Direct3D",
+  "Win32_Graphics_Direct3D11",
+  "Win32_Graphics_Direct3D_Fxc",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
+] }
+# GetModuleHandleW / GetProcAddress / thread spawn / input + window helpers.
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_System_LibraryLoader",
+  "Win32_System_Threading",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+] }
+# msgpack — decode the race network response for the player-horse identity (`racenet`).
+rmpv = { version = "1", optional = true }
+# Pure-Rust JPEG decode for the intro video player (frames decoded into textures). `banner` only.
+jpeg-decoder = { version = "0.3", optional = true }
+# Native audio playback for the intro song. `banner` only.
+rodio = { version = "0.19", optional = true }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
