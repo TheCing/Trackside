@@ -47,6 +47,10 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     if t == 0 {
         return;
     }
+    // Run any queued Team Trials team-edit here: this hook is on the game MAIN THREAD, the only
+    // safe place for RequestBase.Send (the menu/apply click runs on the render thread). Cheap no-op
+    // when nothing is queued.
+    crate::padder::pump();
     let s = tempo();
     if s != 1.0 {
         // Scale BOTH the frame delta AND the time-independent delta so the WHOLE UI speeds up

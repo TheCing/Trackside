@@ -62,6 +62,8 @@ pub enum Custom {
     Freecam,         // enable + follow controls + preset manager
     KeyBinds,        // rebindable freecam key bindings
     TeamTrials,      // capture toggle + "N saved" count
+    TtPadder,        // Team Trials deck profiles — snapshot + 1-click swap
+    TtHunter,        // Team Trials opponent hunter — auto-refresh until a target appears
     Intro,           // intro status + replay button
     Updates,         // version + check/pull/releases
     AboutLayout,     // centered / dock side / toggle-key rebind / classic-menu toggle
@@ -137,6 +139,28 @@ pub fn model() -> Vec<Tab> {
         },
     ];
     tabs.push(Tab { name: "Gameplay", icon: '\u{E768}', sections: gameplay });
+
+    // ── 1b) TEAM TRIALS ──────────────────────────────────────────────────────
+    // Deck profiles: snapshot the current 15-Uma team and swap it back with one click
+    // (good team <-> padding team). Up to 5 renameable profiles, persisted next to the DLL.
+    tabs.push(Tab {
+        name: "Team Trials",
+        icon: '\u{E74E}',
+        sections: vec![
+            Section {
+                title: "Deck profiles",
+                icon: '\u{E74E}',
+                blurb: "Save your team and swap the whole 15 with one click.",
+                controls: vec![Ctrl::Custom(Custom::TtPadder)],
+            },
+            Section {
+                title: "Opponent hunter",
+                icon: '\u{E721}',
+                blurb: "Auto-refresh the opponent list until a trainer you name shows up.",
+                controls: vec![Ctrl::Custom(Custom::TtHunter)],
+            },
+        ],
+    });
 
     // ── 2) CAMERA ────────────────────────────────────────────────────────────
     #[cfg(feature = "freecam")]

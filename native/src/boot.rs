@@ -209,6 +209,19 @@ pub fn spawn() {
             crate::diag::record_install("veterans export", &r);
         }
 
+        // Team Trials deck-profile capture (hooks TeamStadiumDeckBuilder.Setup/Release to track the
+        // live team-edit screen, so the padder can drive its grid). Non-fatal if it misses.
+        {
+            let r = crate::padder::install();
+            log(&format!("tt padder: {r}"));
+            crate::diag::record_install("tt padder", &r);
+        }
+        {
+            let r = crate::hunter::install();
+            log(&format!("tt hunter: {r}"));
+            crate::diag::record_install("tt hunter", &r);
+        }
+
         // Heaven+Hachimi variant: report which hooks Heaven owns vs ceded to a co-resident mod.
         #[cfg(feature = "hachimi")]
         log(&format!("hook arbiter: {}", crate::arbiter::report()));

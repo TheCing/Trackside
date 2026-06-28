@@ -91,6 +91,11 @@ fn find_hwnd() -> HWND {
     std::ptr::null_mut()
 }
 
+/// The game's top-level window handle as a usize (0 if not found yet). For taskbar-flash alerts.
+pub fn game_hwnd() -> usize {
+    find_hwnd() as usize
+}
+
 pub fn set_always_on_top(on: bool) {
     ALWAYS_ON_TOP.store(on, Ordering::Relaxed);
     // SetWindowPos sends synchronous messages to the window's UI thread. Calling it from the

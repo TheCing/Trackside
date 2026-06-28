@@ -472,6 +472,8 @@ impl ImguiRenderLoop for HeavenOverlay {
     /// authoritative every session.
     fn initialize<'a>(&'a mut self, ctx: &mut Context, _loader: TextureLoader<'a>) {
         ctx.set_ini_filename(None);
+        // Wire Ctrl+C / Ctrl+V / Ctrl+X to the Windows clipboard in every text field.
+        ctx.set_clipboard_backend(crate::clipboard::WinClipboard);
         // Upload the header banner (raw RGBA) once. Non-fatal: if it fails, we just
         // render without a banner.
         #[cfg(feature = "banner")]
@@ -563,8 +565,16 @@ impl ImguiRenderLoop for HeavenOverlay {
                 SKILL_DESC.with(|m| *m.borrow_mut() = map);
             }
         }
-        // Body / UI font = Inter Medium (added FIRST → imgui's default for all text).
-        ctx.fonts().add_font(&[FontSource::TtfData {
+        // Body / UI font = Inter Medium (added FIRST → imgui's default for all text). We MERGE a
+        // Japanese system font over it so trainer names render instead of "?" boxes: the imgui
+        // `japanese()` range covers kana/kanji AND the full-width forms (e.g. the "＠" U+FF20 in
+        // names) AND basic Latin. Latin codepoints still come from Inter (the base font wins for
+        // glyphs it has); the JP face only fills what Inter lacks. Falls back gracefully if no JP
+        // font is installed (names just show "?" as before).
+        let jp_bytes = ["meiryo.ttc", "YuGothR.ttc", "msgothic.ttc", "BIZ-UDGothicR.ttc"]
+            .iter()
+            .find_map(|f| std::fs::read(format!(r"C:\Windows\Fonts\{f}")).ok());
+        let mut body_sources = vec![FontSource::TtfData {
             data: INTER_TTF,
             size_pixels: 17.0,
             config: Some(FontConfig {
@@ -573,7 +583,20 @@ impl ImguiRenderLoop for HeavenOverlay {
                 rasterizer_multiply: 1.05,
                 ..FontConfig::default()
             }),
-        }]);
+        }];
+        if let Some(ref jp) = jp_bytes {
+            body_sources.push(FontSource::TtfData {
+                data: jp.as_slice(),
+                size_pixels: 18.0,
+                config: Some(FontConfig {
+                    oversample_h: 2,
+                    oversample_v: 2,
+                    glyph_ranges: imgui::FontGlyphRanges::japanese(),
+                    ..FontConfig::default()
+                }),
+            });
+        }
+        ctx.fonts().add_font(&body_sources);
         // Segoe MDL2 Assets — UI icon glyphs (Private Use Area) for section / category icons.
         static ICON_RANGE: [u32; 3] = [0xE700, 0xEAFF, 0]; // covers Info (E946) etc.
         if let Ok(bytes) = std::fs::read(r"C:\Windows\Fonts\segmdl2.ttf") {
@@ -627,10 +650,14 @@ impl ImguiRenderLoop for HeavenOverlay {
         NAV_FONT.with(|c| c.set(Some(nid)));
     }
 
-    /// Block window input from reaching the game whenever imgui wants the mouse/keyboard
-    /// (i.e. the cursor is over our menu) — otherwise clicks fall through to the game.
+    /// Block window input from reaching the game only while the Heaven MENU is open AND imgui wants
+    /// the mouse/keyboard. Gating on `self.show` fixes the Alt-Tab dead-click: on focus regain imgui's
+    /// last mouse position is stale (still "over" a window), so `want_capture_mouse` latches true and
+    /// swallows game clicks until a real mouse-move refreshes it (hence "Alt-Tab again to fix it").
+    /// With the menu closed we never block, so the game is always clickable. (HUD/panels render with
+    /// the menu closed but are passive — not worth eating game input for.)
     fn should_block_messages(&self, io: &imgui::Io) -> bool {
-        io.want_capture_mouse || io.want_capture_keyboard
+        self.show && (io.want_capture_mouse || io.want_capture_keyboard)
     }
 
     fn render(&mut self, ui: &mut Ui) {
@@ -769,6 +796,9 @@ impl ImguiRenderLoop for HeavenOverlay {
             }
         }
         self.toggle_was_down = key_down;
+
+        // Opponent-hunter "TARGET FOUND" alert — drawn over everything, menu open or not.
+        draw_hunter_alert(ui);
 
         // the extra overlay boxes draw on the game's native popup regardless of the
         // Insert toggle — they belong to the game UI, not the Heaven panel, so
@@ -1650,6 +1680,12 @@ impl HeavenOverlay {
                                                 val(ui, GOOD, &format!("{} saved", crate::htt::saved()));
                                             }
                                         }
+                                        Ctrl::Custom(Custom::TtPadder) => {
+                                            draw_tt_padder(ui, cw);
+                                        }
+                                        Ctrl::Custom(Custom::TtHunter) => {
+                                            draw_tt_hunter(ui, cw);
+                                        }
                                         #[allow(unreachable_patterns)]
                                         Ctrl::Custom(_) => {}
                                     }
@@ -1932,6 +1968,14 @@ impl HeavenOverlay {
                                             ui.text_colored(DIM, "OFF");
                                         }
                                     }
+                                    Ctrl::Custom(Custom::TtPadder) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_tt_padder(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::TtHunter) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_tt_hunter(ui, w);
+                                    }
                                     #[allow(unreachable_patterns)]
                                     Ctrl::Custom(_) => {}
                                 }
@@ -1976,6 +2020,7 @@ fn nav_icon_idx(name: &str) -> Option<usize> {
 fn cat_icon(name: &str) -> &'static str {
     match name {
         "Gameplay" => "\u{E768}",    // Play
+        "Team Trials" => "\u{E716}", // People (team)
         "Race Director" => "\u{E722}", // Camera (was "Camera")
         "Visuals" => "\u{E790}",     // Brightness/visuals
         "Performance" => "\u{E9D9}", // Speed
@@ -2008,6 +2053,85 @@ fn draw_first_launch_hint(ui: &Ui) {
         .thickness(1.0)
         .build();
     dl.add_text([x + padx, y + pady], TEXT, &label);
+}
+
+/// Big on-screen alert when the opponent hunter finds the target. Drawn over everything (no menu
+/// needed), centered near the top, with a pulsing green glow. Fades in, holds, fades out after a
+/// few seconds. Self-gates on `hunter::found_vid()`; a new hunt or finding a new target re-triggers.
+fn draw_hunter_alert(ui: &Ui) {
+    let vid = crate::hunter::found_vid();
+    if vid == 0 {
+        return;
+    }
+    use std::cell::Cell;
+    use std::time::Instant;
+    thread_local! {
+        static LAST_VID: Cell<i64> = const { Cell::new(0) };
+        static SHOWN: Cell<Option<Instant>> = const { Cell::new(None) };
+    }
+    let now = Instant::now();
+    if LAST_VID.with(|c| c.get()) != vid {
+        LAST_VID.with(|c| c.set(vid));
+        SHOWN.with(|c| c.set(Some(now)));
+    }
+    let shown = match SHOWN.with(|c| c.get()) {
+        Some(t) => t,
+        None => return,
+    };
+    let el = now.duration_since(shown).as_secs_f32();
+    const TOTAL: f32 = 12.0;
+    if el > TOTAL {
+        return;
+    }
+    // fade in (0.35 s) then out (last 1.5 s)
+    let fade = (el / 0.35).min(1.0).min(((TOTAL - el) / 1.5).clamp(0.0, 1.0));
+    let pulse = 0.5 + 0.5 * (ui.time() as f32 * 4.2).sin(); // 0..1 heartbeat
+    let name = crate::hunter::found_name();
+
+    let [dw, _dh] = ui.io().display_size;
+    let (w, h) = (420.0_f32, 88.0_f32);
+    let x = ((dw - w) * 0.5).max(0.0);
+    let y = 52.0_f32;
+
+    // glow + panel + pulsing border
+    {
+        let dl = ui.get_background_draw_list();
+        for k in 0..4 {
+            let e = 3.0 + k as f32 * 4.5;
+            let a = (0.11 - k as f32 * 0.022) * fade * (0.55 + 0.45 * pulse);
+            dl.add_rect([x - e, y - e], [x + w + e, y + h + e], [0.32, 0.95, 0.55, a.max(0.0)])
+                .filled(true)
+                .rounding(16.0)
+                .build();
+        }
+        dl.add_rect([x, y], [x + w, y + h], [0.04, 0.10, 0.07, 0.97 * fade])
+            .filled(true)
+            .rounding(14.0)
+            .build();
+        dl.add_rect([x, y], [x + w, y + h], [0.45, 0.96, 0.62, (0.45 + 0.55 * pulse) * fade])
+            .rounding(14.0)
+            .thickness(2.2)
+            .build();
+    }
+    // bell icon (icon font)
+    if let Some(f) = ICON_FONT.with(|c| c.get()) {
+        let _t = ui.push_font(f);
+        ui.get_background_draw_list()
+            .add_text([x + 22.0, y + 30.0], [0.55, 1.0, 0.7, fade], "\u{E7E7}"); // Ringer
+    }
+    // "TARGET FOUND" in the title font
+    if let Some(f) = TITLE_FONT.with(|c| c.get()) {
+        let _t = ui.push_font(f);
+        ui.get_background_draw_list()
+            .add_text([x + 64.0, y + 14.0], [0.62, 1.0, 0.74, fade], "TARGET FOUND");
+    }
+    // name (bright) + sub-line
+    {
+        let dl = ui.get_background_draw_list();
+        let nm = if name.is_empty() { format!("viewer {vid}") } else { name.clone() };
+        dl.add_text([x + 64.0, y + 42.0], [1.0, 1.0, 1.0, fade], &nm);
+        dl.add_text([x + 64.0, y + 64.0], [0.72, 0.88, 0.78, fade], &format!("{vid}  \u{00b7}  pick them now"));
+    }
 }
 
 thread_local! {
@@ -2507,6 +2631,290 @@ fn draw_preset_manager(ui: &Ui, w: f32) {
         if btn(ui, "##addpreset", "+ Add current view") {
             let n = format!("Preset {}", names.len() + 1);
             crate::freecam::preset_add(&n);
+        }
+    }
+}
+
+/// Small square icon button (MDL2 glyph). `danger` tints it red on hover (for Delete). Shows `tip`
+/// as a tooltip. Returns clicked. Keeps the TT rows compact vs three text buttons.
+fn icon_btn(ui: &Ui, id: &str, glyph: &str, tip: &str, danger: bool) -> bool {
+    let sz = 30.0;
+    let p = ui.cursor_screen_pos();
+    let clicked = ui.invisible_button(id, [sz, sz]);
+    let hov = ui.is_item_hovered();
+    {
+        let dl = ui.get_window_draw_list();
+        let bg = if hov {
+            if danger { [0.46, 0.15, 0.21, 1.0] } else { BTN_HI }
+        } else {
+            BTN_BG
+        };
+        dl.add_rect(p, [p[0] + sz, p[1] + sz], bg).filled(true).rounding(8.0).build();
+        let bcol = if danger && hov {
+            [0.95, 0.42, 0.50, 0.85]
+        } else {
+            [0.60, 0.46, 0.90, if hov { 0.6 } else { 0.30 }]
+        };
+        dl.add_rect(p, [p[0] + sz, p[1] + sz], bcol).rounding(8.0).thickness(1.2).build();
+    }
+    if let Some(f) = ICON_FONT.with(|c| c.get()) {
+        let _t = ui.push_font(f);
+        let ts = ui.calc_text_size(glyph);
+        let gcol = if danger && hov { [1.0, 0.72, 0.78, 1.0] } else { TEXT };
+        ui.get_window_draw_list()
+            .add_text([p[0] + (sz - ts[0]) * 0.5, p[1] + (sz - ts[1]) * 0.5], gcol, glyph);
+    }
+    if hov && !tip.is_empty() {
+        ui.tooltip(|| ui.text(tip));
+    }
+    clicked
+}
+
+/// A dim "ⓘ" info glyph that reveals `tip` on hover — replaces walls of helper text.
+fn help_icon(ui: &Ui, tip: &str) {
+    if let Some(f) = ICON_FONT.with(|c| c.get()) {
+        let _t = ui.push_font(f);
+        ui.text_colored(DIM, "\u{E946}"); // Info
+    } else {
+        ui.text_colored(DIM, "(i)");
+    }
+    if ui.is_item_hovered() {
+        ui.tooltip(|| ui.text(tip));
+    }
+}
+
+/// A small colored status dot followed by short text (replaces full-sentence status lines).
+fn status_dot(ui: &Ui, color: [f32; 4], text: &str) {
+    let p = ui.cursor_screen_pos();
+    let h = ui.text_line_height_with_spacing();
+    ui.get_window_draw_list()
+        .add_circle([p[0] + 5.0, p[1] + h * 0.5], 4.0, color)
+        .filled(true)
+        .build();
+    ui.dummy([14.0, h]);
+    ui.same_line();
+    ui.text_colored(color, text);
+}
+
+/// Team Trials deck profiles: list saved profiles with Apply / Rename / Delete, plus a
+/// "save current team" row. Apply asks for an inline confirm (user preference). Profiles pin
+/// each Uma by its stable trained_chara_id, so they survive inventory reordering (see padder.rs).
+fn draw_tt_padder(ui: &Ui, w: f32) {
+    use std::cell::{Cell, RefCell};
+    thread_local! {
+        static NEWBUF: RefCell<String> = RefCell::new(String::new());
+        static CONFIRM: Cell<i32> = Cell::new(-1);     // idx pending apply-confirm (-1 = none)
+        static RIDX: Cell<i32> = Cell::new(-1);        // idx being renamed (-1 = none)
+        static RBUF: RefCell<String> = RefCell::new(String::new());
+        static STATUS: RefCell<String> = RefCell::new(String::new());
+    }
+    let set_status = |m: String| STATUS.with(|s| *s.borrow_mut() = m);
+
+    let profiles = crate::padder::list();
+
+    ui.dummy([0.0, 4.0]);
+    if crate::padder::edit_screen_open() {
+        status_dot(ui, GOOD, "Edit screen ready");
+    } else {
+        status_dot(ui, WARN, "Open the team-edit screen");
+    }
+    ui.same_line();
+    help_icon(ui, "Save your team as a profile, then Apply to swap all 15 Umas in the in-game editor (then press the game's Confirm to save). Profiles pin each Uma by id, so they survive inventory changes.");
+    ui.dummy([0.0, 8.0]);
+
+    // ── existing profiles ──
+    for (i, (name, n)) in profiles.iter().enumerate() {
+        let idx = i as i32;
+        let renaming = RIDX.with(|r| r.get()) == idx;
+        // right-align a group of `count` icon buttons on this row
+        let align_icons = |ui: &Ui, count: f32| {
+            ui.same_line();
+            let cur = ui.cursor_pos();
+            let icons_w = count * 30.0 + (count - 1.0).max(0.0) * 6.0;
+            let tx = (w - icons_w - 2.0).max(cur[0] + 8.0);
+            ui.set_cursor_pos([tx, cur[1] - 2.0]);
+        };
+        if renaming {
+            RBUF.with(|b| {
+                let mut s = b.borrow_mut();
+                ui.set_next_item_width(w * 0.58);
+                let _ = ui.input_text(&format!("##rn{i}"), &mut s).hint("new name").build();
+            });
+            align_icons(ui, 2.0);
+            if icon_btn(ui, &format!("##rok{i}"), "\u{E73E}", "Save name", false) {
+                let newname = RBUF.with(|b| b.borrow().clone());
+                match crate::padder::rename(i, &newname) {
+                    Ok(_) => set_status(format!("Renamed to \"{}\".", newname.trim())),
+                    Err(e) => set_status(e),
+                }
+                RIDX.with(|r| r.set(-1));
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##rcancel{i}"), "\u{E711}", "Cancel", false) {
+                RIDX.with(|r| r.set(-1));
+            }
+        } else if CONFIRM.with(|c| c.get()) == idx {
+            ui.text_colored(ACCENT, &format!("Apply \"{name}\"?"));
+            align_icons(ui, 2.0);
+            if icon_btn(ui, &format!("##yes{i}"), "\u{E73E}", "Confirm apply", false) {
+                if let Err(e) = crate::padder::apply(i) {
+                    set_status(e);
+                }
+                CONFIRM.with(|c| c.set(-1));
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##no{i}"), "\u{E711}", "Cancel", false) {
+                CONFIRM.with(|c| c.set(-1));
+            }
+        } else {
+            ui.text_colored(TEXT, name);
+            ui.same_line();
+            ui.text_colored(DIM, &format!("({n})"));
+            align_icons(ui, 3.0);
+            if icon_btn(ui, &format!("##ap{i}"), "\u{E895}", "Apply (swap to this team)", false) {
+                CONFIRM.with(|c| c.set(idx));
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##rnbtn{i}"), "\u{E70F}", "Rename", false) {
+                RIDX.with(|r| r.set(idx));
+                RBUF.with(|b| *b.borrow_mut() = name.clone());
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##del{i}"), "\u{E74D}", "Delete", true) {
+                match crate::padder::delete(i) {
+                    Ok(_) => set_status(format!("Deleted \"{name}\".")),
+                    Err(e) => set_status(e),
+                }
+                CONFIRM.with(|c| c.set(-1));
+            }
+        }
+        ui.dummy([0.0, 5.0]);
+    }
+
+    // ── save current team as a new profile ──
+    if profiles.len() < crate::padder::MAX_PROFILES {
+        ui.dummy([0.0, 4.0]);
+        NEWBUF.with(|b| {
+            let mut s = b.borrow_mut();
+            ui.set_next_item_width(w * 0.62);
+            let _ = ui.input_text("##ttnew", &mut s).hint("profile name").build();
+        });
+        ui.same_line();
+        if btn_primary(ui, "##ttsave", "Save current") {
+            let name = NEWBUF.with(|b| b.borrow().clone());
+            match crate::padder::save_current(&name) {
+                Ok(saved) => {
+                    set_status(format!("Saved current team as \"{saved}\"."));
+                    NEWBUF.with(|b| b.borrow_mut().clear());
+                }
+                Err(e) => set_status(e),
+            }
+        }
+    } else {
+        ui.dummy([0.0, 4.0]);
+        ui.text_colored(DIM, &format!("Max {} profiles — delete one to add more.", crate::padder::MAX_PROFILES));
+    }
+
+    // ── status line ──
+    STATUS.with(|s| {
+        let st = s.borrow();
+        if !st.is_empty() {
+            ui.dummy([0.0, 6.0]);
+            ui.text_colored(GOOD, &*st);
+        }
+    });
+    // deferred-apply result (sent from the main-thread pump)
+    let ps = crate::padder::pump_status();
+    if !ps.is_empty() {
+        ui.dummy([0.0, 2.0]);
+        let col = if ps.starts_with("Apply failed") { WARN } else { GOOD };
+        ui.text_colored(col, &ps);
+    }
+}
+
+/// Team Trials opponent hunter: name/viewer-id of a target, Start/Stop, live roll counter + last 3.
+/// Drives the game's own Reload (SendApi) until the target shows up, then stops + beeps.
+fn draw_tt_hunter(ui: &Ui, w: f32) {
+    use std::cell::{Cell, RefCell};
+    thread_local! {
+        static NAMEBUF: RefCell<String> = RefCell::new(String::new());
+        static VIDBUF: RefCell<String> = RefCell::new(String::new());
+        static ERR: RefCell<String> = RefCell::new(String::new());
+        static LOADED: Cell<bool> = const { Cell::new(false) };
+    }
+    // Pre-fill the fields from the persisted target on the first draw (survives restarts).
+    if !LOADED.with(|l| l.get()) {
+        LOADED.with(|l| l.set(true));
+        let (sn, sv) = crate::hunter::saved_target();
+        NAMEBUF.with(|b| *b.borrow_mut() = sn);
+        VIDBUF.with(|b| *b.borrow_mut() = sv);
+    }
+    ui.dummy([0.0, 4.0]);
+    if crate::hunter::screen_open() {
+        status_dot(ui, GOOD, "Select Opponent ready");
+    } else {
+        status_dot(ui, WARN, "Open Select Opponent");
+    }
+    ui.same_line();
+    help_icon(ui, "Auto-refreshes the opponent list until your target shows up, then stops and alerts. Match by trainer name and/or exact viewer ID. The pool is random, so a target may take many rolls (or not appear).");
+    ui.dummy([0.0, 8.0]);
+
+    let hunting = crate::hunter::is_hunting();
+    if !hunting {
+        ui.text_colored(DIM, "Target — name and/or viewer ID:");
+        let ch_n = NAMEBUF.with(|b| {
+            let mut s = b.borrow_mut();
+            ui.set_next_item_width(w * 0.9);
+            ui.input_text("##huntname", &mut s).hint("trainer name").build()
+        });
+        ui.dummy([0.0, 3.0]);
+        let ch_v = VIDBUF.with(|b| {
+            let mut s = b.borrow_mut();
+            ui.set_next_item_width(w * 0.9);
+            ui.input_text("##huntvid", &mut s).hint("viewer ID (exact, optional)").build()
+        });
+        // Persist on any edit so the target survives a game restart.
+        if ch_n || ch_v {
+            let n = NAMEBUF.with(|b| b.borrow().clone());
+            let v = VIDBUF.with(|b| b.borrow().clone());
+            crate::hunter::save_target(&n, &v);
+        }
+        ui.dummy([0.0, 6.0]);
+        if btn_primary(ui, "##huntstart", "Start hunt") {
+            let name = NAMEBUF.with(|b| b.borrow().clone());
+            let vid = VIDBUF.with(|b| b.borrow().clone());
+            match crate::hunter::start(&name, &vid) {
+                Ok(_) => ERR.with(|e| e.borrow_mut().clear()),
+                Err(e) => ERR.with(|x| *x.borrow_mut() = e),
+            }
+        }
+        ERR.with(|e| {
+            let s = e.borrow();
+            if !s.is_empty() {
+                ui.dummy([0.0, 4.0]);
+                ui.text_colored(WARN, &*s);
+            }
+        });
+    } else {
+        ui.text_colored(ACCENT, "Hunting…");
+        ui.same_line();
+        if btn(ui, "##huntstop", "Stop") {
+            crate::hunter::stop();
+        }
+    }
+
+    // status + last three
+    let st = crate::hunter::status();
+    if !st.is_empty() {
+        ui.dummy([0.0, 6.0]);
+        let col = if crate::hunter::found() { GOOD } else if st.starts_with("Not found") { WARN } else { TEXT };
+        ui.text_colored(col, &st);
+    }
+    let last = crate::hunter::last_three();
+    if !last.is_empty() {
+        ui.dummy([0.0, 4.0]);
+        for (vid, name) in last.iter() {
+            ui.text_colored(DIM, &format!("\u{00b7} {}  ({})", if name.is_empty() { "?" } else { name.as_str() }, vid));
         }
     }
 }

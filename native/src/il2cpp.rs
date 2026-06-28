@@ -59,6 +59,10 @@ type FnTypeGetName = unsafe extern "C" fn(*mut c_void) -> *mut c_char;
 type FnStringNew = unsafe extern "C" fn(*const c_char) -> Object;
 type FnMethodGetFlags = unsafe extern "C" fn(Method, *mut u32) -> u32;
 type FnClassGetNestedTypes = unsafe extern "C" fn(Class, *mut *mut c_void) -> Class;
+// Allocate a managed array of `len` elements of `element_class`. Returns Il2CppArray* (data @0x20).
+type FnArrayNew = unsafe extern "C" fn(Class, usize) -> Object;
+// GC write barrier: store `value` into `*field` of managed object `obj` (keeps the ref reachable).
+type FnGcWbarrierSetField = unsafe extern "C" fn(Object, *mut *mut c_void, *mut c_void);
 
 /// Resolved bundle of the IL2CPP exports we use. Built once in `init`.
 struct Api {
@@ -89,6 +93,8 @@ struct Api {
     string_new: FnStringNew,
     method_get_flags: FnMethodGetFlags,
     class_get_nested_types: FnClassGetNestedTypes,
+    array_new: FnArrayNew,
+    gc_wbarrier_set_field: FnGcWbarrierSetField,
 }
 // SAFETY: the resolved code lives for the process lifetime; pointers are read-only.
 unsafe impl Send for Api {}
@@ -163,6 +169,8 @@ pub fn init() -> Result<(), &'static str> {
             string_new: load!(m, "il2cpp_string_new"),
             method_get_flags: load!(m, "il2cpp_method_get_flags"),
             class_get_nested_types: load!(m, "il2cpp_class_get_nested_types"),
+            array_new: load!(m, "il2cpp_array_new"),
+            gc_wbarrier_set_field: load!(m, "il2cpp_gc_wbarrier_set_field"),
         }
     };
     let _ = API.set(api);
@@ -171,6 +179,12 @@ pub fn init() -> Result<(), &'static str> {
 
 fn api() -> &'static Api {
     API.get().expect("il2cpp::init() not called / failed")
+}
+
+/// True once the IL2CPP API has been resolved (init succeeded). Cheap guard for callers
+/// that may run before the runtime is up — they must bail instead of panicking in `api()`.
+pub fn ready() -> bool {
+    API.get().is_some()
 }
 
 // ── High-level helpers ──────────────────────────────────────────────────────
@@ -480,6 +494,22 @@ pub fn object_new(klass: Class) -> Object {
     unsafe { (api().object_new)(klass) }
 }
 
+/// Allocate a managed array of `len` elements of `element_class`. Element storage starts at
+/// offset 0x20; for reference-type elements each slot is an 8-byte pointer. Returns null on error.
+pub fn array_new(element_class: Class, len: usize) -> Object {
+    if element_class.is_null() {
+        return std::ptr::null_mut();
+    }
+    unsafe { (api().array_new)(element_class, len) }
+}
+
+/// GC write barrier: store reference `value` into the field at `field_addr` (which lives inside the
+/// managed object `owner`). Use this whenever writing a managed reference into managed memory from
+/// native code, so the GC keeps `value` reachable and doesn't collect it mid-operation.
+pub unsafe fn wbarrier_set(owner: Object, field_addr: *mut c_void, value: Object) {
+    (api().gc_wbarrier_set_field)(owner, field_addr as *mut *mut c_void, value);
+}
+
 /// Invoke a method via the runtime (boxed args). For perf-critical hot paths,
 /// prefer casting `method_pointer` to a typed fn and calling directly.
 pub unsafe fn runtime_invoke(m: Method, this: Object, args: &mut [*mut c_void]) -> Object {
@@ -520,6 +550,16 @@ pub fn read_string(s: Object) -> String {
         let slice = std::slice::from_raw_parts(chars, len as usize);
         String::from_utf16_lossy(slice)
     }
+}
+
+/// Runtime class of a managed object (null if obj is null). Use this to resolve methods on NESTED
+/// types (`il2cpp_class_from_name` can't find `Outer.Nested` by namespace) — get the class from a
+/// live instance instead.
+pub fn object_class(obj: Object) -> Class {
+    if obj.is_null() {
+        return std::ptr::null_mut();
+    }
+    unsafe { (api().object_get_class)(obj) }
 }
 
 /// Runtime class name of a managed object ("" if null). For type checks.

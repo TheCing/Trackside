@@ -18,6 +18,7 @@ mod bgm;
 #[cfg(feature = "hachimi")]
 mod arbiter;
 mod boot;
+mod clipboard;
 mod crashlog;
 mod cyspring;
 mod data;
@@ -35,10 +36,12 @@ mod il2cpp;
 mod intro_player;
 mod htt;
 mod htt_il2cpp;
+mod hunter;
 mod ipc;
 mod menu_model;
 mod names;
 mod overlay;
+mod padder;
 mod paths;
 // Live race reader (Race panel + race-result win-gate). Built in both the full
 // private build and the public build (the race-result skip needs finish placement).
