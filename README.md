@@ -83,6 +83,8 @@ either one on its own):
 Toggle the whole HUD or any individual panel under *Race Director → Telemetry*. All windows are
 **resizable** — drag a corner to scale; sizes and positions are remembered.
 
+Full step-by-step guide (controls, presets, reading the HUD): **[race-director.md](race-director.md)**.
+
 ### Performance
 - **Low Resources mode** — "potato" mode for very weak PCs: lowest 3D quality, no
   shadows / AA, low textures & LOD, and lighter cloth physics. One toggle.
@@ -111,6 +113,30 @@ reads and analyzes the captured data.
    **https://github.com/Nighty3333/Heaven**
 
 This public build only does the *capture*; the analysis lives in Heaven.
+
+### Team Trials — deck profiles & opponent finder
+A dedicated **Team Trials** menu section with two tools for competitive play.
+
+**Deck profiles** — save your 15-Uma team as a profile and swap your whole lineup with one click.
+
+1. Open the Team Trials team-edit screen in-game.
+2. In Heaven's **Team Trials** section, type a name and press **Save current** to store your team (keep
+   up to 5 named profiles — e.g. a main team and a padding team).
+3. To switch later, open the team-edit screen and press **Apply** on a profile. Heaven fills the grid
+   for you; press the game's own **Confirm** to save.
+
+A profile pins each exact Uma, so it keeps working even after your inventory order changes. If an Uma
+in a profile no longer exists, **Apply** tells you instead of saving a broken team.
+
+**Opponent finder** — auto-refresh the opponent list until a specific trainer appears.
+
+1. Open the Team Trials **Select Opponent** screen.
+2. Under **Opponent hunter**, enter the trainer's **name and/or ID** and press **Start hunt**.
+3. Heaven refreshes for you at a relaxed, human pace. When the target appears it stops and alerts you
+   — an on-screen banner, a **Windows notification**, and a flashing taskbar — so you can leave it
+   running and come back. It stops on its own after a while if the target never shows.
+
+The opponent pool is random, so a given trainer may take many refreshes — or not appear at all.
 
 ### Race export
 Save each race you run to a JSON file (under a `heaven-races` folder next to the game), grouped
@@ -168,9 +194,9 @@ normal startup.
 
 ## The menu (press **Insert**)
 
-A sidebar with sections: **Gameplay**, **Race Director**, **Visuals**, **Performance**,
-**Interface**, **About**. Every setting is remembered across sessions. The open/close key
-(default **Insert**) and the window layout are configurable in **Interface → Layout**.
+A sidebar with sections: **Gameplay**, **Team Trials**, **Race Director**, **Visuals**,
+**Performance**, **Interface**, **About**. Every setting is remembered across sessions. The
+open/close key (default **Insert**) and the window layout are configurable in **Interface → Layout**.
 
 Prefer something simpler? Toggle **Classic menu** in **Interface → Layout** to switch to the
 original compact menu in-game — it carries the full feature set grouped into collapsible
