@@ -64,6 +64,7 @@ pub enum Custom {
     TeamTrials,      // capture toggle + "N saved" count
     TtPadder,        // Team Trials deck profiles — snapshot + 1-click swap
     TtHunter,        // Team Trials opponent hunter — auto-refresh until a target appears
+    Affinity,        // Legacy Select succession-affinity numbers — enable + drag-to-place + size
     Intro,           // intro status + replay button
     Updates,         // version + check/pull/releases
     AboutLayout,     // centered / dock side / toggle-key rebind / classic-menu toggle
@@ -158,6 +159,12 @@ pub fn model() -> Vec<Tab> {
                 icon: '\u{E721}',
                 blurb: "Auto-refresh the opponent list until a trainer you name shows up.",
                 controls: vec![Ctrl::Custom(Custom::TtHunter)],
+            },
+            Section {
+                title: "TT Capture",
+                icon: '\u{E74E}',
+                blurb: "Saved results are read by the Heaven dashboard.",
+                controls: vec![Ctrl::Custom(Custom::TeamTrials)],
             },
         ],
     });
@@ -272,6 +279,12 @@ pub fn model() -> Vec<Tab> {
         blurb: "",
         controls: vec![Ctrl::Custom(Custom::AboutLayout)],
     });
+    interface.push(Section {
+        title: "Affinity numbers",
+        icon: '\u{E8C9}',
+        blurb: "Show the exact succession affinity on the Legacy Select screen.",
+        controls: vec![Ctrl::Custom(Custom::Affinity)],
+    });
     #[cfg(feature = "banner")]
     interface.push(Section {
         title: "Intro video",
@@ -284,12 +297,6 @@ pub fn model() -> Vec<Tab> {
     // ── 6) ABOUT ─────────────────────────────────────────────────────────────
     #[allow(unused_mut)]
     let mut about = vec![
-        Section {
-            title: "Team Trials",
-            icon: '\u{E74E}',
-            blurb: "Saved results are read by the Heaven dashboard.",
-            controls: vec![Ctrl::Custom(Custom::TeamTrials)],
-        },
         Section {
             title: "Updates",
             icon: '\u{E72C}',

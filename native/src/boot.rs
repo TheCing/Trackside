@@ -221,6 +221,13 @@ pub fn spawn() {
             log(&format!("tt hunter: {r}"));
             crate::diag::record_install("tt hunter", &r);
         }
+        // Legacy Select affinity numbers (on-screen exact pair total + per-parent values).
+        // Read-only; its per-frame tick rides hunter's TweenManager.Update pump.
+        {
+            let r = crate::affinity::install();
+            log(&format!("affinity: {r}"));
+            crate::diag::record_install("affinity", &r);
+        }
 
         // Heaven+Hachimi variant: report which hooks Heaven owns vs ceded to a co-resident mod.
         #[cfg(feature = "hachimi")]

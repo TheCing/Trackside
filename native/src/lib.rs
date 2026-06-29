@@ -11,6 +11,7 @@
 
 // Intro player support (native song playback, original-BGM mute, title-scene probe).
 // Private build only — gated with the `banner` feature, like the video player itself.
+mod affinity;
 #[cfg(feature = "banner")]
 mod audio;
 #[cfg(feature = "banner")]

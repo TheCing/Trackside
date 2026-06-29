@@ -138,6 +138,13 @@ in a profile no longer exists, **Apply** tells you instead of saving a broken te
 
 The opponent pool is random, so a given trainer may take many refreshes — or not appear at all.
 
+### Affinity display
+On the **Legacy Select** screen — where you pick your inherited parents at the start of a career —
+Heaven shows the **exact succession affinity** the game itself uses: the pair total plus each
+parent's value. The numbers appear as on-screen badges you can **drag anywhere and resize**; your
+placement and size are remembered. Turn it on under **Interface → Affinity numbers**. It only shows
+on the Legacy Select screen.
+
 ### Race export
 Save each race you run to a JSON file (under a `heaven-races` folder next to the game), grouped
 by race type, for web race viewers/analysis. Enable **Export races** under **Gameplay → Race
