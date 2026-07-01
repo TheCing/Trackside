@@ -196,6 +196,13 @@ hook_slot!(TR_MAIN, D_MAIN);
 hook_slot!(TR_TIMELINE, D_TIMELINE);
 hook_slot!(TR_TAGIN, D_TAGIN); // SingleModeMainViewTagTrainingCutInPlayer.PlayCutIn
 hook_slot!(TR_TAGOUT, D_TAGOUT); // .PlayCutInOut
+hook_slot!(TR_PHOTO_PLAY, D_PHOTO_PLAY); // PhotoStudioCuttController.PlayCutIn
+hook_slot!(TR_PHOTO_ASYNC, D_PHOTO_ASYNC); // .PlayCutInAsync
+hook_slot!(TR_PHOTO_END, D_PHOTO_END); // .OnEndCutIn
+// True while the Photo Studio is replaying a cut. It reuses SingleModeTrainingCutInHelper
+// (PhotoStudioCuttController._cutInHelperList@0x18), so those helpers fire our OnPlayCutIn
+// hook — without this flag the training-skip would swallow the photo-studio animation too.
+static PHOTO_CUT_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 #[inline]
 unsafe fn call_orig(tramp: &AtomicUsize, this: *mut c_void, method: *mut c_void) {
@@ -210,6 +217,9 @@ unsafe fn call_orig(tramp: &AtomicUsize, this: *mut c_void, method: *mut c_void)
 fn do_training_skip(this: *mut c_void) {
     if !is_enabled() || in_heaven() || this.is_null() {
         return;
+    }
+    if PHOTO_CUT_ACTIVE.load(Ordering::Relaxed) {
+        return; // Photo Studio cut recreation — must play normally, never skip it
     }
     if let Some(sr) = SKIP_RUNTIME.get() {
         if sr.ok() {
@@ -230,6 +240,49 @@ unsafe extern "C" fn on_play_cutin(this: *mut c_void, m: *mut c_void) {
 unsafe extern "C" fn on_play_main_cutin(this: *mut c_void, m: *mut c_void) {
     call_orig(&TR_MAIN, this, m);
     do_training_skip(this);
+}
+
+// ── PHOTO STUDIO: pause the training-skip while a recreated cut plays ────────
+// PhotoStudioCuttController replays training cut-ins through the SAME
+// SingleModeTrainingCutInHelper instances (its _cutInHelperList@0x18), so those
+// helpers fire on_play_cutin above and SkipRuntime() would skip the photo cut too.
+// We flag the play window (both the sync PlayCutIn and the async coroutine entry,
+// whichever the view controller uses) and clear it on OnEndCutIn.
+type Photo3Fn = unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void, *mut c_void, *mut c_void);
+type Photo1RetFn = unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void) -> *mut c_void;
+
+unsafe extern "C" fn on_photo_play_cut(
+    this: *mut c_void,
+    model: *mut c_void,
+    on_end: *mut c_void,
+    on_clean: *mut c_void,
+    m: *mut c_void,
+) {
+    PHOTO_CUT_ACTIVE.store(true, Ordering::Relaxed);
+    rr_log("[photo] cut start -> training-skip paused");
+    let t = TR_PHOTO_PLAY.load(Ordering::Relaxed);
+    if t != 0 {
+        let f: Photo3Fn = std::mem::transmute(t);
+        f(this, model, on_end, on_clean, m);
+    }
+}
+unsafe extern "C" fn on_photo_play_cut_async(
+    this: *mut c_void,
+    model: *mut c_void,
+    m: *mut c_void,
+) -> *mut c_void {
+    PHOTO_CUT_ACTIVE.store(true, Ordering::Relaxed);
+    let t = TR_PHOTO_ASYNC.load(Ordering::Relaxed);
+    if t != 0 {
+        let f: Photo1RetFn = std::mem::transmute(t);
+        return f(this, model, m);
+    }
+    std::ptr::null_mut()
+}
+unsafe extern "C" fn on_photo_end_cut(this: *mut c_void, m: *mut c_void) {
+    call_orig(&TR_PHOTO_END, this, m);
+    PHOTO_CUT_ACTIVE.store(false, Ordering::Relaxed);
+    rr_log("[photo] cut end -> training-skip resumed");
 }
 
 // ── EVENTS: SkipStory on OnStartPlayingTimeline (guarded + debounced). ──────
@@ -1457,6 +1510,27 @@ pub fn install() -> (bool, bool, String) {
                 notes.push_str(&format!("{e}; "));
             }
             let _ = install_one(tag, "PlayCutInOut", 1, on_tag_play_cutin_out as *const (), &TR_TAGOUT, &D_TAGOUT);
+        }
+    }
+
+    // ── PHOTO STUDIO cut-recreation guard ── pause the training-skip while the Photo
+    //    Studio replays a cut (it reuses SingleModeTrainingCutInHelper, so our OnPlayCutIn
+    //    hook would otherwise skip the animation the user is trying to view/capture).
+    //    Independent of the training toggle — the flag only ever gates a photo-studio cut.
+    let photo = il2cpp::class("Gallop.PhotoStudioCuttController");
+    if photo.is_null() {
+        notes.push_str("photo cut ctrl miss; ");
+    } else {
+        unsafe {
+            if let Err(e) = install_one(photo, "PlayCutIn", 3, on_photo_play_cut as *const (), &TR_PHOTO_PLAY, &D_PHOTO_PLAY) {
+                notes.push_str(&format!("photo play: {e}; "));
+            }
+            if let Err(e) = install_one(photo, "PlayCutInAsync", 1, on_photo_play_cut_async as *const (), &TR_PHOTO_ASYNC, &D_PHOTO_ASYNC) {
+                notes.push_str(&format!("photo async: {e}; "));
+            }
+            if let Err(e) = install_one(photo, "OnEndCutIn", 0, on_photo_end_cut as *const (), &TR_PHOTO_END, &D_PHOTO_END) {
+                notes.push_str(&format!("photo end: {e}; "));
+            }
         }
     }
 

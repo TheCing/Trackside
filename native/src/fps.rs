@@ -28,11 +28,13 @@ static TARGET_MI: AtomicUsize = AtomicUsize::new(0);
 static VSYNC_TRAMP: AtomicUsize = AtomicUsize::new(0);
 static VSYNC_MI: AtomicUsize = AtomicUsize::new(0);
 static TARGET_ICALL_TRAMP: AtomicUsize = AtomicUsize::new(0);
+static VSYNC_ICALL_TRAMP: AtomicUsize = AtomicUsize::new(0);
 static CURRENT: AtomicI32 = AtomicI32::new(0); // requested cap (0 = off)
 
 static TARGET_DETOUR: OnceLock<RawDetour> = OnceLock::new();
 static VSYNC_DETOUR: OnceLock<RawDetour> = OnceLock::new();
 static TARGET_ICALL_DETOUR: OnceLock<RawDetour> = OnceLock::new();
+static VSYNC_ICALL_DETOUR: OnceLock<RawDetour> = OnceLock::new();
 
 pub fn current() -> i32 {
     CURRENT.load(Ordering::Relaxed)
@@ -86,6 +88,21 @@ unsafe extern "C" fn vsync_hook(incoming: i32, mi: *mut c_void) {
     }
 }
 
+/// Clamp-guard on the NATIVE set_vSyncCount icall. The managed QualitySettings.set_vSyncCount setter was
+/// STRIPPED from the il2cpp build (the game stopped calling it, so the linker dropped it) — hooking it by
+/// name now misses. The engine icall is still registered, so we guard that instead: while a cap is active
+/// every vSync write (ours or the engine's) is forced to 0 so the target frame rate actually applies.
+/// Signature is `void(i32)` — the icall gets NO trailing MethodInfo*.
+unsafe extern "C" fn vsync_icall_hook(incoming: i32) {
+    let cap = CURRENT.load(Ordering::Relaxed);
+    let value = if cap == 0 { incoming } else { 0 };
+    let t = VSYNC_ICALL_TRAMP.load(Ordering::Relaxed);
+    if t != 0 {
+        let f: SetIntIcall = std::mem::transmute(t);
+        f(value);
+    }
+}
+
 /// Apply an FPS cap. 0 = off, -1 = uncapped (+vSync off), N = cap at N (+vSync off).
 pub fn set_cap(value: i32) {
     CURRENT.store(value, Ordering::Relaxed);
@@ -94,7 +111,15 @@ pub fn set_cap(value: i32) {
     }
     // Apply immediately via the trampolines (the hooks keep enforcing after).
     unsafe {
-        call_tramp(&VSYNC_TRAMP, &VSYNC_MI, 0);
+        // vSync off — prefer the icall tramp (managed setter is stripped from this build),
+        // fall back to the managed tramp if only that one was hookable.
+        let vi = VSYNC_ICALL_TRAMP.load(Ordering::Relaxed);
+        if vi != 0 {
+            let f: SetIntIcall = std::mem::transmute(vi);
+            f(0);
+        } else {
+            call_tramp(&VSYNC_TRAMP, &VSYNC_MI, 0);
+        }
         call_tramp(&TARGET_TRAMP, &TARGET_MI, value);
     }
 }
@@ -162,17 +187,40 @@ pub fn install() -> String {
             }
         }
     }
-    // vSync is optional but important — without disabling it the target is ignored.
+    // vSync is optional but important — without disabling it the target is ignored. The managed
+    // QualitySettings.set_vSyncCount was stripped from this build (present only if a future update
+    // restores it), so try it best-effort and DON'T treat a miss as failure — the icall below is the
+    // real guard now.
     let q = il2cpp::class("UnityEngine.QualitySettings");
-    if !q.is_null() {
+    if !q.is_null() && !il2cpp::method(q, "set_vSyncCount", 1).is_null() {
         unsafe {
             match hook(q, "set_vSyncCount", vsync_hook as *const (), &VSYNC_TRAMP, &VSYNC_MI, &VSYNC_DETOUR) {
-                Ok(()) => notes.push_str(" vsync=ok"),
-                Err(e) => notes.push_str(&format!(" vsync={e}")),
+                Ok(()) => notes.push_str(" vsync-managed=ok"),
+                Err(e) => notes.push_str(&format!(" vsync-managed={e}")),
             }
         }
     } else {
-        notes.push_str(" vsync=no-class");
+        notes.push_str(" vsync-managed=stripped");
+    }
+    // Native icall guard (the vSync equivalent of the targetFrameRate icall fix): resolve by name so
+    // it survives updates. This is what actually forces vSync off now.
+    unsafe {
+        let icall = il2cpp::resolve_icall("UnityEngine.QualitySettings::set_vSyncCount(System.Int32)");
+        if icall.is_null() {
+            notes.push_str(" vsync-icall=miss");
+        } else if il2cpp::is_detoured(icall) {
+            notes.push_str(" vsync-icall=already-detoured");
+        } else {
+            match RawDetour::new(icall as *const (), vsync_icall_hook as *const ()) {
+                Ok(d) if d.enable().is_ok() => {
+                    VSYNC_ICALL_TRAMP.store(d.trampoline() as *const () as usize, Ordering::Relaxed);
+                    let _ = VSYNC_ICALL_DETOUR.set(d);
+                    notes.push_str(" vsync-icall=ok");
+                }
+                Ok(_) => notes.push_str(" vsync-icall=enable-fail"),
+                Err(e) => notes.push_str(&format!(" vsync-icall={e}")),
+            }
+        }
     }
     notes
 }
