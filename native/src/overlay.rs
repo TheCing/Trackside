@@ -17,38 +17,38 @@ use std::time::Instant;
 // Career/Race data types are only used by the info panels (feature `panels`).
 use crate::ipc;
 
-// ── Heaven "Umamusume" palette (RGBA 0..1) — purple/pink theme matched to the mockup ──
-const ACCENT: [f32; 4] = [0.769, 0.416, 1.0, 1.0]; // lavender-purple (section titles, checks)
-const ACCENT_HI: [f32; 4] = [0.88, 0.64, 1.0, 1.0];
-const PINK: [f32; 4] = [1.0, 0.361, 0.796, 1.0]; // toggle/slider pink
-const TEXT: [f32; 4] = [0.87, 0.83, 0.93, 1.0];
-const DIM: [f32; 4] = [0.56, 0.50, 0.66, 1.0]; // muted lavender-gray
-const GOLD: [f32; 4] = [0.843, 0.694, 0.365, 1.0];
-const GOOD: [f32; 4] = [0.55, 0.85, 0.66, 1.0];
-const WARN: [f32; 4] = [1.0, 0.72, 0.42, 1.0];
-const BAD: [f32; 4] = [1.0, 0.42, 0.55, 1.0];
-const BLUE: [f32; 4] = [0.55, 0.70, 1.0, 1.0];
+// ── Heaven palette (RGBA 0..1) — muted slate-violet, softened from the original neon theme ──
+const ACCENT: [f32; 4] = [0.64, 0.60, 0.90, 1.0]; // soft periwinkle (section titles, checks)
+const ACCENT_HI: [f32; 4] = [0.78, 0.74, 0.97, 1.0];
+const PINK: [f32; 4] = [0.86, 0.52, 0.70, 1.0]; // muted rose — race FIGHT/SPURT tags only
+const TEXT: [f32; 4] = [0.90, 0.89, 0.94, 1.0];
+const DIM: [f32; 4] = [0.58, 0.56, 0.66, 1.0]; // neutral gray
+const GOLD: [f32; 4] = [0.80, 0.70, 0.52, 1.0]; // softened, art-only warmth
+const GOOD: [f32; 4] = [0.55, 0.82, 0.66, 1.0];
+const WARN: [f32; 4] = [0.95, 0.74, 0.48, 1.0];
+const BAD: [f32; 4] = [0.92, 0.50, 0.60, 1.0];
+const BLUE: [f32; 4] = [0.58, 0.72, 1.0, 1.0];
 
-const PANEL_BG: [f32; 4] = [0.090, 0.051, 0.169, 0.985]; // page behind the cards
-const TITLE_BG: [f32; 4] = [0.10, 0.07, 0.17, 1.0];
-const TITLE_BG_ON: [f32; 4] = [0.20, 0.10, 0.26, 1.0];
-const BORDER: [f32; 4] = [0.40, 0.30, 0.56, 0.45];
-const FRAME_BG: [f32; 4] = [0.20, 0.15, 0.32, 1.0];
-const FRAME_HI: [f32; 4] = [0.26, 0.19, 0.40, 1.0];
-const BTN_BG: [f32; 4] = [0.23, 0.17, 0.36, 1.0];
-const BTN_HI: [f32; 4] = [0.31, 0.23, 0.46, 1.0];
-const AMBER_SOFT: [f32; 4] = [0.769, 0.416, 1.0, 0.22]; // accent soft (name kept for reuse)
-const AMBER_MED: [f32; 4] = [0.769, 0.416, 1.0, 0.42];
+const PANEL_BG: [f32; 4] = [0.082, 0.078, 0.110, 0.985]; // page behind the cards (cool slate)
+const TITLE_BG: [f32; 4] = [0.105, 0.100, 0.140, 1.0];
+const TITLE_BG_ON: [f32; 4] = [0.165, 0.150, 0.225, 1.0];
+const BORDER: [f32; 4] = [0.46, 0.44, 0.58, 0.30];
+const FRAME_BG: [f32; 4] = [0.165, 0.155, 0.225, 1.0];
+const FRAME_HI: [f32; 4] = [0.215, 0.200, 0.285, 1.0];
+const BTN_BG: [f32; 4] = [0.190, 0.175, 0.255, 1.0];
+const BTN_HI: [f32; 4] = [0.255, 0.235, 0.330, 1.0];
+const AMBER_SOFT: [f32; 4] = [0.64, 0.60, 0.90, 0.18]; // accent soft (name kept for reuse)
+const AMBER_MED: [f32; 4] = [0.64, 0.60, 0.90, 0.34];
 
 // Menu chrome.
-const SIDEBAR_BG: [f32; 4] = [0.043, 0.024, 0.086, 1.0]; // sidebar column
-const CARD_BG: [f32; 4] = [0.175, 0.105, 0.32, 0.97]; // section card (lighter, floats on page)
-const CARD_BORDER: [f32; 4] = [0.52, 0.42, 0.72, 0.28]; // subtle card outline
-const BADGE_BG: [f32; 4] = [0.769, 0.416, 1.0, 0.20]; // rounded square behind a section icon
-const SEL_BG: [f32; 4] = [0.56, 0.42, 0.90, 0.42]; // selected sidebar pill (soft lavender)
-const TRACK_BG: [f32; 4] = [0.24, 0.19, 0.36, 1.0]; // slider track
-const GRAD_L: [f32; 4] = [1.0, 0.36, 0.80, 1.0]; // slider fill left (pink)
-const GRAD_R: [f32; 4] = [0.77, 0.42, 1.0, 1.0]; // slider fill right (purple)
+const SIDEBAR_BG: [f32; 4] = [0.052, 0.048, 0.072, 1.0]; // sidebar column (near-neutral dark)
+const CARD_BG: [f32; 4] = [0.150, 0.140, 0.200, 0.97]; // section card (lighter, floats on page)
+const CARD_BORDER: [f32; 4] = [0.56, 0.52, 0.70, 0.20]; // subtle card outline
+const BADGE_BG: [f32; 4] = [0.64, 0.60, 0.90, 0.16]; // rounded square behind a section icon
+const SEL_BG: [f32; 4] = [0.52, 0.48, 0.80, 0.30]; // selected sidebar pill (soft lavender)
+const TRACK_BG: [f32; 4] = [0.215, 0.200, 0.285, 1.0]; // slider track
+const GRAD_L: [f32; 4] = [0.58, 0.55, 0.90, 1.0]; // slider fill left (soft accent)
+const GRAD_R: [f32; 4] = [0.72, 0.62, 0.94, 1.0]; // slider fill right (soft lilac)
 const SIDEBAR_W: f32 = 176.0;
 const MENU_W: f32 = 720.0;
 const MENU_H: f32 = 720.0;
@@ -57,7 +57,9 @@ const MENU_H: f32 = 720.0;
 // Per the design kit: body = Inter Medium, section titles = Cinzel SemiBold, numbers = Orbitron Medium.
 const INTER_TTF: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Inter-Medium.ttf"));
 const INTER_SB_TTF: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Inter-SemiBold.ttf"));
+#[allow(dead_code)] // kept available; section titles now use Inter SemiBold
 const CINZEL_TTF: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Cinzel-SemiBold.ttf"));
+#[allow(dead_code)] // kept available; numbers now use Inter SemiBold
 const ORBITRON_TTF: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Orbitron-Medium.ttf"));
 
 // Keys the user can bind to open/close the menu (settings.toggle_key indexes this).
@@ -612,9 +614,9 @@ impl ImguiRenderLoop for HeavenOverlay {
             }]);
             ICON_FONT.with(|c| c.set(Some(id)));
         }
-        // Cinzel SemiBold for section titles.
+        // Inter SemiBold for section titles (clean, modern — replaces the ornate Cinzel serif).
         let tid = ctx.fonts().add_font(&[FontSource::TtfData {
-            data: CINZEL_TTF,
+            data: INTER_SB_TTF,
             size_pixels: 18.0,
             config: Some(FontConfig {
                 oversample_h: 3,
@@ -624,10 +626,11 @@ impl ImguiRenderLoop for HeavenOverlay {
             }),
         }]);
         TITLE_FONT.with(|c| c.set(Some(tid)));
-        // Orbitron Medium for emphasised numbers / values.
+        // Inter SemiBold for emphasised numbers / values (clean + legible — replaces the hard-to-
+        // read Orbitron faces).
         let vid = ctx.fonts().add_font(&[FontSource::TtfData {
-            data: ORBITRON_TTF,
-            size_pixels: 15.0,
+            data: INTER_SB_TTF,
+            size_pixels: 16.0,
             config: Some(FontConfig {
                 oversample_h: 3,
                 oversample_v: 3,
@@ -1020,8 +1023,8 @@ impl HeavenOverlay {
                 #[cfg(feature = "banner")]
                 if let Some(bg) = BG_TEX.with(|c| c.get()) {
                     let dl = ui.get_window_draw_list();
-                    dl.add_image(bg, p0, pmax).col([1.0, 1.0, 1.0, 0.5]).build();
-                    dl.add_rect(p0, pmax, [0.043, 0.024, 0.086, 0.62]).filled(true).rounding(10.0).build();
+                    dl.add_image(bg, p0, pmax).col([1.0, 1.0, 1.0, 0.16]).build();
+                    dl.add_rect(p0, pmax, [0.082, 0.078, 0.110, 0.62]).filled(true).rounding(10.0).build();
                 }
                 // Darker sidebar strip on the left (rounded only on the left to match the window).
                 ui.get_window_draw_list()
@@ -1054,7 +1057,7 @@ impl HeavenOverlay {
                                 let sway = (anim_t * 0.7 + ph).sin() * 9.0;
                                 let cx = p0[0] + 10.0 + xf * (SIDEBAR_W - 30.0) + sway;
                                 dl.add_image(t, [cx, yy], [cx + sz, yy + sz])
-                                    .col([1.0, 1.0, 1.0, 0.55])
+                                    .col([1.0, 1.0, 1.0, 0.22])
                                     .build();
                             }
                         }
@@ -1069,7 +1072,7 @@ impl HeavenOverlay {
                 {
                     let mut y = 6.0;
                     if let Some(t) = crest_tex {
-                        let cs = 78.0;
+                        let cs = 66.0;
                         // Soft magenta halo behind the crest (floating glow orb).
                         if let Some(orb) = ORB_TEX.with(|c| c.get()) {
                             let ocx = p0[0] + SIDEBAR_W * 0.5;
@@ -1077,7 +1080,7 @@ impl HeavenOverlay {
                             let os = cs * 0.92;
                             ui.get_window_draw_list()
                                 .add_image(orb, [ocx - os, ocy - os], [ocx + os, ocy + os])
-                                .col([1.0, 1.0, 1.0, 0.55])
+                                .col([1.0, 1.0, 1.0, 0.30])
                                 .build();
                         }
                         ui.set_cursor_pos([(SIDEBAR_W - cs) * 0.5, y]);
@@ -1111,7 +1114,7 @@ impl HeavenOverlay {
                     let nav_pitch = (nav_avail / n_items).clamp(46.0, 56.0);
                     let nav_half = nav_pitch * 0.5;
                     let icon_sz = 42.0_f32;
-                    // Animated active background + gold→magenta bar that slide toward the
+                    // Animated active background + a soft accent bar that slide toward the
                     // selected row (~160 ms). Drawn BEFORE the rows so content sits on top.
                     let active_y = anim_step("nav_bar_y", nav_y0 + (*tab as f32) * nav_pitch, 12.0);
                     {
@@ -1127,10 +1130,10 @@ impl HeavenOverlay {
                         dl.add_rect_filled_multicolor(
                             [p0[0] + 4.0, p0[1] + active_y + nav_half - 14.0],
                             [p0[0] + 8.5, p0[1] + active_y + nav_half + 14.0],
-                            GOLD,
-                            GOLD,
-                            [0.77, 0.42, 1.0, 1.0],
-                            [0.77, 0.42, 1.0, 1.0],
+                            ACCENT_HI,
+                            ACCENT_HI,
+                            ACCENT,
+                            ACCENT,
                         );
                     }
                     for (i, name) in tabs.iter().enumerate() {
@@ -1155,40 +1158,40 @@ impl HeavenOverlay {
                                 .add_rect(
                                     [p0[0] + 8.0, p0[1] + cy + 3.0],
                                     [p0[0] + SIDEBAR_W - 8.0, p0[1] + cy + nav_pitch - 3.0],
-                                    [0.80, 0.44, 1.0, 0.16 * hv],
+                                    [0.64, 0.60, 0.92, 0.11 * hv],
                                 )
                                 .filled(true)
                                 .rounding(9.0)
                                 .build();
                         }
-                        // States: NORMAL (glow ×1) · HOVER (+15% glow, +10% brightness) ·
-                        // ACTIVE (+25% glow, gold accent). Label eases dim → accent on hover.
-                        let nav_dim = [0.70, 0.64, 0.82, 1.0];
+                        // States: NORMAL · HOVER (+brightness) · ACTIVE (accent). Label eases
+                        // dim → accent on hover. Glows kept faint for a flatter, modern look.
+                        let nav_dim = [0.70, 0.68, 0.80, 1.0];
                         let col = if sel { TEXT } else { lerp_col(nav_dim, ACCENT_HI, hv) };
                         let icc = [p0[0] + 35.0, p0[1] + cy + nav_half]; // icon centre
                         let nav_t = nav_icon_idx(name).and_then(|ix| nav_tex[ix]);
                         if let Some(t) = nav_t {
                             let dl = ui.get_window_draw_list();
-                            // Magenta contrast glow: +15% on hover, +25% on active.
-                            let gf = 1.0 + 0.15 * hv + if sel { 0.25 } else { 0.0 };
+                            // Soft accent contrast glow: +on hover, +on active (halved vs. before).
+                            let gf = 1.0 + 0.12 * hv + if sel { 0.20 } else { 0.0 };
                             for (r, a) in [
-                                (icon_sz * 0.60, 0.07_f32),
-                                (icon_sz * 0.44, 0.11),
-                                (icon_sz * 0.32, 0.16),
+                                (icon_sz * 0.60, 0.035_f32),
+                                (icon_sz * 0.44, 0.055),
+                                (icon_sz * 0.32, 0.085),
                             ] {
-                                dl.add_circle(icc, r, [0.85, 0.42, 1.0, (a * gf).min(0.55)])
+                                dl.add_circle(icc, r, [0.64, 0.60, 0.92, (a * gf).min(0.30)])
                                     .filled(true)
                                     .build();
                             }
-                            // Active: a faint gold ring behind the icon (subtle metallic accent).
+                            // Active: a faint accent ring behind the icon.
                             if sel {
-                                dl.add_circle(icc, icon_sz * 0.5 - 2.0, [0.843, 0.694, 0.365, 0.22])
+                                dl.add_circle(icc, icon_sz * 0.5 - 2.0, [0.74, 0.70, 0.96, 0.20])
                                     .thickness(2.0)
                                     .build();
                             }
                             // Subtle rounded badge plate.
                             let bh = icon_sz * 0.5 + 4.0;
-                            let badge = if sel { [0.80, 0.50, 1.0, 0.26] } else { [0.78, 0.49, 1.0, 0.08] };
+                            let badge = if sel { [0.62, 0.58, 0.92, 0.22] } else { [0.62, 0.58, 0.92, 0.07] };
                             dl.add_rect([icc[0] - bh, icc[1] - bh], [icc[0] + bh, icc[1] + bh], badge)
                                 .filled(true)
                                 .rounding(11.0)
@@ -1203,7 +1206,7 @@ impl HeavenOverlay {
                             }
                         } else {
                             let bh = icon_sz * 0.5 - 1.0;
-                            let badge = if sel { [0.78, 0.49, 1.0, 0.85] } else { [0.78, 0.49, 1.0, 0.14] };
+                            let badge = if sel { [0.66, 0.62, 0.94, 0.85] } else { [0.62, 0.58, 0.92, 0.12] };
                             ui.get_window_draw_list()
                                 .add_rect([icc[0] - bh, icc[1] - bh], [icc[0] + bh, icc[1] + bh], badge)
                                 .filled(true)
@@ -1235,6 +1238,7 @@ impl HeavenOverlay {
                     let sy = p0[1] + wsz[1] - sh - 14.0;
                     ui.get_window_draw_list()
                         .add_image(t, [sx, sy], [sx + sw, sy + sh])
+                        .col([1.0, 1.0, 1.0, 0.30])
                         .build();
                 }
 
@@ -1261,7 +1265,7 @@ impl HeavenOverlay {
                         if has_img {
                             if let Some(t) = spark_tex[k % 3] {
                                 let s = r * 3.2;
-                                let a = (c[3] + 0.2).min(0.85);
+                                let a = (c[3] * 0.45).min(0.85);
                                 dl.add_image(t, [cx - s, cyy - s], [cx + s, cyy + s])
                                     .col([1.0, 1.0, 1.0, a])
                                     .build();
@@ -1309,16 +1313,16 @@ impl HeavenOverlay {
                     let mx = [sp[0] + content_w, sp[1] + bh];
                     {
                         let dl = ui.get_window_draw_list();
-                        dl.add_rect(sp, mx, [0.12, 0.07, 0.20, 0.94]).filled(true).rounding(9.0).build();
+                        dl.add_rect(sp, mx, [0.115, 0.110, 0.150, 0.94]).filled(true).rounding(9.0).build();
                         dl.add_rect_filled_multicolor(
                             [sp[0] + 2.0, sp[1] + 2.0],
                             [mx[0] - 2.0, mx[1] - 2.0],
-                            [0.24, 0.15, 0.36, 0.55],
-                            [0.16, 0.10, 0.28, 0.12],
-                            [0.16, 0.10, 0.28, 0.12],
-                            [0.24, 0.15, 0.36, 0.55],
+                            [0.22, 0.21, 0.30, 0.45],
+                            [0.16, 0.15, 0.22, 0.10],
+                            [0.16, 0.15, 0.22, 0.10],
+                            [0.22, 0.21, 0.30, 0.45],
                         );
-                        dl.add_rect(sp, mx, [0.84, 0.69, 0.36, 0.42]).rounding(9.0).thickness(1.2).build();
+                        dl.add_rect(sp, mx, [0.60, 0.56, 0.82, 0.30]).rounding(9.0).thickness(1.2).build();
                         dl.add_circle([sp[0] + 17.0, sp[1] + bh * 0.5], 4.0, GOOD).filled(true).build();
                     }
                     // Wordmark (Cinzel) + version.
@@ -1385,14 +1389,14 @@ impl HeavenOverlay {
                             .rounding(8.0)
                             .build();
                         }
-                        dl.add_rect([cx0, chip_y], [cx1, chip_y + chip_h], [0.10, 0.06, 0.18, 0.62])
+                        dl.add_rect([cx0, chip_y], [cx1, chip_y + chip_h], [0.11, 0.105, 0.150, 0.62])
                             .filled(true)
                             .rounding(7.0)
                             .build();
                         dl.add_rect(
                             [cx0, chip_y],
                             [cx1, chip_y + chip_h],
-                            [0.60, 0.50, 0.85, if *act { 0.42 } else { 0.22 }],
+                            [0.60, 0.56, 0.82, if *act { 0.40 } else { 0.20 }],
                         )
                         .rounding(7.0)
                         .thickness(1.0)
@@ -1416,19 +1420,30 @@ impl HeavenOverlay {
                 if let Some(t) = banner_tex {
                     let bsp = ui.cursor_screen_pos();
                     let bh = content_w * (BANNER_H / BANNER_W);
-                    imgui::Image::new(t, [content_w, bh]).build(ui);
-                    // Gradient fade along the bottom edge so the page/cards appear to emerge
-                    // from the banner rather than sitting in a hard-edged box.
-                    let fade = 48.0;
-                    let top = [0.07, 0.04, 0.13, 0.0];
-                    let bot = [0.07, 0.04, 0.13, 0.92];
+                    // Multiply-tint toward the page colour: the art's light paper background sinks
+                    // into the dark theme so only the linework stays faintly visible, instead of a
+                    // flat grey box. (imgui multiplies the texture by this tint.)
+                    imgui::Image::new(t, [content_w, bh]).tint_col([0.20, 0.19, 0.26, 1.0]).build(ui);
+                    // Dissolve BOTH edges into the page so there's no hard rectangle — it reads as
+                    // a soft header wash rather than a boxed image.
+                    let fade = 70.0;
+                    let clear = [0.082, 0.078, 0.110, 0.0];
+                    let solid = [0.082, 0.078, 0.110, 1.0];
+                    ui.get_window_draw_list().add_rect_filled_multicolor(
+                        [bsp[0], bsp[1]],
+                        [bsp[0] + content_w, bsp[1] + fade],
+                        solid,
+                        solid,
+                        clear,
+                        clear,
+                    );
                     ui.get_window_draw_list().add_rect_filled_multicolor(
                         [bsp[0], bsp[1] + bh - fade],
                         [bsp[0] + content_w, bsp[1] + bh],
-                        top,
-                        top,
-                        bot,
-                        bot,
+                        clear,
+                        clear,
+                        solid,
+                        solid,
                     );
                     ui.dummy([0.0, 2.0]);
                 }
@@ -2233,36 +2248,25 @@ fn card<F: FnOnce()>(ui: &Ui, w: f32, key: &'static str, body: F) {
     let start = ui.cursor_screen_pos();
     let cached = CARD_H.with(|m| m.borrow().get(key).copied()).unwrap_or(60.0);
     let end = [start[0] + w, start[1] + cached];
-    // Eased hover amount (~120 ms) — subtly lifts the glow + border when the mouse is over.
-    let chv = anim_step(
-        &format!("card_{key}"),
-        if ui.is_mouse_hovering_rect(start, end) { 1.0 } else { 0.0 },
-        16.0,
-    );
     {
         let dl = ui.get_window_draw_list();
-        // Soft magenta glow behind the card — a few expanding low-alpha rects approximate a
-        // blurred drop-shadow, so the panel reads as floating above the page. Grows on hover.
-        let gboost = 1.0 + 0.6 * chv;
+        // Soft neutral drop shadow so the card reads as gently raised above the page. Static —
+        // no hover glow, no coloured halo.
         for k in 0..3 {
-            let e = 2.0 + k as f32 * 2.8;
-            let a = (0.055 - k as f32 * 0.014) * gboost;
-            dl.add_rect([start[0] - e, start[1] - e], [end[0] + e, end[1] + e], [0.78, 0.40, 0.96, a])
-                .filled(true)
-                .rounding(18.0)
-                .build();
+            let e = 2.0 + k as f32 * 2.6;
+            let a = 0.05 - k as f32 * 0.013;
+            dl.add_rect(
+                [start[0] - e, start[1] - e + 2.0],
+                [end[0] + e, end[1] + e + 2.0],
+                [0.0, 0.0, 0.0, a],
+            )
+            .filled(true)
+            .rounding(18.0)
+            .build();
         }
         dl.add_rect(start, end, CARD_BG).filled(true).rounding(16.0).build();
-        // Top highlight: a faint lighter band along the upper edge (lit-from-above look).
-        dl.add_rect([start[0] + 1.0, start[1] + 1.0], [end[0] - 1.0, start[1] + 12.0], [1.0, 1.0, 1.0, 0.05])
-            .filled(true)
-            .rounding(15.0)
-            .round_bot_left(false)
-            .round_bot_right(false)
-            .build();
-        // Border brightens slightly on hover.
-        let border = lerp_col(CARD_BORDER, [0.70, 0.55, 0.95, 0.55], chv);
-        dl.add_rect(start, end, border).rounding(16.0).thickness(1.0 + 0.3 * chv).build();
+        // Flat, static border (no top highlight band, no hover brighten).
+        dl.add_rect(start, end, CARD_BORDER).rounding(16.0).thickness(1.0).build();
     } // release the draw list before the body draws its own widgets
     ui.set_cursor_screen_pos([start[0] + 22.0, start[1] + 18.0]);
     ui.group(body);
@@ -2296,17 +2300,15 @@ fn section(ui: &Ui, icon_font: Option<imgui::FontId>, glyph: &str, title: &str) 
     } else {
         ui.text_colored(ACCENT, title);
     }
-    // Elegant gold divider line under the title.
-    if let Some(d) = DIVIDER_TEX.with(|c| c.get()) {
-        ui.new_line();
-        let aw = ui.content_region_avail()[0];
-        let p = ui.cursor_screen_pos();
-        let dh = 12.0;
-        ui.get_window_draw_list()
-            .add_image(d, [p[0], p[1]], [p[0] + aw, p[1] + dh])
-            .build();
-        ui.dummy([0.0, dh + 2.0]);
-    }
+    // Clean 1px accent hairline under the title.
+    ui.new_line();
+    let aw = ui.content_region_avail()[0];
+    let p = ui.cursor_screen_pos();
+    ui.get_window_draw_list()
+        .add_line([p[0], p[1] + 2.0], [p[0] + aw, p[1] + 2.0], [0.64, 0.60, 0.90, 0.22])
+        .thickness(1.0)
+        .build();
+    ui.dummy([0.0, 9.0]);
 }
 
 /// Heaven pill toggle. ON = pink track with a magenta glow + gold-ringed knob; OFF = a purple
@@ -2322,59 +2324,43 @@ fn pill_toggle(ui: &Ui, id: &str, on: bool) -> bool {
     let dl = ui.get_window_draw_list();
     let cy = p[1] + h * 0.5;
 
-    // ── 1. Outer magenta glow (ON), a touch larger on hover ──
+    // ── 1. Faint accent glow (ON), a touch larger on hover ──
     if t > 0.01 {
-        let gboost = 1.0 + 0.5 * hv;
+        let gboost = 1.0 + 0.35 * hv;
         for k in 0..3 {
             let e = 1.5 + k as f32 * 2.8;
-            let a = ((0.17 - k as f32 * 0.05) * t * gboost).max(0.0);
-            dl.add_rect([p[0] - e, p[1] - e], [p[0] + w + e, p[1] + h + e], [1.0, 0.34, 0.78, a])
+            let a = ((0.09 - k as f32 * 0.03) * t * gboost).max(0.0);
+            dl.add_rect([p[0] - e, p[1] - e], [p[0] + w + e, p[1] + h + e], [0.62, 0.58, 0.92, a])
                 .filled(true)
                 .rounding(rad + e)
                 .build();
         }
     }
 
-    // ── 2. Glass body: dark-purple crystal (OFF) cross-fading to pink (ON) ──
-    let body = lerp_col([0.20, 0.15, 0.34, 1.0], [0.93, 0.37, 0.73, 1.0], t);
+    // ── 2. Flat body: dark slate (OFF) cross-fading to soft periwinkle (ON) ──
+    // (No sheen or gradient streak — kept matte/flat, not glassy.)
+    let body = lerp_col([0.185, 0.175, 0.255, 1.0], [0.56, 0.52, 0.86, 1.0], t);
     dl.add_rect(p, [p[0] + w, p[1] + h], body).filled(true).rounding(rad).build();
-    // Horizontal magenta→pink gradient streak through the middle (stays inside the rounded
-    // body, so no square corners) — gives the ON state its premium gradient feel.
-    if t > 0.01 {
-        let gl = [1.0, 0.30, 0.60, 0.55 * t];
-        let gr = [0.83, 0.44, 1.0, 0.55 * t];
-        dl.add_rect_filled_multicolor([p[0] + 8.0, cy - 7.0], [p[0] + w - 8.0, cy + 7.0], gl, gr, gr, gl);
-    }
-    // Crystal sheen along the top edge.
-    let sheen = 0.10 + 0.08 * t;
-    dl.add_rect_filled_multicolor(
-        [p[0] + 4.0, p[1] + 2.0],
-        [p[0] + w - 4.0, cy],
-        [1.0, 1.0, 1.0, sheen],
-        [1.0, 1.0, 1.0, sheen],
-        [1.0, 1.0, 1.0, 0.0],
-        [1.0, 1.0, 1.0, 0.0],
-    );
 
-    // ── 3. Border: subtle violet (OFF) → thin gold (ON), brighter on hover ──
+    // ── 3. Border: subtle violet (OFF) → soft accent (ON), brighter on hover ──
     let border = lerp_col(
-        [0.56, 0.49, 0.75, 0.40 + 0.28 * hv],
-        [0.843, 0.694, 0.365, 0.88],
+        [0.56, 0.53, 0.72, 0.36 + 0.24 * hv],
+        [0.74, 0.70, 0.96, 0.85],
         t,
     );
     dl.add_rect(p, [p[0] + w, p[1] + h], border).rounding(rad).thickness(1.4).build();
 
-    // ── 4. Knob: slides L↔R, white/lilac core, gold ring on (lilac on hover off) ──
+    // ── 4. Knob: slides L↔R, white core, soft accent ring (on / hover) ──
     let r = 11.0;
     let travel = w - 2.0 * (r + 3.0);
     let kx = p[0] + (r + 3.0) + t * travel;
     // soft drop shadow under the knob
     dl.add_circle([kx, cy + 1.0], r, [0.0, 0.0, 0.0, 0.18]).filled(true).build();
-    // knob body (white with a hint of lilac) + inner highlight
-    dl.add_circle([kx, cy], r, [1.0, 0.98, 1.0, 1.0]).filled(true).build();
+    // knob body (clean white) + inner highlight
+    dl.add_circle([kx, cy], r, [1.0, 0.99, 1.0, 1.0]).filled(true).build();
     dl.add_circle([kx - 1.6, cy - 1.6], r * 0.45, [1.0, 1.0, 1.0, 0.9]).filled(true).build();
     // ring
-    let ring = lerp_col([0.78, 0.62, 1.0, 0.32 + 0.5 * hv], [0.843, 0.694, 0.365, 1.0], t);
+    let ring = lerp_col([0.70, 0.66, 0.92, 0.30 + 0.45 * hv], [0.74, 0.70, 0.96, 1.0], t);
     dl.add_circle([kx, cy], r, ring).thickness(2.0).build();
     clicked
 }
@@ -2420,12 +2406,12 @@ fn pink_slider_f32(ui: &Ui, id: &str, min: f32, max: f32, val: &mut f32, w: f32)
     dl.add_rect_filled_multicolor([p[0], cy - 3.0], [fx, cy + 3.0], GRAD_L, GRAD_R, GRAD_R, GRAD_L);
     // Handle glow (fades in on hover/drag).
     if hv > 0.01 {
-        dl.add_circle([fx, cy], 8.0 + 6.0 * hv, [1.0, 0.42, 0.85, 0.22 * hv]).filled(true).build();
-        dl.add_circle([fx, cy], 8.0 + 3.0 * hv, [0.90, 0.72, 0.40, 0.25 * hv]).filled(true).build();
+        dl.add_circle([fx, cy], 8.0 + 6.0 * hv, [0.62, 0.58, 0.92, 0.14 * hv]).filled(true).build();
+        dl.add_circle([fx, cy], 8.0 + 3.0 * hv, [0.78, 0.74, 0.97, 0.16 * hv]).filled(true).build();
     }
     let kr = 8.0 + 1.0 * hv;
     dl.add_circle([fx, cy], kr, [1.0, 1.0, 1.0, 1.0]).filled(true).build();
-    dl.add_circle([fx, cy], kr, GOLD).thickness(2.0).build();
+    dl.add_circle([fx, cy], kr, [0.74, 0.70, 0.96, 1.0]).thickness(2.0).build();
     changed
 }
 
