@@ -126,6 +126,72 @@ static MENU_KEY_BINDING: std::sync::atomic::AtomicBool = std::sync::atomic::Atom
 // Set right after a bind: swallows the menu toggle while the just-pressed key is still held, so
 // pressing the new key to bind it doesn't ALSO toggle (close) the menu. Cleared on key release.
 static SUPPRESS_TOGGLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+// Soft-reset button arm timestamp (ui.time() bits). Non-zero + recent = the "click again to confirm"
+// window is open, so a stray single click can't reload the game.
+static RESET_ARMED_AT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+// Selected index in the version-switch dropdown (updater "switch / downgrade to this version").
+static VERSION_SEL: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+/// The soft-reset button (2-click confirm) — shared by BOTH menus. Reloads the game to the title
+/// without closing the process. A stray single tap can't fire it: the first click arms a 3s window,
+/// the second click within it triggers `reset::request()` (executed on the main-thread pump).
+fn reset_button(ui: &Ui) {
+    if !crate::reset::is_ready() {
+        ui.text_colored(DIM, "Reset unavailable");
+        return;
+    }
+    use std::sync::atomic::Ordering::Relaxed;
+    let now = ui.time();
+    let armed_at = f64::from_bits(RESET_ARMED_AT.load(Relaxed));
+    let armed = armed_at > 0.0 && now - armed_at < 3.0;
+    let _rc = ui.push_style_color(StyleColor::Button, [0.80, 0.28, 0.28, 0.90]);
+    let _rh = ui.push_style_color(StyleColor::ButtonHovered, [0.95, 0.38, 0.38, 1.0]);
+    let _ra = ui.push_style_color(StyleColor::ButtonActive, [0.70, 0.22, 0.22, 1.0]);
+    let label = if armed { "Click again to confirm##rstc" } else { "Reset game##rstc" };
+    if ui.button(label) {
+        if armed {
+            crate::reset::request();
+            RESET_ARMED_AT.store(0, Relaxed);
+        } else {
+            RESET_ARMED_AT.store(now.to_bits(), Relaxed);
+        }
+    }
+    ui.same_line();
+    ui.text_colored(
+        if armed { BAD } else { DIM },
+        if armed { "reloads to title" } else { "soft restart" },
+    );
+}
+
+/// Version-switch / downgrade dropdown — shared by BOTH menus. Lists every release that carries this
+/// build's loose DLL (v3.5.9+), lets the user pick one and switch to it (download → restart). `w` is
+/// the content width for the combo.
+fn version_switch_ui(ui: &Ui, w: f32) {
+    use std::sync::atomic::Ordering::Relaxed;
+    ui.text_colored(DIM, "Switch / downgrade version");
+    let vers = crate::selfupdate::versions();
+    if vers.is_empty() {
+        ui.same_line();
+        if ui.small_button("Show##showvers") {
+            crate::selfupdate::list_versions();
+        }
+        return;
+    }
+    let labels: Vec<&str> = vers.iter().map(|(t, _)| t.as_str()).collect();
+    let mut sel = VERSION_SEL.load(Relaxed);
+    if sel >= labels.len() {
+        sel = 0;
+    }
+    ui.set_next_item_width((w - 16.0).max(120.0));
+    if ui.combo_simple_string("##verpick", &mut sel, &labels) {
+        VERSION_SEL.store(sel, Relaxed);
+    }
+    if ui.button("Switch to this version##switchver") {
+        if let Some((tag, url)) = vers.get(sel) {
+            crate::selfupdate::switch_to(url.clone(), tag.clone());
+        }
+    }
+}
 
 /// The "open/close menu key" control as a CLICK-TO-BIND button — shared by BOTH menus (premium
 /// + classic). Click it, then press a key and that key becomes the menu hotkey; press Esc to
@@ -804,6 +870,9 @@ impl ImguiRenderLoop for HeavenOverlay {
 
         // Opponent-hunter "TARGET FOUND" alert — drawn over everything, menu open or not.
         draw_hunter_alert(ui);
+
+        // Self-update prompt — shown over everything when a new release is pending, menu or not.
+        draw_update_dialog(ui);
 
         // Legacy Select affinity numbers — anchored on the game UI, menu open or not.
         draw_affinity(ui);
@@ -1628,7 +1697,7 @@ impl HeavenOverlay {
                                         Ctrl::Custom(Custom::Updates) => {
                                             ui.text_colored(DIM, "Current version");
                                             ui.text_colored(ACCENT, concat!("Heaven MOD  v", env!("CARGO_PKG_VERSION")));
-                                            let ust = crate::update::status();
+                                            let ust = crate::selfupdate::status();
                                             ui.dummy([0.0, 4.0]);
                                             ui.text_colored(DIM, "Status:");
                                             ui.same_line();
@@ -1638,9 +1707,18 @@ impl HeavenOverlay {
                                                 ui.text_colored(GOOD, &ust);
                                             }
                                             ui.dummy([0.0, 10.0]);
+                                            // Manual check ignores the "don't ask again" skip (force = true).
+                                            if btn(ui, "##chk", "Check for updates") {
+                                                crate::selfupdate::check(true);
+                                            }
+                                            ui.dummy([0.0, 4.0]);
                                             if btn(ui, "##rel", "Releases") {
                                                 open_url(crate::update::RELEASES_URL);
                                             }
+                                            ui.dummy([0.0, 10.0]);
+                                            ui.separator();
+                                            ui.dummy([0.0, 6.0]);
+                                            version_switch_ui(ui, cw);
                                         }
                                         Ctrl::Custom(Custom::AboutLayout) => {
                                             let cen = crate::settings::menu_centered();
@@ -1685,6 +1763,10 @@ impl HeavenOverlay {
                                             if btn(ui, "##chl", "Changelog") {
                                                 open_url(crate::update::RELEASES_URL);
                                             }
+                                            ui.dummy([0.0, 10.0]);
+                                            ui.separator();
+                                            ui.dummy([0.0, 6.0]);
+                                            reset_button(ui);
                                             ui.dummy([0.0, 8.0]);
                                             ui.text_colored(ACCENT, concat!("Heaven  v", env!("CARGO_PKG_VERSION")));
                                             ui.text_colored(DIM, "made by Night DC \u{00b7} nighty3333");
@@ -1944,13 +2026,19 @@ impl HeavenOverlay {
                                         );
                                     }
                                     Ctrl::Custom(Custom::Updates) => {
+                                        if ui.button("Check for updates##cuc") {
+                                            crate::selfupdate::check(true);
+                                        }
+                                        ui.same_line();
                                         if ui.button("Releases##rlc") {
                                             open_url(crate::update::RELEASES_URL);
                                         }
-                                        let ust = crate::update::status();
+                                        let ust = crate::selfupdate::status();
                                         if !ust.is_empty() {
                                             ui.text_colored(ACCENT, ust);
                                         }
+                                        ui.separator();
+                                        version_switch_ui(ui, ui.content_region_avail()[0].max(180.0));
                                     }
                                     Ctrl::Custom(Custom::AboutLayout) => {
                                         let cen = crate::settings::menu_centered();
@@ -1978,6 +2066,8 @@ impl HeavenOverlay {
                                         if ui.button("Support on Ko-fi##kofic") {
                                             open_url("https://ko-fi.com/nighty33");
                                         }
+                                        ui.separator();
+                                        reset_button(ui);
                                     }
                                     Ctrl::Custom(Custom::TeamTrials) => {
                                         let mut tt = crate::settings::tt_capture();
@@ -2085,6 +2175,148 @@ fn draw_first_launch_hint(ui: &Ui) {
 /// Big on-screen alert when the opponent hunter finds the target. Drawn over everything (no menu
 /// needed), centered near the top, with a pulsing green glow. Fades in, holds, fades out after a
 /// few seconds. Self-gates on `hunter::found_vid()`; a new hunt or finding a new target re-triggers.
+/// The self-update prompt — drawn independently of the menu whenever the updater has a pending
+/// update. Combined changelog + Download / Not now. The "don't ask again" tick only takes effect
+/// on Not now (silences just that version; a newer release re-opens the prompt).
+fn draw_update_dialog(ui: &Ui) {
+    let Some(p) = crate::selfupdate::pending() else {
+        return;
+    };
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static REMEMBER: AtomicBool = AtomicBool::new(false);
+
+    // Muted, opaque, easy-on-the-eyes palette (darker + more solid than the menu; no bright white).
+    const DLG_BG: [f32; 4] = [0.071, 0.047, 0.133, 0.99]; // solid dark purple, near-opaque
+    const DLG_CHILD: [f32; 4] = [0.047, 0.031, 0.094, 1.0]; // changelog block, a touch darker
+    const DLG_BORDER: [f32; 4] = [0.45, 0.36, 0.62, 0.26];
+    const DLG_TITLE: [f32; 4] = [0.702, 0.604, 0.847, 1.0]; // soft lavender (not the bright accent)
+    const DLG_SUB: [f32; 4] = [0.447, 0.408, 0.537, 1.0]; // muted grey-lavender
+    const DLG_BODY: [f32; 4] = [0.720, 0.685, 0.790, 1.0]; // changelog bullets — readable, still soft
+    const DLG_VER: [f32; 4] = [0.741, 0.616, 0.906, 1.0]; // version tag headers
+    const DLG_SECTION: [f32; 4] = [0.560, 0.510, 0.660, 1.0]; // section headers (New / Fixes)
+    const DLG_BTN: [f32; 4] = [0.16, 0.13, 0.24, 1.0];
+    const DLG_BTN_HI: [f32; 4] = [0.24, 0.19, 0.35, 1.0];
+    const DLG_BTN_ACT: [f32; 4] = [0.30, 0.24, 0.42, 1.0];
+
+    // Keep the style tokens alive for the whole window scope (tuple = dropped together at fn end).
+    let _sc = (
+        ui.push_style_color(StyleColor::WindowBg, DLG_BG),
+        ui.push_style_color(StyleColor::ChildBg, DLG_CHILD),
+        ui.push_style_color(StyleColor::Border, DLG_BORDER),
+        ui.push_style_color(StyleColor::Button, DLG_BTN),
+        ui.push_style_color(StyleColor::ButtonHovered, DLG_BTN_HI),
+        ui.push_style_color(StyleColor::ButtonActive, DLG_BTN_ACT),
+        ui.push_style_color(StyleColor::Text, DLG_BODY),
+        ui.push_style_color(StyleColor::CheckMark, DLG_TITLE),
+        ui.push_style_color(StyleColor::FrameBg, DLG_CHILD),
+        ui.push_style_color(StyleColor::FrameBgHovered, DLG_BTN),
+    );
+    let _sv = (
+        ui.push_style_var(StyleVar::WindowRounding(11.0)),
+        ui.push_style_var(StyleVar::ChildRounding(8.0)),
+        ui.push_style_var(StyleVar::FrameRounding(7.0)),
+        ui.push_style_var(StyleVar::WindowPadding([16.0, 14.0])),
+    );
+
+    let [dw, dh] = ui.io().display_size;
+    let (w, h) = (420.0_f32, 440.0_f32);
+    ui.window("##hv_update")
+        // FirstUseEver = centre the first time, then remember where the user drags/resizes it.
+        .position([(dw - w) * 0.5, (dh - h) * 0.5], Condition::FirstUseEver)
+        .size([w, h], Condition::FirstUseEver)
+        .size_constraints([340.0, 220.0], [1000.0, 1000.0]) // min / max while resizing
+        .title_bar(false) // title lives in the body (drag from the header / empty areas)
+        .collapsible(false)
+        .resizable(true)
+        .movable(true)
+        .build(|| {
+            let title = if p.same_version {
+                format!("Update for {}", p.target)
+            } else {
+                format!("{} available", p.target)
+            };
+            ui.text_colored(DLG_TITLE, title);
+            let sub = if p.same_version {
+                "What changed since your version".to_string()
+            } else if p.count > 1 {
+                format!("{} new versions", p.count)
+            } else {
+                "New version".to_string()
+            };
+            ui.text_colored(DLG_SUB, sub);
+            ui.dummy([0.0, 6.0]);
+
+            // Negative height = fill down to ~92px from the bottom (leaving room for the footer), so
+            // the changelog grows/shrinks when the user resizes the window.
+            ui.child_window("##hv_changelog").size([0.0, -92.0]).build(|| {
+                // Colour by line type so a long combined changelog stays scannable: version tags
+                // (lavender + spacing), section headers (New / Fixes), bullets (readable body).
+                for line in p.changelog.lines() {
+                    let t = line.trim_start();
+                    if t.is_empty() {
+                        continue;
+                    }
+                    let is_tag =
+                        t.starts_with('v') && t.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit());
+                    if is_tag {
+                        ui.dummy([0.0, 5.0]);
+                        let _c = ui.push_style_color(StyleColor::Text, DLG_VER);
+                        ui.text(t);
+                    } else if let Some(bullet) = t.strip_prefix('-') {
+                        let _c = ui.push_style_color(StyleColor::Text, DLG_BODY);
+                        ui.text_wrapped(format!("   -{bullet}"));
+                    } else {
+                        let _c = ui.push_style_color(StyleColor::Text, DLG_SECTION);
+                        ui.text(t);
+                    }
+                }
+            });
+            ui.dummy([0.0, 8.0]);
+
+            let staged = crate::selfupdate::staged();
+            let busy = crate::selfupdate::is_busy();
+
+            if staged {
+                // Download done; the game auto-restarts shortly. Offer an immediate restart too.
+                if ui.button("Restart now") {
+                    crate::selfupdate::restart_game();
+                }
+            } else {
+                let mut rem = REMEMBER.load(Ordering::Relaxed);
+                if ui.checkbox("Don't ask again for this version", &mut rem) {
+                    REMEMBER.store(rem, Ordering::Relaxed);
+                }
+                ui.dummy([0.0, 4.0]);
+                if busy {
+                    ui.text_colored(DLG_SUB, "Working...");
+                } else {
+                    if ui.button("Download") {
+                        crate::selfupdate::download();
+                    }
+                    ui.same_line();
+                    if ui.button("Not now") {
+                        if REMEMBER.load(Ordering::Relaxed) {
+                            crate::selfupdate::skip();
+                        } else {
+                            crate::selfupdate::dismiss();
+                        }
+                        REMEMBER.store(false, Ordering::Relaxed);
+                    }
+                    ui.same_line();
+                    if ui.button("View on GitHub") {
+                        open_url(crate::update::RELEASES_URL);
+                    }
+                }
+            }
+
+            let st = crate::selfupdate::status();
+            if !st.is_empty() {
+                ui.dummy([0.0, 4.0]);
+                ui.text_colored(DLG_SUB, st);
+            }
+        });
+}
+
 fn draw_hunter_alert(ui: &Ui) {
     let vid = crate::hunter::found_vid();
     if vid == 0 {

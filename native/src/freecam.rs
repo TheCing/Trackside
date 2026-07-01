@@ -1818,6 +1818,20 @@ fn following() -> bool {
         && EVER_CAP.load(Ordering::Relaxed)
         && in_race()
 }
+/// Sticky variant used ONLY by the cinematic-cut suppressors (ChangeCameraMode / PlayEventCamera).
+/// The strict `following()` drops the instant `AlterLateUpdate`/`LateUpdateView` pause for >300ms —
+/// which they do during skill cut-ins and camera transitions (2-3s). In that gap the game's
+/// `ChangeCameraMode` slipped through and grabbed the camera back ("freecam changes on its own").
+/// EVER_CAP still gates it (false during the intro → the intro close-up is untouched), but we widen
+/// the race-recency window so brief update stalls no longer surrender the view. The HUD keeps using
+/// the strict `following()` so it still hides promptly on the result screen.
+#[inline]
+fn suppress_cuts() -> bool {
+    ENABLED.load(Ordering::Relaxed)
+        && FOLLOW.load(Ordering::Relaxed)
+        && EVER_CAP.load(Ordering::Relaxed)
+        && (clock().elapsed().as_millis() as u64).saturating_sub(LAST_RACE_MS.load(Ordering::Relaxed)) < 5000
+}
 /// True only while a race is actually live and we're following a Uma (recency-gated). The
 /// telemetry HUD uses this so it shows ONLY during a race, never out in the menus.
 pub fn race_active() -> bool {
@@ -2049,9 +2063,9 @@ unsafe extern "C" fn on_change_cam_mode(this: *mut c_void, mode: i64, arg2: i64,
     // DIAGNOSTIC: log the camera MODE the game requests as the race progresses (to find the
     // "Dueling"/final-stretch mode). TPX tells us roughly where on the track it happened.
     if LAST_CAM_MODE.swap(mode, Ordering::Relaxed) != mode {
-        flog(&format!("[freecam] ChangeCameraMode mode={mode} arg2={arg2} tpx={:.0} follow={}", getf(&TPX), following()));
+        flog(&format!("[freecam] ChangeCameraMode mode={mode} arg2={arg2} tpx={:.0} suppress={} follow={}", getf(&TPX), suppress_cuts(), following()));
     }
-    if following() {
+    if suppress_cuts() {
         return;
     }
     let t = TR_CMODE.load(Ordering::Relaxed);
@@ -2072,7 +2086,7 @@ unsafe extern "C" fn on_play_event_camera(
     a4: *mut c_void,
     mi: *mut c_void,
 ) -> bool {
-    if following() {
+    if suppress_cuts() {
         return false;
     }
     let t = TR_PEC.load(Ordering::Relaxed);

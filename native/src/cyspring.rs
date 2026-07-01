@@ -24,7 +24,11 @@ use crate::il2cpp;
 // `CySpringController.UpdateMode` is an i32 enum:
 //   0 = Normal (every frame), 1 = 60 fps, 2 = SkipFrame, 3 = SkipFramePostAlways.
 const MODE_NORMAL: i32 = 0;
-const MODE_SKIP_MOST: i32 = 3; // SkipFramePostAlways — cheapest, for the low-spec mode.
+// Low-resources mode caps the physics. It used to force SkipFramePostAlways (3, the cheapest) but that
+// skips so many frames that at a high FPS cap (e.g. 540) the spring bones integrate over a huge
+// accumulated delta and flexible models' hair/cloth overshoots and explodes. 60 fps (1) caps the cost
+// just the same but steps on a stable, fixed-ish clock so it never blows up.
+const MODE_LOW_SPEC: i32 = 1; // 60 fps — stable + cheap (was SkipFramePostAlways, which exploded at high FPS).
 
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static LOW_SPEC: AtomicBool = AtomicBool::new(false);
@@ -62,25 +66,31 @@ pub fn set_low_spec(on: bool) {
 /// Hook: run the game's own `Init`, then overwrite `UpdateMode` with Normal when enabled.
 unsafe extern "C" fn on_init(this: *mut c_void, method: *mut c_void) {
     crate::crashlog::crumb(31);
+    crate::crashlog::step("cyspring:init:enter");
     let t = TR_INIT.load(Ordering::Relaxed);
     if t != 0 {
         let orig: unsafe extern "C" fn(*mut c_void, *mut c_void) = std::mem::transmute(t);
+        crate::crashlog::step("cyspring:init:orig");
         orig(this, method);
     }
     if this.is_null() {
+        crate::crashlog::step("idle:cyspring-null");
         return;
     }
     let off = UPDATEMODE_OFF.load(Ordering::Relaxed);
     if off == usize::MAX {
+        crate::crashlog::step("idle:cyspring-nooff");
         return;
     }
+    crate::crashlog::step("cyspring:init:write-mode");
     // UpdateMode is a plain i32 enum field at `off` on the controller instance.
-    // Low-spec wins: skip most physics frames. Otherwise the uncap toggle sets Normal.
+    // Low-resources wins: cap physics to a stable 60 fps. Otherwise the uncap toggle sets Normal.
     if LOW_SPEC.load(Ordering::Relaxed) {
-        *((this as *mut u8).add(off) as *mut i32) = MODE_SKIP_MOST;
+        *((this as *mut u8).add(off) as *mut i32) = MODE_LOW_SPEC;
     } else if ENABLED.load(Ordering::Relaxed) {
         *((this as *mut u8).add(off) as *mut i32) = MODE_NORMAL;
     }
+    crate::crashlog::step("idle:after-cyspring");
 }
 
 /// Resolve the class + field and install the `Init` detour. Call once the runtime is ready.

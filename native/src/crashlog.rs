@@ -9,7 +9,7 @@
 #![allow(dead_code)]
 
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 
 use windows_sys::Win32::Foundation::HMODULE;
 use windows_sys::Win32::System::LibraryLoader::{
@@ -44,6 +44,19 @@ static BREADCRUMB: AtomicU32 = AtomicU32::new(0);
 #[inline]
 pub fn crumb(code: u32) {
     BREADCRUMB.store(code, Ordering::Relaxed);
+}
+
+// ── granular string breadcrumb ──────────────────────────────────────────────────
+// A `&'static str` (which lives forever) stored as (ptr,len) so hot hooks can stamp a precise step
+// with zero allocation. Instrumented hooks set it on entry to each risky step and to "idle:<hook>" on
+// exit — so the crash log shows the EXACT step (and whether we crashed INSIDE a hook or after it).
+static CRUMB_PTR: AtomicUsize = AtomicUsize::new(0);
+static CRUMB_LEN: AtomicUsize = AtomicUsize::new(0);
+
+#[inline]
+pub fn step(s: &'static str) {
+    CRUMB_PTR.store(s.as_ptr() as usize, Ordering::Relaxed);
+    CRUMB_LEN.store(s.len(), Ordering::Relaxed);
 }
 
 fn crumb_name(c: u32) -> &'static str {
@@ -108,6 +121,16 @@ unsafe extern "system" fn handler(info: *const ExceptionPointers) -> i32 {
     let addr = (*rec).address as usize;
     let (module, off) = module_for(addr);
     let bc = BREADCRUMB.load(Ordering::Relaxed);
+    // granular string step (if any hook stamped one)
+    let cp = CRUMB_PTR.load(Ordering::Relaxed);
+    let cl = CRUMB_LEN.load(Ordering::Relaxed);
+    let step_str: String = if cp != 0 && cl > 0 && cl < 256 {
+        std::str::from_utf8(std::slice::from_raw_parts(cp as *const u8, cl))
+            .unwrap_or("<bad>")
+            .to_string()
+    } else {
+        "(none)".into()
+    };
 
     let mut extra = String::new();
     // 0xC0000005 = access violation → record read/write/execute + the bad data address.
@@ -123,7 +146,7 @@ unsafe extern "system" fn handler(info: *const ExceptionPointers) -> i32 {
     }
 
     write_crash(&format!(
-        "\n=== CRASH ===\n  code   : 0x{code:08x}\n  at     : 0x{addr:016x}  ({module} + 0x{off:x})\n  hook   : [{bc}] {}{extra}\n=============",
+        "\n=== CRASH ===\n  code   : 0x{code:08x}\n  at     : 0x{addr:016x}  ({module} + 0x{off:x})\n  hook   : [{bc}] {}\n  step   : {step_str}{extra}\n=============",
         crumb_name(bc)
     ));
     CONTINUE_SEARCH

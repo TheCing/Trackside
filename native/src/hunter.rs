@@ -522,13 +522,21 @@ unsafe extern "C" fn playout_hook(this: *mut c_void, view_id: i32, info: *mut c_
 // chains; read-only, no effect on tempo. (updateType, dt, idt, MethodInfo*).
 type UpdateFn = unsafe extern "C" fn(i32, f32, f32, *const c_void);
 unsafe extern "C" fn tween_hook(ut: i32, dt: f32, idt: f32, mi: *const c_void) {
+    crate::crashlog::step("hunter:tween:frame-pump");
     frame_pump();
+    crate::crashlog::step("hunter:tween:padder-pump");
     crate::padder::pump(); // robust backup driver for the padder apply (idempotent, guarded)
+    crate::crashlog::step("hunter:tween:reset-pump");
+    crate::reset::poll(); // main-thread execution point for a requested soft reset (guarded, no-op if idle)
+    crate::crashlog::step("hunter:tween:affinity-pump");
+    crate::affinity::poll(); // main-thread sample of "is a dialog open" for the affinity badge gate
+    crate::crashlog::step("hunter:tween:orig");
     let o = TWEEN_ORIG.load(Ordering::Relaxed);
     if o != 0 {
         let f: UpdateFn = std::mem::transmute(o);
         f(ut, dt, idt, mi);
     }
+    crate::crashlog::step("idle:after-tween");
 }
 
 /// Detour OnOpponentInEnd (the read/check loop point) + TweenManager.Update (the jitter timer tick).

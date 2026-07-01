@@ -27,11 +27,16 @@ fn wide(s: &OsStr) -> Vec<u16> {
 }
 
 /// Load every `*.dll` in `<game>/heaven_plugins/` (sorted for a stable order) and
-/// return a one-line summary for the boot log. No-op (safe) if the folder is absent.
+/// return a one-line summary for the boot log. Creates the folder on first run so
+/// the user has an obvious place to drop a companion mod DLL into.
 pub fn load() -> String {
     let dir: PathBuf = crate::paths::dll_dir().join("heaven_plugins");
     if !dir.is_dir() {
-        return "no heaven_plugins/ folder (skipped)".into();
+        // Auto-create on first boot; if that fails (e.g. read-only dir) just skip.
+        if std::fs::create_dir_all(&dir).is_err() {
+            return "no heaven_plugins/ folder (skipped)".into();
+        }
+        return "heaven_plugins/ created (empty)".into();
     }
 
     let mut dlls: Vec<PathBuf> = match std::fs::read_dir(&dir) {

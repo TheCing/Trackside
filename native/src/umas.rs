@@ -26,6 +26,11 @@ static DETOUR: OnceLock<RawDetour> = OnceLock::new();
 // Human-readable "Class.method (params=N)" of the method we hooked — logged when it
 // fires so we can confirm which method it actually is and its real arity.
 static METHOD_DESC: OnceLock<String> = OnceLock::new();
+// Largest roster (element count) written this session. WorkTrainedCharaData.UpdateAll now also fires
+// with FILTERED SUBSETS — the 2026-07-01 update added partner pickers (Circle / Practice / Photo
+// Studio) that call it with a handful of umas, and the file's last write wins. We only ever persist
+// an array at least as large as the biggest seen, so a partial pass can't clobber the full roster.
+static MAX_COUNT: AtomicUsize = AtomicUsize::new(0);
 
 /// Mirror the persisted toggle into the fast path. Called by settings.
 pub fn set_enabled(on: bool) {
@@ -62,25 +67,35 @@ unsafe extern "C" fn veteran_hook(this: *mut RawObject, arr: *mut RawObject, met
     if !ENABLED.load(Ordering::Relaxed) || arr.is_null() {
         return;
     }
-    // WorkTrainedCharaData.UpdateAll fires once when the roster updates → dumping the whole
-    // array here is safe (unlike the per-race ChampionsRaceInfo setter we used to hit).
-    save(arr as usize);
+    // UpdateAll fires many times now — full roster on load, filtered subsets from the new partner
+    // pickers. Gate on element count so a partial pass never overwrites the full roster.
+    let count = h::array_len(arr);
+    save(arr as usize, count);
 }
 
-fn save(arr_addr: usize) {
+fn save(arr_addr: usize, count: usize) {
+    if count == 0 {
+        return; // empty array — ignore (never blank out the file)
+    }
+    let prev = MAX_COUNT.load(Ordering::Relaxed);
+    if count < prev {
+        ulog(&format!("[umas] skipped partial roster ({count} < {prev} umas)"));
+        return;
+    }
     // Reuse the generic IL2CPP→JSON walker (race_export) — same format horseACT emits.
     let json = crate::race_export::dump_object_json(arr_addr);
     if json.is_empty() || json == "null" || json == "<err>" {
         ulog("[umas] veterans dump empty/failed");
         return;
     }
+    MAX_COUNT.store(count, Ordering::Relaxed);
     let dir = crate::paths::dll_dir().join("heaven_umas");
     if std::fs::create_dir_all(&dir).is_err() {
         return;
     }
     let path = dir.join("veterans.json");
     match std::fs::write(&path, json.as_bytes()) {
-        Ok(_) => ulog(&format!("[umas] veterans.json saved ({} bytes)", json.len())),
+        Ok(_) => ulog(&format!("[umas] veterans.json saved ({count} umas, {} bytes)", json.len())),
         Err(e) => ulog(&format!("[umas] write failed: {e}")),
     }
 }

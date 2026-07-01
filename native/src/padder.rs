@@ -105,11 +105,16 @@ pub fn pump() {
     }
     let _g = Guard;
 
+    // Latch the live builder from the view controller every frame (this replaces the crashy per-frame
+    // UpdateView hook). Cheap: one pointer read when the team screen is open, a no-op otherwise.
+    il2cpp_bridge::capture_from_vc();
+
     let profile = match pending().lock() {
         Ok(mut g) => g.take(),
         Err(_) => return,
     };
     let Some(profile) = profile else { return };
+    crate::crashlog::step("padder:pump:apply-to-builder");
     let msg = match il2cpp_bridge::apply_to_builder(&profile) {
         Ok(_) => format!("Loaded \"{}\" — press Confirm in-game.", profile.name),
         Err(e) => format!("Apply failed: {e}"),
@@ -297,7 +302,10 @@ mod il2cpp_bridge {
     // ideal hook for BOTH capturing the builder AND running the main-thread pump (no dependency on
     // ui_tempo/Hachimi). Cleared on `EndView`. 0 = no edit screen open.
     static BUILDER: AtomicUsize = AtomicUsize::new(0);
-    static UPDATEVIEW_ORIG: AtomicUsize = AtomicUsize::new(0);
+    static VC: AtomicUsize = AtomicUsize::new(0); // live TeamStadiumDeckViewController (0 = screen not shown)
+    static INITVIEW_ORIG: AtomicUsize = AtomicUsize::new(0);
+    static PLAYIN_ORIG: AtomicUsize = AtomicUsize::new(0);
+    static PLAYOUT_ORIG: AtomicUsize = AtomicUsize::new(0);
     static ENDVIEW_ORIG: AtomicUsize = AtomicUsize::new(0);
     static DETOURS: OnceLock<Vec<RawDetour>> = OnceLock::new();
 
@@ -316,23 +324,87 @@ mod il2cpp_bridge {
         BUILDER.store(builder as usize, Ordering::Relaxed);
     }
 
-    // TeamStadiumDeckViewController.UpdateView(): (this=controller, MethodInfo). Fires ~every frame
-    // while the edit screen is open → capture the builder from _deckBuilder@0x38 AND pump here.
-    type VoidFn = unsafe extern "C" fn(*mut c_void, *const c_void);
-    unsafe extern "C" fn updateview_hook(this: *mut c_void, mi: *const c_void) {
-        if !this.is_null() {
-            let builder = *((this as usize + VC_DECKBUILDER_OFF) as *const *mut c_void);
+    /// Read the live builder from the stored view controller and latch it. Called every frame from
+    /// `super::pump`. This REPLACES the old per-frame `UpdateView` hook: the 2026-07-01 update made
+    /// `UpdateView` a 48-byte tail-call thunk whose prologue RawDetour's trampoline can't relocate, so
+    /// calling the original through it crashed (access violation entering the team screen). We instead
+    /// latch the view controller in `InitializeView` (a real 816-byte method, safe to detour) and read
+    /// `_deckBuilder@0x38` off it here each frame.
+    pub fn capture_from_vc() {
+        let vc = VC.load(Ordering::Relaxed);
+        if vc == 0 {
+            BUILDER.store(0, Ordering::Relaxed);
+            return;
+        }
+        unsafe {
+            let builder = *((vc + VC_DECKBUILDER_OFF) as *const *mut c_void);
             capture(builder);
         }
-        super::pump();
-        let o = UPDATEVIEW_ORIG.load(Ordering::Relaxed);
-        if o != 0 { let f: VoidFn = std::mem::transmute(o); f(this, mi); }
     }
-    // EndView(): screen closed → forget the builder.
-    unsafe extern "C" fn endview_hook(this: *mut c_void, mi: *const c_void) {
+
+    // InitializeView(): the edit screen opened → latch the view controller (`this`). It returns
+    // IEnumerator (a coroutine the game StartCoroutine()s), so we MUST return the original's value.
+    // The builder is read later (per-frame in capture_from_vc), once the coroutine has set _deckBuilder.
+    type InitViewFn = unsafe extern "C" fn(*mut c_void, *const c_void) -> *mut c_void;
+    unsafe extern "C" fn initview_hook(this: *mut c_void, mi: *const c_void) -> *mut c_void {
+        if !this.is_null() {
+            VC.store(this as usize, Ordering::Relaxed);
+        }
+        let o = INITVIEW_ORIG.load(Ordering::Relaxed);
+        if o != 0 {
+            let f: InitViewFn = std::mem::transmute(o);
+            return f(this, mi);
+        }
+        std::ptr::null_mut()
+    }
+
+    // PlayInView(): the screen (re)enters. Unlike InitializeView (once, on create) this ALSO fires when
+    // you return from a sub-screen (uma detail / slot picker), so it re-latches the VC — fixing "open
+    // the team edit screen" after backing out of a uma. IEnumerator → return the original's value.
+    unsafe extern "C" fn playin_hook(this: *mut c_void, mi: *const c_void) -> *mut c_void {
+        if !this.is_null() {
+            VC.store(this as usize, Ordering::Relaxed);
+        }
+        let o = PLAYIN_ORIG.load(Ordering::Relaxed);
+        if o != 0 {
+            let f: InitViewFn = std::mem::transmute(o);
+            return f(this, mi);
+        }
+        std::ptr::null_mut()
+    }
+
+    // PlayOutView(): the screen leaves (e.g. opening a uma detail) → drop the VC/builder so we never
+    // drive a paused screen. PlayInView re-latches on return. IEnumerator → return the original's value.
+    unsafe extern "C" fn playout_hook(this: *mut c_void, mi: *const c_void) -> *mut c_void {
+        VC.store(0, Ordering::Relaxed);
         BUILDER.store(0, Ordering::Relaxed);
+        let o = PLAYOUT_ORIG.load(Ordering::Relaxed);
+        if o != 0 {
+            let f: InitViewFn = std::mem::transmute(o);
+            return f(this, mi);
+        }
+        std::ptr::null_mut()
+    }
+    // EndView(): screen closed → forget the builder. IMPORTANT: EndView returns IEnumerator — it's a
+    // coroutine the game StartCoroutine()s. The hook MUST return the original's IEnumerator. Declaring
+    // it `void` (like UpdateView) left garbage in RAX; once the game started using the returned
+    // coroutine (2026-07-01 update), that garbage pointer got StartCoroutine()'d → access violation
+    // the moment you enter the Team Trials team-change screen. Return the real IEnumerator.
+    type EndViewFn = unsafe extern "C" fn(*mut c_void, *const c_void) -> *mut c_void;
+    unsafe extern "C" fn endview_hook(this: *mut c_void, mi: *const c_void) -> *mut c_void {
+        crate::crashlog::step("padder:endview:enter");
+        BUILDER.store(0, Ordering::Relaxed);
+        VC.store(0, Ordering::Relaxed);
         let o = ENDVIEW_ORIG.load(Ordering::Relaxed);
-        if o != 0 { let f: VoidFn = std::mem::transmute(o); f(this, mi); }
+        if o != 0 {
+            let f: EndViewFn = std::mem::transmute(o);
+            crate::crashlog::step("padder:endview:orig");
+            let r = f(this, mi);
+            crate::crashlog::step("idle:after-padder-endview");
+            return r;
+        }
+        crate::crashlog::step("idle:padder-endview-null");
+        std::ptr::null_mut()
     }
 
     /// Detour TeamStadiumDeckViewController.UpdateView (capture+pump) + EndView (clear). Hooking the
@@ -349,8 +421,14 @@ mod il2cpp_bridge {
         if k.is_null() {
             return "TeamStadiumDeckViewController class not found".into();
         }
-        let targets: [(&str, i32, *const (), &AtomicUsize); 2] = [
-            ("UpdateView", 0, updateview_hook as *const (), &UPDATEVIEW_ORIG),
+        // 2026-07-01 FIX: the old per-frame UpdateView hook crashed (UpdateView became a 48-byte
+        // tail-call thunk RawDetour can't trampoline). Latch the view controller in InitializeView
+        // (real 816-byte method, safe) + read the builder per-frame in capture_from_vc from the pump.
+        // Both InitializeView and EndView return IEnumerator → their hooks return the original's value.
+        let targets: [(&str, i32, *const (), &AtomicUsize); 4] = [
+            ("InitializeView", 0, initview_hook as *const (), &INITVIEW_ORIG),
+            ("PlayInView", 0, playin_hook as *const (), &PLAYIN_ORIG),
+            ("PlayOutView", 0, playout_hook as *const (), &PLAYOUT_ORIG),
             ("EndView", 0, endview_hook as *const (), &ENDVIEW_ORIG),
         ];
         let mut detours = Vec::new();
@@ -372,7 +450,7 @@ mod il2cpp_bridge {
             }
         }
         let _ = DETOURS.set(detours);
-        format!("deck-view capture: {ok}/2 hooks")
+        format!("deck-view capture: {ok}/4 hooks")
     }
 
     /// True if the TT team-edit screen is open (we have a live builder to drive).

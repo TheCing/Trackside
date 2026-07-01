@@ -205,6 +205,9 @@ A sidebar with sections: **Gameplay**, **Team Trials**, **Race Director**, **Vis
 **Performance**, **Interface**, **About**. Every setting is remembered across sessions. The
 open/close key (default **Insert**) and the window layout are configurable in **Interface → Layout**.
 
+**About** includes a **Reset game** button that reloads the game to the title screen without
+closing it (with a two-click confirm to avoid accidental use).
+
 Prefer something simpler? Toggle **Classic menu** in **Interface → Layout** to switch to the
 original compact menu in-game — it carries the full feature set grouped into collapsible
 categories, just a plainer style.
@@ -222,16 +225,20 @@ at the same time.
 
 ## Updating
 
-Heaven **checks for updates but never installs them.** On startup it looks once at the
-latest release; if a newer version is out it just tells you in the menu under **Updates**
-(e.g. *"Update vX.Y.Z available"*). It never downloads or changes anything on its own.
+Heaven updates itself from within the game. On startup it checks for the latest release, and
+if a newer version is out it shows a prompt with the full changelog of everything since your
+version. Click **Download** and Heaven fetches the new build and restarts the game for you —
+no manual file swapping.
 
-To update, do it manually:
+Don't want a particular version? Tick **don't ask again** and it won't nag you for that one;
+a newer release will still prompt. You can also check any time from the menu under **About**.
 
-1. Open the **Releases** page:
-   **https://github.com/Nighty3333/Heaven-Internal-Public-Version-/releases**
-2. Download the newest zip (`Heaven.zip`, or `Heaven+Hachimi.zip` if you run Hachimi).
-3. Close the game, replace the DLLs with the new ones, relaunch.
+Need a different build? Under **About** you can list every available version and switch to any
+of them — including rolling back to an earlier one — and Heaven downloads it and restarts.
+
+Prefer to update by hand? The **Releases** page still has every version as a zip:
+**https://github.com/Nighty3333/Heaven-Internal-Public-Version-/releases**
+(download `Heaven.zip`, or `Heaven+Hachimi.zip` if you run Hachimi, then replace the DLLs).
 
 ---
 

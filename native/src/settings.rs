@@ -72,6 +72,14 @@ pub struct Settings {
     // Whether the first-launch "press <key> to open" hint has been seen/dismissed.
     #[serde(default)]
     pub seen_hint: bool,
+    // Self-updater: the release tag the user chose "don't ask again" on (e.g. "v3.6.2"). The
+    // auto-check on boot stays silent while this matches the latest tag; a newer release clears it.
+    #[serde(default)]
+    pub update_skip: String,
+    // Self-updater: the slimmed changelog we last saw for the current version, so a same-tag hotfix
+    // (DLL re-uploaded without a version bump) can diff against it and show only the new lines.
+    #[serde(default)]
+    pub update_seen_changelog: String,
     // Uncap the character cloth/hair (spring-bone) physics update rate (cosmetic).
     #[serde(default)]
     pub cyspring_uncap: bool,
@@ -213,6 +221,8 @@ impl Default for Settings {
             menu_centered: true,
             toggle_key: 0,
             seen_hint: false,
+            update_skip: String::new(),
+            update_seen_changelog: String::new(),
             cyspring_uncap: false,
             gfx_quality: false,
             gfx_extras: false,
@@ -307,6 +317,30 @@ pub fn set_tt_capture(on: bool) {
     if let Ok(mut c) = cache().lock() {
         c.tt_capture = on;
         write_file(&c);
+    }
+}
+
+/// Self-updater: the release tag the user silenced ("don't ask again"), or "" if none.
+pub fn update_skip() -> String {
+    cache().lock().map(|c| c.update_skip.clone()).unwrap_or_default()
+}
+pub fn set_update_skip(tag: &str) {
+    if let Ok(mut c) = cache().lock() {
+        c.update_skip = tag.to_string();
+        write_file(&c);
+    }
+}
+
+/// Self-updater: the slimmed changelog last shown for the current version (hotfix diff baseline).
+pub fn update_seen_changelog() -> String {
+    cache().lock().map(|c| c.update_seen_changelog.clone()).unwrap_or_default()
+}
+pub fn set_update_seen_changelog(notes: &str) {
+    if let Ok(mut c) = cache().lock() {
+        if c.update_seen_changelog != notes {
+            c.update_seen_changelog = notes.to_string();
+            write_file(&c);
+        }
     }
 }
 
