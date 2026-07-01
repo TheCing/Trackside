@@ -322,11 +322,17 @@ pub fn download() {
 
 fn run_download() {
     let Some(p) = pending() else { return };
-    if p.dll_url.is_empty() {
+    stage_and_restart(&p.dll_url, &p.target);
+}
+
+/// Download a specific version's DLL to the staging file and restart so the proxy applies it. Shared
+/// by the normal update (`download`) and the version switch / downgrade (`switch_to`).
+fn stage_and_restart(dll_url: &str, tag: &str) {
+    if dll_url.is_empty() {
         return set_status("No downloadable DLL in the release");
     }
     set_status("Downloading...");
-    let bytes = match http::get(&p.dll_url) {
+    let bytes = match http::get(dll_url) {
         Ok(b) => b,
         Err(e) => return set_status(format!("Download failed: {e}")),
     };
@@ -338,13 +344,98 @@ fn run_download() {
     match std::fs::write(&staging, &bytes) {
         Ok(_) => {
             // Auto-apply: show the notice briefly, then close + relaunch the game. The proxy swaps
-            // the staged DLL in on the fresh launch.
-            set_status(format!("Downloaded {} - restarting the game to apply...", p.target));
+            // the staged DLL in on the fresh launch (works the same for a newer OR older version).
+            set_status(format!("Downloaded {tag} - restarting the game to apply..."));
             std::thread::sleep(std::time::Duration::from_secs(3));
             restart_game();
         }
         Err(e) => set_status(format!("Save failed: {e}")),
     }
+}
+
+// ── version switch / downgrade ────────────────────────────────────────────────────
+// Every release that carries THIS variant's loose DLL (DLL_ASSET) can be switched to — that's v3.5.9+
+// (older releases only shipped the zip). The list grows on its own as we publish more releases.
+static VERSIONS: OnceLock<Mutex<Vec<(String, String)>>> = OnceLock::new(); // (tag, dll_url), newest-first
+fn versions_slot() -> &'static Mutex<Vec<(String, String)>> {
+    VERSIONS.get_or_init(|| Mutex::new(Vec::new()))
+}
+/// Cached switchable versions (tag, dll_url), newest-first. Empty until `list_versions()` has run.
+pub fn versions() -> Vec<(String, String)> {
+    versions_slot().lock().map(|v| v.clone()).unwrap_or_default()
+}
+
+/// Populate `versions()` with every release that has our variant's loose DLL. Background thread.
+pub fn list_versions() {
+    if BUSY.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    thread::spawn(move || {
+        run_list_versions();
+        BUSY.store(false, Ordering::SeqCst);
+    });
+}
+
+fn run_list_versions() {
+    set_status("Loading versions...");
+    let url = format!("https://api.github.com/repos/{REPO}/releases?per_page=30");
+    let body = match http::get_string(&url) {
+        Ok(b) => b,
+        Err(e) => return set_status(format!("Versions failed: {e}")),
+    };
+    let json: Value = match serde_json::from_str(&body) {
+        Ok(v) => v,
+        Err(_) => return set_status("Versions failed: bad response"),
+    };
+    let Some(arr) = json.as_array() else {
+        return set_status("Versions failed: no releases");
+    };
+    let mut out: Vec<(String, String)> = Vec::new();
+    for r in arr {
+        if r.get("draft").and_then(|v| v.as_bool()).unwrap_or(false) {
+            continue;
+        }
+        if r.get("prerelease").and_then(|v| v.as_bool()).unwrap_or(false) {
+            continue;
+        }
+        let tag = r.get("tag_name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        if tag.is_empty() {
+            continue;
+        }
+        // Only versions that carry OUR variant's loose DLL are switchable (skips pre-3.5.9 zips).
+        let mut dll_url = String::new();
+        if let Some(assets) = r.get("assets").and_then(|v| v.as_array()) {
+            for a in assets {
+                if a.get("name").and_then(|v| v.as_str()) == Some(DLL_ASSET) {
+                    dll_url = a
+                        .get("browser_download_url")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    break;
+                }
+            }
+        }
+        if !dll_url.is_empty() {
+            out.push((tag, dll_url));
+        }
+    }
+    let n = out.len();
+    if let Ok(mut g) = versions_slot().lock() {
+        *g = out; // GitHub returns newest-first; keep that order
+    }
+    set_status(format!("{n} version(s) available"));
+}
+
+/// Download + switch to a chosen version (newer or older). Powers the version dropdown. Background.
+pub fn switch_to(dll_url: String, tag: String) {
+    if BUSY.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    thread::spawn(move || {
+        stage_and_restart(&dll_url, &tag);
+        BUSY.store(false, Ordering::SeqCst);
+    });
 }
 
 /// True once the staged download is on disk (the dialog switches to a "restart to apply" state).

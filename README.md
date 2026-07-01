@@ -233,6 +233,9 @@ no manual file swapping.
 Don't want a particular version? Tick **don't ask again** and it won't nag you for that one;
 a newer release will still prompt. You can also check any time from the menu under **About**.
 
+Need a different build? Under **About** you can list every available version and switch to any
+of them — including rolling back to an earlier one — and Heaven downloads it and restarts.
+
 Prefer to update by hand? The **Releases** page still has every version as a zip:
 **https://github.com/Nighty3333/Heaven-Internal-Public-Version-/releases**
 (download `Heaven.zip`, or `Heaven+Hachimi.zip` if you run Hachimi, then replace the DLLs).

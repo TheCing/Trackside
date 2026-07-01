@@ -52,15 +52,47 @@ pub fn set_edit_mode(on: bool) {
 static STEP: AtomicUsize = AtomicUsize::new(0);
 const O_SHOWDETAIL: usize = 0x50;
 
-/// True while the Legacy Select MAIN view is the visible step and the parent picker is closed.
+// A candidate's stat sheet (Skills / Inspiration / Career Info) opens as a DialogCharacterDetail — a
+// DialogCommon pushed onto DialogManager, NOT the step's inline `_showDetail` — so the badges used to
+// leak on top of it. DIALOG_OPEN mirrors `DialogManager.get_IsShowDialog()`, sampled on the main thread
+// by `poll()` (calling that il2cpp getter from the render thread would be a GC hazard).
+static DIALOG_OPEN: AtomicBool = AtomicBool::new(false);
+static ISDLG_FN: AtomicUsize = AtomicUsize::new(0);
+static ISDLG_M: AtomicUsize = AtomicUsize::new(0);
+
+/// True while the Legacy Select MAIN view is the visible step and no picker/detail/dialog is on top.
 pub fn active() -> bool {
     let step = STEP.load(Ordering::Relaxed);
     if step == 0 {
         return false;
     }
-    // _showDetail (bool) @0x50 — picker overlay open → don't show.
+    // Any dialog open (e.g. the candidate stat sheet) → hide the badges.
+    if DIALOG_OPEN.load(Ordering::Relaxed) {
+        return false;
+    }
+    // _showDetail (bool) @0x50 — inline picker overlay open → don't show.
     let detail = unsafe { *((step + O_SHOWDETAIL) as *const u8) };
     detail == 0
+}
+
+/// Main-thread poll (driven by hunter's TweenManager.Update pump): refresh DIALOG_OPEN from the game's
+/// own `DialogManager.get_IsShowDialog()`. Only sampled while on Legacy Select (STEP set) — cheap and
+/// avoids calling the getter on unrelated screens / before DialogManager exists.
+pub fn poll() {
+    if STEP.load(Ordering::Relaxed) == 0 {
+        DIALOG_OPEN.store(false, Ordering::Relaxed);
+        return;
+    }
+    let f = ISDLG_FN.load(Ordering::Relaxed);
+    let m = ISDLG_M.load(Ordering::Relaxed);
+    if f == 0 || m == 0 {
+        return;
+    }
+    unsafe {
+        // static bool get_IsShowDialog(MethodInfo*)
+        let g: extern "C" fn(*const core::ffi::c_void) -> bool = std::mem::transmute(f);
+        DIALOG_OPEN.store(g(m as *const core::ffi::c_void), Ordering::Relaxed);
+    }
 }
 
 // ── values (from the CalcRelationPoint hook) ───────────────────────────────────────
@@ -299,6 +331,23 @@ pub fn install() -> String {
             }
         } else {
             notes.push_str("hide:skip");
+        }
+
+        // Dialog gate: cache DialogManager.get_IsShowDialog (static bool) so poll() can hide the badges
+        // whenever a dialog (the candidate stat sheet) is open on top of Legacy Select.
+        let dm = il2cpp::class("Gallop.DialogManager");
+        if !dm.is_null() {
+            let m = il2cpp::method(dm, "get_IsShowDialog", 0);
+            let p = il2cpp::method_pointer(m);
+            if !m.is_null() && !p.is_null() {
+                ISDLG_FN.store(p as usize, Ordering::Relaxed);
+                ISDLG_M.store(m as usize, Ordering::Relaxed);
+                notes.push_str(" dlg:ok");
+            } else {
+                notes.push_str(" dlg:miss");
+            }
+        } else {
+            notes.push_str(" dlg:noclass");
         }
     }
     let _ = log;

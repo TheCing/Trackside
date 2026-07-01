@@ -127,6 +127,8 @@ static SUPPRESS_TOGGLE: std::sync::atomic::AtomicBool = std::sync::atomic::Atomi
 // Soft-reset button arm timestamp (ui.time() bits). Non-zero + recent = the "click again to confirm"
 // window is open, so a stray single click can't reload the game.
 static RESET_ARMED_AT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+// Selected index in the version-switch dropdown (updater "switch / downgrade to this version").
+static VERSION_SEL: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 /// The soft-reset button (2-click confirm) — shared by BOTH menus. Reloads the game to the title
 /// without closing the process. A stray single tap can't fire it: the first click arms a 3s window,
@@ -157,6 +159,36 @@ fn reset_button(ui: &Ui) {
         if armed { BAD } else { DIM },
         if armed { "reloads to title" } else { "soft restart" },
     );
+}
+
+/// Version-switch / downgrade dropdown — shared by BOTH menus. Lists every release that carries this
+/// build's loose DLL (v3.5.9+), lets the user pick one and switch to it (download → restart). `w` is
+/// the content width for the combo.
+fn version_switch_ui(ui: &Ui, w: f32) {
+    use std::sync::atomic::Ordering::Relaxed;
+    ui.text_colored(DIM, "Switch / downgrade version");
+    let vers = crate::selfupdate::versions();
+    if vers.is_empty() {
+        ui.same_line();
+        if ui.small_button("Show##showvers") {
+            crate::selfupdate::list_versions();
+        }
+        return;
+    }
+    let labels: Vec<&str> = vers.iter().map(|(t, _)| t.as_str()).collect();
+    let mut sel = VERSION_SEL.load(Relaxed);
+    if sel >= labels.len() {
+        sel = 0;
+    }
+    ui.set_next_item_width((w - 16.0).max(120.0));
+    if ui.combo_simple_string("##verpick", &mut sel, &labels) {
+        VERSION_SEL.store(sel, Relaxed);
+    }
+    if ui.button("Switch to this version##switchver") {
+        if let Some((tag, url)) = vers.get(sel) {
+            crate::selfupdate::switch_to(url.clone(), tag.clone());
+        }
+    }
 }
 
 /// The "open/close menu key" control as a CLICK-TO-BIND button — shared by BOTH menus (premium
@@ -1668,6 +1700,10 @@ impl HeavenOverlay {
                                             if btn(ui, "##rel", "Releases") {
                                                 open_url(crate::update::RELEASES_URL);
                                             }
+                                            ui.dummy([0.0, 10.0]);
+                                            ui.separator();
+                                            ui.dummy([0.0, 6.0]);
+                                            version_switch_ui(ui, cw);
                                         }
                                         Ctrl::Custom(Custom::AboutLayout) => {
                                             let cen = crate::settings::menu_centered();
@@ -1986,6 +2022,8 @@ impl HeavenOverlay {
                                         if !ust.is_empty() {
                                             ui.text_colored(ACCENT, ust);
                                         }
+                                        ui.separator();
+                                        version_switch_ui(ui, ui.content_region_avail()[0].max(180.0));
                                     }
                                     Ctrl::Custom(Custom::AboutLayout) => {
                                         let cen = crate::settings::menu_centered();
