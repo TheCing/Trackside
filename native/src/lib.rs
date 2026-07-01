@@ -32,6 +32,7 @@ mod freecam;
 mod fps;
 mod graphics;
 mod hooks;
+mod http;
 mod il2cpp;
 #[cfg(feature = "banner")]
 mod intro_player;
@@ -51,11 +52,13 @@ mod race;
 // Per-race JSON export (RaceInfo → disk, grouped by race type) for the web viewer.
 #[cfg(feature = "raceread")]
 mod race_export;
+mod reset;
 mod umas;
 // Player-horse identity from the network response (msgpack). Public build only —
 // the private build gets the same data from `the full build`'s response hook.
 #[cfg(feature = "racenet")]
 mod race_net;
+mod selfupdate;
 mod settings;
 mod skip;
 #[cfg(feature = "banner")]

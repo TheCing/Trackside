@@ -526,6 +526,8 @@ unsafe extern "C" fn tween_hook(ut: i32, dt: f32, idt: f32, mi: *const c_void) {
     frame_pump();
     crate::crashlog::step("hunter:tween:padder-pump");
     crate::padder::pump(); // robust backup driver for the padder apply (idempotent, guarded)
+    crate::crashlog::step("hunter:tween:reset-pump");
+    crate::reset::poll(); // main-thread execution point for a requested soft reset (guarded, no-op if idle)
     crate::crashlog::step("hunter:tween:orig");
     let o = TWEEN_ORIG.load(Ordering::Relaxed);
     if o != 0 {

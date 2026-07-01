@@ -236,6 +236,15 @@ pub fn spawn() {
             crate::diag::record_install("affinity", &r);
         }
 
+        // Soft reset (GameSystem.SoftwareReset) — reload to title without killing the process.
+        // Resolved by name; fired from the overlay via reset::request(), executed on the main-thread
+        // TweenManager.Update pump (reset::poll()).
+        {
+            let r = crate::reset::install();
+            log(&format!("soft reset: {r}"));
+            crate::diag::record_install("soft reset", &r);
+        }
+
         // Heaven+Hachimi variant: report which hooks Heaven owns vs ceded to a co-resident mod.
         #[cfg(feature = "hachimi")]
         log(&format!("hook arbiter: {}", crate::arbiter::report()));
@@ -252,6 +261,10 @@ pub fn spawn() {
         il2cpp::detach_thread(heaven_thread);
         ipc::set_status("Heaven native engine ready");
         log("==== ready (boot thread detached) ====");
+
+        // Auto-check for a new release in the background (spawns its own thread, no IL2CPP).
+        // Honours the "don't ask again for this version" skip; the overlay shows the dialog.
+        crate::selfupdate::check(false);
     });
 }
 
