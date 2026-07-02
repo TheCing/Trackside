@@ -70,6 +70,10 @@ rmpv = { version = "1", optional = true }
 jpeg-decoder = { version = "0.3", optional = true }
 # Native audio playback for the intro song. `banner` only.
 rodio = { version = "0.19", optional = true }
+# AES-256-CBC for the uma_bridge companion-overlay UDP feed (RustCrypto). `alloc`
+# feature provides the encrypt_padded_vec_mut API uma_bridge uses.
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
 
 [profile.release]
 opt-level = 3
