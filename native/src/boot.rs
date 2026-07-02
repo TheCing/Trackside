@@ -200,6 +200,15 @@ pub fn spawn() {
             crate::diag::record_install("race_net", "armed (player-id only)");
         }
 
+        // Companion-overlay bridge: forward requests (CompressRequest hook) + responses (fed from the
+        // DecompressResponse hook in the full build/race_net) to companion overlays over UDP 17229,
+        // so tools that used a separate capture plugin work with Heaven directly.
+        {
+            crate::uma_bridge::install();
+            log("uma_bridge: request capture armed");
+            crate::diag::record_install("uma_bridge", "armed");
+        }
+
         // HorseTheTrails — native Team Trials capture (hooks TeamStadiumResult).
         // Runs while this boot thread is still IL2CPP-attached (scan needs it).
         {

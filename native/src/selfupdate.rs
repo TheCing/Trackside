@@ -444,22 +444,32 @@ pub fn staged() -> bool {
 }
 
 /// Close the game and relaunch it so the proxy applies the staged DLL on the fresh launch — no
-/// external installer. A DETACHED PowerShell helper waits for THIS process to fully exit, then
-/// starts the game exe again; we then post WM_CLOSE to the game window for a clean shutdown.
+/// external installer. A DETACHED PowerShell helper gives the game a few seconds to close on its
+/// own (from the WM_CLOSE we post below) and then FORCE-KILLS it by PID if it's still alive, before
+/// relaunching the exe. The force-kill is what makes this reliable: a clean WM_CLOSE shutdown can
+/// hang forever when a second mod is co-resident (two mods' threads racing the IL2CPP shutdown GC),
+/// or the window may ignore/miss WM_CLOSE — in either case the old code's `Wait-Process` blocked
+/// forever and the game never relaunched. Killing by PID needs no window and can't hang.
 pub fn restart_game() {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     const DETACHED_PROCESS: u32 = 0x0000_0008;
 
     let pid = std::process::id();
-    let exe = match std::env::current_exe() {
-        Ok(p) => p.to_string_lossy().replace('\'', "''"),
+    let exe_path = match std::env::current_exe() {
+        Ok(p) => p,
         Err(_) => return set_status("Restart failed: game path unknown (restart manually)"),
     };
-    // Wait for this game process to exit, give the OS a beat to release the DLL, then relaunch.
+    let exe = exe_path.to_string_lossy().replace('\'', "''");
+    let dir = exe_path.parent().map(|d| d.to_string_lossy().replace('\'', "''")).unwrap_or_default();
+    // Wait up to ~5s for a clean exit; if the process is still alive, force-kill it by PID (a hung
+    // shutdown with a co-resident mod, or an ignored WM_CLOSE). Then relaunch from the game folder.
     let script = format!(
-        "Wait-Process -Id {pid} -ErrorAction SilentlyContinue; \
-         Start-Sleep -Milliseconds 900; Start-Process '{exe}'"
+        "$p={pid}; \
+         for($i=0;$i -lt 50 -and (Get-Process -Id $p -ErrorAction SilentlyContinue);$i++){{Start-Sleep -Milliseconds 100}}; \
+         if(Get-Process -Id $p -ErrorAction SilentlyContinue){{Stop-Process -Id $p -Force -ErrorAction SilentlyContinue}}; \
+         Start-Sleep -Milliseconds 1200; \
+         Start-Process -FilePath '{exe}' -WorkingDirectory '{dir}'"
     );
     let spawned = std::process::Command::new("powershell")
         .args(["-NoProfile", "-WindowStyle", "Hidden", "-NonInteractive", "-Command", &script])
@@ -468,7 +478,8 @@ pub fn restart_game() {
     if spawned.is_err() {
         return set_status("Restart failed to spawn helper (restart manually)");
     }
-    // Close the game window (clean WM_CLOSE); the proxy swaps the DLL on the next launch.
+    set_status("Restarting the game...");
+    // Best-effort graceful close (clean WM_CLOSE). If it doesn't take, the helper force-kills by PID.
     unsafe {
         use windows_sys::Win32::UI::WindowsAndMessaging::{FindWindowW, PostMessageW, WM_CLOSE};
         let title: Vec<u16> = "Umamusume".encode_utf16().chain(std::iter::once(0)).collect();

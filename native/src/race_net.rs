@@ -116,6 +116,8 @@ unsafe fn on_response(ret: *mut c_void) {
     }
     let data = (ret as *mut u8).add(0x20);
     let slice = std::slice::from_raw_parts(data, len);
+    // Feed the plain response to the companion-overlay bridge (all responses, before our filter).
+    crate::uma_bridge::send_response(slice);
     let has_race = contains(slice, "race_horse_data".as_bytes());
     let has_cont = contains(slice, "available_continue_num".as_bytes());
     if !has_race && !has_cont {

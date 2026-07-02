@@ -65,6 +65,7 @@ mod skip;
 mod startup_probe;
 // Live career reader (extra info panels). Private builds only.
 mod ui_tempo;
+mod uma_bridge;
 mod update;
 
 use hudhook::hooks::dx11::ImguiDx11Hooks;
