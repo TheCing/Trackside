@@ -55,6 +55,15 @@ const SIDEBAR_W: f32 = 176.0;
 const MENU_W: f32 = 720.0;
 const MENU_H: f32 = 720.0;
 
+/// Global display-scale factor for every overlay window: 1.0 at 1080p, ~2.0 at 4K, clamped. Shared
+/// so ALL windows (menu, Race Director HUD, panels, dialogs) open at a sane size on high-DPI/4K —
+/// each window multiplies its default size by this, and scales its font by `window_width / base`
+/// (which equals this at the default size, and grows further when the user drag-resizes). Per-frame
+/// (uses the live render size), so it's correct whether the game is fullscreen 4K or windowed.
+pub(crate) fn dpi(ui: &Ui) -> f32 {
+    (ui.io().display_size[1] / 1080.0).clamp(1.0, 3.0)
+}
+
 // Bundled fonts (SIL OFL): Inter for body/UI, Orbitron for section titles. Premium-launcher look.
 // Per the design kit: body = Inter Medium, section titles = Cinzel SemiBold, numbers = Orbitron Medium.
 const INTER_TTF: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts/Inter-Medium.ttf"));
@@ -535,6 +544,13 @@ impl ImguiRenderLoop for HeavenOverlay {
     /// authoritative every session.
     fn initialize<'a>(&'a mut self, ctx: &mut Context, _loader: TextureLoader<'a>) {
         ctx.set_ini_filename(None);
+        // Let the user grab ANY edge or corner to resize windows (the menu), not just the
+        // bottom-right grip. Width drives the menu zoom, height gives room — so a side/bottom drag
+        // lets you tune each independently.
+        ctx.io_mut().config_windows_resize_from_edges = true;
+        // ImGui DISABLES edge-resize unless the backend advertises mouse-cursor support (it uses
+        // cursor feedback), so advertise it — without this, only the bottom-right grip resizes.
+        ctx.io_mut().backend_flags.insert(imgui::BackendFlags::HAS_MOUSE_CURSORS);
         // Wire Ctrl+C / Ctrl+V / Ctrl+X to the Windows clipboard in every text field.
         ctx.set_clipboard_backend(crate::clipboard::WinClipboard);
         // Upload the header banner (raw RGBA) once. Non-fatal: if it fails, we just
@@ -806,7 +822,7 @@ impl ImguiRenderLoop for HeavenOverlay {
                 // The ONLY way to skip: a "START GAME" button bottom-right. Clicking
                 // anywhere else does nothing (no accidental skips).
                 let [dw, dh] = ui.io().display_size;
-                let bh = 88.0;
+                let bh = 88.0 * dpi(ui); // high-DPI/4K baseline
                 let bw = bh * (START_W / START_H);
                 let margin = 46.0;
                 let pad = ui.push_style_var(StyleVar::WindowPadding([0.0, 0.0]));
@@ -1003,7 +1019,12 @@ impl HeavenOverlay {
         let saved = crate::settings::win_rect("menu");
         let (w, h) = match saved {
             Some(r) => (r[2].clamp(280.0, dw - 28.0), r[3].clamp(200.0, dh - 28.0)),
-            None => (MENU_W.min(dw - 28.0), MENU_H.min(dh - 28.0)),
+            None => {
+                // First-open size scales to the display so the menu isn't tiny on 4K/high-DPI.
+                // The uniform-zoom `s` (= width / MENU_W) then scales text+layout to match.
+                let dpi = (dh / 1080.0).clamp(1.0, 3.0);
+                ((MENU_W * dpi).min(dw - 28.0), (MENU_H * dpi).min(dh - 28.0))
+            }
         };
         // Default position from the centered/rail layout (used on first open or a relayout toggle).
         let default_pos = if centered {
@@ -1077,6 +1098,14 @@ impl HeavenOverlay {
             .build(|| {
                 let p0 = ui.window_pos();
                 let wsz = ui.window_size();
+                // UNIFORM zoom: one scale factor from the window width (base = default menu width)
+                // drives EVERYTHING together — text, the sidebar, the nav rows and widget spacing —
+                // so dragging the menu bigger grows the whole thing proportionally, not just text.
+                let s = (wsz[0] / MENU_W).clamp(0.85, 2.5);
+                ui.set_window_font_scale(s);
+                let sbw = SIDEBAR_W * s; // scaled sidebar width (all sidebar layout keys off this)
+                let _sp_is = ui.push_style_var(StyleVar::ItemSpacing([8.0 * s, 7.0 * s]));
+                let _sp_fp = ui.push_style_var(StyleVar::FramePadding([9.0 * s, 5.0 * s]));
                 // Below this height the silhouette/sparkles are hidden so the nav rows never
                 // overlap them; the nav reclaims that reserved bottom space (see bottom_limit).
                 let show_decor = wsz[1] >= 520.0;
@@ -1091,7 +1120,7 @@ impl HeavenOverlay {
                 }
                 // Darker sidebar strip on the left (rounded only on the left to match the window).
                 ui.get_window_draw_list()
-                    .add_rect(p0, [p0[0] + SIDEBAR_W, p0[1] + wsz[1]], SIDEBAR_BG)
+                    .add_rect(p0, [p0[0] + sbw, p0[1] + wsz[1]], SIDEBAR_BG)
                     .filled(true)
                     .rounding(10.0)
                     .round_top_right(false)
@@ -1118,7 +1147,7 @@ impl HeavenOverlay {
                             if let Some(t) = petals[ti] {
                                 let yy = p0[1] - 40.0 + ((anim_t * sp + ph) % span);
                                 let sway = (anim_t * 0.7 + ph).sin() * 9.0;
-                                let cx = p0[0] + 10.0 + xf * (SIDEBAR_W - 30.0) + sway;
+                                let cx = p0[0] + 10.0 + xf * (sbw - 30.0) + sway;
                                 dl.add_image(t, [cx, yy], [cx + sz, yy + sz])
                                     .col([1.0, 1.0, 1.0, 0.55])
                                     .build();
@@ -1128,7 +1157,7 @@ impl HeavenOverlay {
                 }
 
                 ui.columns(2, "##menu", false);
-                ui.set_column_width(0, SIDEBAR_W);
+                ui.set_column_width(0, sbw);
 
                 // ── sidebar: crest + wordmark + category list ──
                 #[cfg(feature = "banner")]
@@ -1138,7 +1167,7 @@ impl HeavenOverlay {
                         let cs = 78.0;
                         // Soft magenta halo behind the crest (floating glow orb).
                         if let Some(orb) = ORB_TEX.with(|c| c.get()) {
-                            let ocx = p0[0] + SIDEBAR_W * 0.5;
+                            let ocx = p0[0] + sbw * 0.5;
                             let ocy = p0[1] + y + cs * 0.5;
                             let os = cs * 0.92;
                             ui.get_window_draw_list()
@@ -1146,14 +1175,14 @@ impl HeavenOverlay {
                                 .col([1.0, 1.0, 1.0, 0.55])
                                 .build();
                         }
-                        ui.set_cursor_pos([(SIDEBAR_W - cs) * 0.5, y]);
+                        ui.set_cursor_pos([(sbw - cs) * 0.5, y]);
                         imgui::Image::new(t, [cs, cs]).build(ui);
                         y += cs;
                     }
                     if let Some(t) = logo_tex {
-                        let lw = (SIDEBAR_W - 36.0) * 0.87;
+                        let lw = (sbw - 36.0) * 0.87;
                         let lh = lw * (LOGO_H / LOGO_W);
-                        ui.set_cursor_pos([(SIDEBAR_W - lw) * 0.5, y]);
+                        ui.set_cursor_pos([(sbw - lw) * 0.5, y]);
                         imgui::Image::new(t, [lw, lh]).build(ui);
                         y += lh + 6.0;
                     }
@@ -1174,9 +1203,9 @@ impl HeavenOverlay {
                     let n_items = tabs.len() as f32;
                     let bottom_limit = wsz[1] - if show_decor { 200.0 } else { 36.0 };
                     let nav_avail = (bottom_limit - nav_y0).max(n_items * 46.0);
-                    let nav_pitch = (nav_avail / n_items).clamp(46.0, 56.0);
+                    let nav_pitch = (nav_avail / n_items).clamp(46.0 * s, 56.0 * s);
                     let nav_half = nav_pitch * 0.5;
-                    let icon_sz = 42.0_f32;
+                    let icon_sz = 42.0_f32 * s;
                     // Animated active background + gold→magenta bar that slide toward the
                     // selected row (~160 ms). Drawn BEFORE the rows so content sits on top.
                     let active_y = anim_step("nav_bar_y", nav_y0 + (*tab as f32) * nav_pitch, 12.0);
@@ -1184,7 +1213,7 @@ impl HeavenOverlay {
                         let dl = ui.get_window_draw_list();
                         dl.add_rect(
                             [p0[0] + 8.0, p0[1] + active_y + 3.0],
-                            [p0[0] + SIDEBAR_W - 8.0, p0[1] + active_y + nav_pitch - 3.0],
+                            [p0[0] + sbw - 8.0, p0[1] + active_y + nav_pitch - 3.0],
                             SEL_BG,
                         )
                         .filled(true)
@@ -1208,7 +1237,7 @@ impl HeavenOverlay {
                         if ui
                             .selectable_config(format!("##nav{i}"))
                             .selected(sel)
-                            .size([SIDEBAR_W - 20.0, nav_pitch - 6.0])
+                            .size([sbw - 20.0, nav_pitch - 6.0])
                             .build()
                         {
                             *tab = i;
@@ -1220,7 +1249,7 @@ impl HeavenOverlay {
                             ui.get_window_draw_list()
                                 .add_rect(
                                     [p0[0] + 8.0, p0[1] + cy + 3.0],
-                                    [p0[0] + SIDEBAR_W - 8.0, p0[1] + cy + nav_pitch - 3.0],
+                                    [p0[0] + sbw - 8.0, p0[1] + cy + nav_pitch - 3.0],
                                     [0.80, 0.44, 1.0, 0.16 * hv],
                                 )
                                 .filled(true)
@@ -1297,7 +1326,7 @@ impl HeavenOverlay {
                 if let Some(t) = sil_tex.filter(|_| show_decor) {
                     let sw = 150.0;
                     let sh = sw * (SIL_H / SIL_W);
-                    let sx = p0[0] + (SIDEBAR_W - sw) * 0.5;
+                    let sx = p0[0] + (sbw - sw) * 0.5;
                     let sy = p0[1] + wsz[1] - sh - 14.0;
                     ui.get_window_draw_list()
                         .add_image(t, [sx, sy], [sx + sw, sy + sh])
@@ -1345,7 +1374,7 @@ impl HeavenOverlay {
                     let ft = concat!("v", env!("CARGO_PKG_VERSION"), "   \u{00b7}   Night DC");
                     let fw = ui.calc_text_size(ft)[0];
                     ui.get_window_draw_list().add_text(
-                        [p0[0] + (SIDEBAR_W - fw) * 0.5, p0[1] + wsz[1] - 19.0],
+                        [p0[0] + (sbw - fw) * 0.5, p0[1] + wsz[1] - 19.0],
                         [0.50, 0.44, 0.62, 0.85],
                         ft,
                     );
@@ -1353,7 +1382,7 @@ impl HeavenOverlay {
 
                 // Thin luminous divider between the sidebar and the content column.
                 {
-                    let lx = p0[0] + SIDEBAR_W;
+                    let lx = p0[0] + sbw;
                     let midy = p0[1] + wsz[1] * 0.5;
                     let solid = [0.86, 0.55, 1.0, 0.42];
                     let trans = [0.86, 0.55, 1.0, 0.0];
@@ -1365,7 +1394,7 @@ impl HeavenOverlay {
                 ui.next_column();
 
                 // ── content column ──
-                let content_w = wsz[0] - SIDEBAR_W - 24.0;
+                let content_w = wsz[0] - sbw - 24.0;
 
                 // Header: a glass strip (gradient sheen + gold border) with the wordmark on the
                 // left and live FPS / speed / skip metrics on the right (numbers in Orbitron).
@@ -1830,7 +1859,7 @@ impl HeavenOverlay {
                 r[2].clamp(280.0, (dw - 28.0).max(280.0)),
                 r[3].clamp(0.0, (dh - 28.0).max(0.0)),
             ],
-            None => [400.0, 0.0],
+            None => [(400.0 * (dh / 1080.0).clamp(1.0, 3.0)).min(dw - 28.0), 0.0],
         };
         let win_pos = if self.relayout {
             [x, 14.0]
@@ -1855,6 +1884,12 @@ impl HeavenOverlay {
             .collapsible(false)
             .resizable(true)
             .build(|| {
+                // UNIFORM zoom: one scale factor (base = default classic width) grows the text AND
+                // the widget spacing/padding together, so the whole menu zooms with the window.
+                let s = (ui.window_size()[0] / 400.0).clamp(0.85, 2.5);
+                ui.set_window_font_scale(s);
+                let _sp_is = ui.push_style_var(StyleVar::ItemSpacing([8.0 * s, 7.0 * s]));
+                let _sp_fp = ui.push_style_var(StyleVar::FramePadding([9.0 * s, 5.0 * s]));
                 #[cfg(feature = "banner")]
                 if let Some(tex) = self_banner_tex {
                     let ww = ui.window_size()[0];
@@ -2780,7 +2815,8 @@ fn draw_battle_callout(ui: &Ui) {
     let tele = crate::settings::tele_scale();
     let base_w = 410.0; // content width at scale 1.0
     let [dw, dh] = ui.io().display_size;
-    let w0 = base_w * tele;
+    let d = dpi(ui); // high-DPI/4K baseline so it isn't tiny by default
+    let w0 = base_w * tele * d;
     // Default = centred lower-third; movable + RESIZABLE (drag the corner to scale), remembered.
     let (cx, cy) = (((dw - w0) * 0.5).max(0.0), (dh - 168.0 * tele).max(0.0));
     let saved = crate::settings::win_rect("battle");
@@ -2788,7 +2824,7 @@ fn draw_battle_callout(ui: &Ui) {
     let (sw, sh) = saved
         .filter(|r| r[2] > 60.0 && r[3] > 40.0)
         .map(|r| (r[2], r[3]))
-        .unwrap_or((w0, 130.0 * tele));
+        .unwrap_or((w0, 130.0 * tele * d));
     let sta = |hp: f32, max: f32| if max > 0.0 { (hp / max).clamp(0.0, 1.0) } else { 0.0 };
     let bc = |r: f32| if r > 0.5 { GOOD } else if r > 0.25 { WARN } else { BAD };
     let fr = sta(f.hp, f.max_hp);
@@ -2873,7 +2909,7 @@ fn draw_timing_tower(ui: &Ui, x: f32, y: f32) {
     let (sw, sh) = saved
         .filter(|r| r[2] > 60.0 && r[3] > 40.0)
         .map(|r| (r[2], r[3]))
-        .unwrap_or((base_w * tele, base_h * tele));
+        .unwrap_or((base_w * tele * dpi(ui), base_h * tele * dpi(ui)));
     let _style = panel_style(ui);
     ui.window("Heaven \u{00b7} Timing Tower")
         .position([px, py], Condition::FirstUseEver)
@@ -3088,7 +3124,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
     let (sw, sh) = saved
         .filter(|r| r[2] > 60.0 && r[3] > 40.0)
         .map(|r| (r[2], r[3]))
-        .unwrap_or((base_w * tele, 440.0 * tele));
+        .unwrap_or((base_w * tele * dpi(ui), 440.0 * tele * dpi(ui)));
     let _style = panel_style(ui);
     ui.window("Heaven \u{00b7} Freecam Telemetry")
         .position([px, py], Condition::FirstUseEver)

@@ -550,7 +550,8 @@ pub(crate) fn draw_dialog(ui: &hudhook::imgui::Ui) {
     );
 
     let [dw, dh] = ui.io().display_size;
-    let (w, h) = (420.0_f32, 440.0_f32);
+    let d = crate::overlay::dpi(ui); // high-DPI/4K baseline
+    let (w, h) = (420.0_f32 * d, 440.0_f32 * d);
     ui.window("##hv_update")
         // FirstUseEver = centre the first time, then remember where the user drags/resizes it.
         .position([(dw - w) * 0.5, (dh - h) * 0.5], Condition::FirstUseEver)
@@ -561,6 +562,7 @@ pub(crate) fn draw_dialog(ui: &hudhook::imgui::Ui) {
         .resizable(true)
         .movable(true)
         .build(|| {
+            ui.set_window_font_scale(ui.window_size()[0] / 420.0); // = dpi at default, grows on resize
             let title = if p.same_version {
                 format!("Update for {}", p.target)
             } else {
