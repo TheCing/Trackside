@@ -37,14 +37,7 @@ const KEY: [u8; 32] = *b"HeavenUmaBridge-AES256-Key--v1!!";
 const IV: [u8; 16] = *b"HeavenBridgeIV01";
 
 fn blog(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "[uma_bridge] {msg}");
-    }
+    crate::tools::log(&format!("[uma_bridge] {msg}"));
 }
 
 static ENABLED: AtomicBool = AtomicBool::new(true);
@@ -191,7 +184,7 @@ unsafe extern "C" fn on_compress_request(arr: *mut c_void, method: *const c_void
 }
 
 /// Install the request-capture hook (CompressRequest). Response capture is fed from the existing
-/// DecompressResponse hook in the full build/race_net. Run on an IL2CPP-attached thread (boot).
+/// DecompressResponse hook. Run on an IL2CPP-attached thread (boot).
 pub fn install() {
     if REQ_INSTALLED.swap(true, Ordering::SeqCst) {
         return;
@@ -200,7 +193,7 @@ pub fn install() {
         if !h::init() {
             return;
         }
-        let image = crate::htt::find_game_image();
+        let image = crate::htt_il2cpp::find_game_image();
         if image.is_null() {
             return;
         }

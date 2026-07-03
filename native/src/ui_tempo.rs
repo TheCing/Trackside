@@ -35,6 +35,11 @@ pub fn set_tempo(t: f32) {
     TEMPO.store(t.clamp(1.0, 10.0).to_bits(), Ordering::Relaxed);
 }
 
+/// Apply persisted settings to the UI-tempo module at boot.
+pub fn apply(s: &crate::settings::Settings) {
+    set_tempo(s.ui_tempo);
+}
+
 /// Kept for the overlay's per-frame call site — the hook now does the work, so this is a
 /// no-op (no global field to re-assert).
 pub fn enforce() {}
@@ -47,10 +52,21 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     if t == 0 {
         return;
     }
-    // Run any queued Team Trials team-edit here: this hook is on the game MAIN THREAD, the only
-    // safe place for RequestBase.Send (the menu/apply click runs on the render thread). Cheap no-op
-    // when nothing is queued.
-    crate::padder::pump();
+    // This is the SINGLE detour on TweenManager.Update (a static, main-thread per-frame tick) and the
+    // one main-thread driver for ALL Heaven pumps. hunter previously stacked a SECOND RawDetour on this
+    // exact method for the same pumps — two detours on one 5-byte prologue corrupt each other's
+    // trampolines and produced the intermittent AV/C++-exception crash stamped "after-tween". Now
+    // consolidated here: one detour, every pump. All pumps are idempotent/guarded and safe on the main
+    // thread (the only place RequestBase.Send / SoftwareReset may run).
+    crate::crashlog::step("tween:hunter-pump");
+    crate::hunter::frame_pump(); // opponent-hunter jittered auto-roll
+    crate::crashlog::step("tween:padder-pump");
+    crate::padder::pump(); // Team Trials team-edit apply (main thread = safe for RequestBase.Send)
+    crate::crashlog::step("tween:reset-pump");
+    crate::reset::poll(); // soft-reset main-thread execution point (guarded, no-op if idle)
+    crate::crashlog::step("tween:affinity-pump");
+    crate::affinity::poll(); // affinity-badge "is a dialog open" gate sample
+    crate::crashlog::step("tween:scale-orig");
     let s = tempo();
     if s != 1.0 {
         // Scale BOTH the frame delta AND the time-independent delta so the WHOLE UI speeds up
@@ -62,6 +78,7 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     }
     let f: UpdateFn = std::mem::transmute(t);
     f(update_type, dt, idt, mi);
+    crate::crashlog::step("idle:after-tween");
 }
 
 pub fn install() -> Result<&'static str, String> {

@@ -284,14 +284,7 @@ mod il2cpp_bridge {
     use retour::RawDetour;
 
     fn log(msg: &str) {
-        use std::io::Write;
-        if let Ok(mut f) = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(crate::paths::log_file("heaven-native.log"))
-        {
-            let _ = writeln!(f, "[padder] {msg}");
-        }
+        crate::tools::log(&format!("[padder] {msg}"));
     }
 
     // ── live deck-builder capture (via the edit-screen view controller) ───────
@@ -459,74 +452,16 @@ mod il2cpp_bridge {
     }
 
     /// Call a 0-arg instance getter that returns an object pointer.
-    unsafe fn call_obj_getter(this: *mut c_void, klass_name: &str, method: &str) -> *mut c_void {
-        if this.is_null() {
-            return std::ptr::null_mut();
-        }
-        let k = il2cpp::class(klass_name);
-        if k.is_null() {
-            return std::ptr::null_mut();
-        }
-        let m = il2cpp::method(k, method, 0);
-        if m.is_null() {
-            return std::ptr::null_mut();
-        }
-        let p = il2cpp::method_pointer(m);
-        if p.is_null() {
-            return std::ptr::null_mut();
-        }
-        let f: extern "C" fn(*mut c_void, *const c_void) -> *mut c_void = std::mem::transmute(p);
-        f(this, m as *const c_void)
-    }
+    // Shared TT il2cpp helpers (field readers + getters) live in tt_il2cpp.rs.
+    use crate::tt_il2cpp::{call_obj_getter, rd_i32, rd_obscured_i32, rd_ptr};
 
     /// WorkDataManager.Instance -> WorkTeamStadiumData -> TeamStadiumDeckInfo. Null if TT not loaded.
     unsafe fn deck_info() -> *mut c_void {
-        // WorkDataManager : Singleton<WorkDataManager> → static get_Instance()
-        let wdm_class = il2cpp::class("Gallop.WorkDataManager");
-        if wdm_class.is_null() {
-            log("WorkDataManager class missing");
-            return std::ptr::null_mut();
-        }
-        let gi = il2cpp::method(wdm_class, "get_Instance", 0);
-        if gi.is_null() {
-            log("WorkDataManager.get_Instance missing");
-            return std::ptr::null_mut();
-        }
-        let gip = il2cpp::method_pointer(gi);
-        if gip.is_null() {
-            return std::ptr::null_mut();
-        }
-        let f: extern "C" fn(*const c_void) -> *mut c_void = std::mem::transmute(gip);
-        let wdm = f(gi as *const c_void);
-        if wdm.is_null() {
-            return std::ptr::null_mut();
-        }
-        let wts = call_obj_getter(wdm, "Gallop.WorkDataManager", "get_TeamStadiumData");
+        let wts = crate::tt_il2cpp::team_stadium_data();
         if wts.is_null() {
             return std::ptr::null_mut();
         }
         call_obj_getter(wts, "Gallop.WorkTeamStadiumData", "get_TeamStadiumDeckInfo")
-    }
-
-    #[inline]
-    unsafe fn rd_ptr(base: *mut c_void, off: usize) -> *mut c_void {
-        if base.is_null() { return std::ptr::null_mut(); }
-        *((base as usize + off) as *const *mut c_void)
-    }
-    #[inline]
-    unsafe fn rd_i32(base: *mut c_void, off: usize) -> i32 {
-        if base.is_null() { return 0; }
-        *((base as usize + off) as *const i32)
-    }
-
-    /// Decode a CodeStage ObscuredInt at `base+off` (struct: currentCryptoKey@0, hiddenValue@4).
-    /// plain = hiddenValue ^ currentCryptoKey. (Layout confirmed against race_export's decoder.)
-    #[inline]
-    unsafe fn rd_obscured_i32(base: *mut c_void, off: usize) -> i32 {
-        if base.is_null() { return 0; }
-        let key = *((base as usize + off) as *const i32);
-        let hidden = *((base as usize + off + 4) as *const i32);
-        hidden ^ key
     }
 
     /// Snapshot the 15 live slots. Pure field walk — no managed allocation, safe off-thread.
@@ -753,5 +688,143 @@ mod il2cpp_bridge {
             on_change(builder, last_member, odc.1);
             Ok(())
         }
+    }
+}
+
+/// Team Trials deck profiles: list saved profiles with Apply / Rename / Delete, plus a
+/// "save current team" row. Apply asks for an inline confirm (user preference). Profiles pin
+/// each Uma by its stable trained_chara_id, so they survive inventory reordering.
+pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
+    use hudhook::imgui::Ui;
+    use crate::overlay::{btn_primary, help_icon, icon_btn, status_dot, ACCENT, DIM, GOOD, TEXT, WARN};
+    use std::cell::{Cell, RefCell};
+    thread_local! {
+        static NEWBUF: RefCell<String> = RefCell::new(String::new());
+        static CONFIRM: Cell<i32> = Cell::new(-1);     // idx pending apply-confirm (-1 = none)
+        static RIDX: Cell<i32> = Cell::new(-1);        // idx being renamed (-1 = none)
+        static RBUF: RefCell<String> = RefCell::new(String::new());
+        static STATUS: RefCell<String> = RefCell::new(String::new());
+    }
+    let set_status = |m: String| STATUS.with(|s| *s.borrow_mut() = m);
+
+    let profiles = crate::padder::list();
+
+    ui.dummy([0.0, 4.0]);
+    if crate::padder::edit_screen_open() {
+        status_dot(ui, GOOD, "Edit screen ready");
+    } else {
+        status_dot(ui, WARN, "Open the team-edit screen");
+    }
+    ui.same_line();
+    help_icon(ui, "Save your team as a profile, then Apply to swap all 15 Umas in the in-game editor (then press the game's Confirm to save). Profiles pin each Uma by id, so they survive inventory changes.");
+    ui.dummy([0.0, 8.0]);
+
+    // ── existing profiles ──
+    for (i, (name, n)) in profiles.iter().enumerate() {
+        let idx = i as i32;
+        let renaming = RIDX.with(|r| r.get()) == idx;
+        // right-align a group of `count` icon buttons on this row
+        let align_icons = |ui: &Ui, count: f32| {
+            ui.same_line();
+            let cur = ui.cursor_pos();
+            let icons_w = count * 30.0 + (count - 1.0).max(0.0) * 6.0;
+            let tx = (w - icons_w - 2.0).max(cur[0] + 8.0);
+            ui.set_cursor_pos([tx, cur[1] - 2.0]);
+        };
+        if renaming {
+            RBUF.with(|b| {
+                let mut s = b.borrow_mut();
+                ui.set_next_item_width(w * 0.58);
+                let _ = ui.input_text(&format!("##rn{i}"), &mut s).hint("new name").build();
+            });
+            align_icons(ui, 2.0);
+            if icon_btn(ui, &format!("##rok{i}"), "\u{E73E}", "Save name", false) {
+                let newname = RBUF.with(|b| b.borrow().clone());
+                match crate::padder::rename(i, &newname) {
+                    Ok(_) => set_status(format!("Renamed to \"{}\".", newname.trim())),
+                    Err(e) => set_status(e),
+                }
+                RIDX.with(|r| r.set(-1));
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##rcancel{i}"), "\u{E711}", "Cancel", false) {
+                RIDX.with(|r| r.set(-1));
+            }
+        } else if CONFIRM.with(|c| c.get()) == idx {
+            ui.text_colored(ACCENT, &format!("Apply \"{name}\"?"));
+            align_icons(ui, 2.0);
+            if icon_btn(ui, &format!("##yes{i}"), "\u{E73E}", "Confirm apply", false) {
+                if let Err(e) = crate::padder::apply(i) {
+                    set_status(e);
+                }
+                CONFIRM.with(|c| c.set(-1));
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##no{i}"), "\u{E711}", "Cancel", false) {
+                CONFIRM.with(|c| c.set(-1));
+            }
+        } else {
+            ui.text_colored(TEXT, name);
+            ui.same_line();
+            ui.text_colored(DIM, &format!("({n})"));
+            align_icons(ui, 3.0);
+            if icon_btn(ui, &format!("##ap{i}"), "\u{E895}", "Apply (swap to this team)", false) {
+                CONFIRM.with(|c| c.set(idx));
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##rnbtn{i}"), "\u{E70F}", "Rename", false) {
+                RIDX.with(|r| r.set(idx));
+                RBUF.with(|b| *b.borrow_mut() = name.clone());
+            }
+            ui.same_line();
+            if icon_btn(ui, &format!("##del{i}"), "\u{E74D}", "Delete", true) {
+                match crate::padder::delete(i) {
+                    Ok(_) => set_status(format!("Deleted \"{name}\".")),
+                    Err(e) => set_status(e),
+                }
+                CONFIRM.with(|c| c.set(-1));
+            }
+        }
+        ui.dummy([0.0, 5.0]);
+    }
+
+    // ── save current team as a new profile ──
+    if profiles.len() < crate::padder::MAX_PROFILES {
+        ui.dummy([0.0, 4.0]);
+        NEWBUF.with(|b| {
+            let mut s = b.borrow_mut();
+            ui.set_next_item_width(w * 0.62);
+            let _ = ui.input_text("##ttnew", &mut s).hint("profile name").build();
+        });
+        ui.same_line();
+        if btn_primary(ui, "##ttsave", "Save current") {
+            let name = NEWBUF.with(|b| b.borrow().clone());
+            match crate::padder::save_current(&name) {
+                Ok(saved) => {
+                    set_status(format!("Saved current team as \"{saved}\"."));
+                    NEWBUF.with(|b| b.borrow_mut().clear());
+                }
+                Err(e) => set_status(e),
+            }
+        }
+    } else {
+        ui.dummy([0.0, 4.0]);
+        ui.text_colored(DIM, &format!("Max {} profiles — delete one to add more.", crate::padder::MAX_PROFILES));
+    }
+
+    // ── status line ──
+    STATUS.with(|s| {
+        let st = s.borrow();
+        if !st.is_empty() {
+            ui.dummy([0.0, 6.0]);
+            ui.text_colored(GOOD, &*st);
+        }
+    });
+    // deferred-apply result (sent from the main-thread pump)
+    let ps = crate::padder::pump_status();
+    if !ps.is_empty() {
+        ui.dummy([0.0, 2.0]);
+        let col = if ps.starts_with("Apply failed") { WARN } else { GOOD };
+        ui.text_colored(col, &ps);
     }
 }

@@ -31,19 +31,11 @@ use crate::ipc;
 const EMIT_MS: u64 = 500; // ~2 Hz frame publish
 
 fn clock() -> &'static Instant {
-    static C: OnceLock<Instant> = OnceLock::new();
-    C.get_or_init(Instant::now)
+    crate::tools::clock()
 }
 
 fn rlog(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 #[inline]
@@ -104,7 +96,7 @@ pub fn set_continues_available(n: i32) {
     CONTINUES.store(n, Ordering::Relaxed);
 }
 
-// Player's horse identity from the msgpack race response (published by the response hook
+// Player's horse identity from the msgpack race response (published by the response
 // DecompressResponse hook). The player is the only horse with viewer_id != 0;
 // its `frame_order - 1` is the sim horse index used to index the result array.
 static NET_PLAYER_FRAMEORDER: AtomicI32 = AtomicI32::new(-1);

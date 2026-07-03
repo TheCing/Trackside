@@ -25,15 +25,7 @@ use retour::RawDetour;
 use crate::il2cpp;
 
 fn log(msg: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    if let Ok(mut f) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 // ── shared settings ──────────────────────────────────────────────────────────

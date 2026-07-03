@@ -10,7 +10,7 @@
 //! `ImguiDx12Hooks` / the Vulkan hook (see build.md).
 
 // Intro player support (native song playback, original-BGM mute, title-scene probe).
-// Private build only — gated with the `banner` feature, like the video player itself.
+// Gated with the `banner` feature, like the video player itself.
 mod affinity;
 #[cfg(feature = "banner")]
 mod audio;
@@ -21,16 +21,14 @@ mod arbiter;
 mod boot;
 mod clipboard;
 mod crashlog;
-mod cyspring;
 mod data;
 mod diag;
-mod plugins;
 mod hachimi_compat;
-mod display;
 #[cfg(feature = "freecam")]
 mod freecam;
-mod fps;
-mod graphics;
+#[cfg(feature = "freecam")]
+mod race_director;
+mod performance;
 mod hooks;
 mod http;
 mod il2cpp;
@@ -42,28 +40,42 @@ mod hunter;
 mod ipc;
 mod menu_model;
 mod names;
+// Shared msgpack (rmpv) tree-walk helpers for the response-hook consumers.
+// Only compiled when an rmpv-pulling feature is on.
+#[cfg(any(feature = "racenet", feature = "oracle"))]
+mod msgpack;
+// Extra response consumers, compiled only in the full build.
 mod overlay;
 mod padder;
 mod paths;
 // Live race reader (Race panel + race-result win-gate). Built in both the full
-// private build and the public build (the race-result skip needs finish placement).
+// both builds (the race-result skip needs finish placement).
 #[cfg(feature = "raceread")]
 mod race;
+// Generic IL2CPP managed-object → JSON reflection walker (used by race_export + umas).
+#[cfg(feature = "raceread")]
+mod il2cpp_json;
 // Per-race JSON export (RaceInfo → disk, grouped by race type) for the web viewer.
 #[cfg(feature = "raceread")]
 mod race_export;
 mod reset;
 mod umas;
-// Player-horse identity from the network response (msgpack). Public build only —
-// the private build gets the same data from `the full build`'s response hook.
-#[cfg(feature = "racenet")]
-mod race_net;
+// The single Gallop.HttpHelper::DecompressResponse hook: player-id (race-result gate) + race
+// retries + companion-bridge fan-out.
+#[cfg(any(feature = "racenet", feature = "oracle"))]
+mod response_hook;
 mod selfupdate;
 mod settings;
 mod skip;
+// Shared cross-cutting utilities (logging, process clock). See tools/mod.rs.
+mod tools;
+// Generic UI click/dialog engine used by the SuperSkip legs (result + shop).
+mod ui_input;
+// Shared IL2CPP helpers for the Team Trials features (hunter + padder).
+mod tt_il2cpp;
 #[cfg(feature = "banner")]
 mod startup_probe;
-// Live career reader (extra info panels). Private builds only.
+// Extra info panels, compiled only in the full build.
 mod ui_tempo;
 mod uma_bridge;
 mod update;

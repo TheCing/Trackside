@@ -37,15 +37,13 @@ pub fn set_enabled(on: bool) {
     ENABLED.store(on, Ordering::Relaxed);
 }
 
+/// Apply persisted settings to the veterans/umas export module at boot.
+pub fn apply(s: &crate::settings::Settings) {
+    set_enabled(s.umas_export);
+}
+
 fn ulog(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 unsafe fn cstr(p: *const c_char) -> String {
@@ -211,4 +209,4 @@ pub fn install() -> String {
     }
 }
 
-use crate::htt::find_game_image;
+use crate::htt_il2cpp::find_game_image;

@@ -323,7 +323,7 @@ pub fn model() -> Vec<Tab> {
             Ctrl::Note("Writes heaven-logs/heaven-diag.txt next to the game — send that file."),
         ],
     });
-    // Dev-only capture toggles (net capture / geom capture) intentionally NOT here —
+    // Dev-only capture toggles intentionally NOT here —
     // they live in the the extra tab tab where the rest of the RE tooling is.
     tabs.push(Tab { name: "About", icon: '\u{E946}', sections: about });
 

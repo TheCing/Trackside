@@ -43,8 +43,3 @@ pub fn chara_name(id: i64) -> String {
 pub fn support_name(id: i64) -> String {
     name_field(&SUPPORT, id)
 }
-
-/// Skill display name ("" if unknown).
-pub fn skill_name(id: i64) -> String {
-    name_field(&SKILL, id)
-}

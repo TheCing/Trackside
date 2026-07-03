@@ -13,7 +13,6 @@
 
 #![allow(static_mut_refs)]
 
-use core::ffi::CStr;
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::OnceLock;
@@ -32,6 +31,10 @@ static DETOUR: OnceLock<RawDetour> = OnceLock::new();
 pub fn set_enabled(on: bool) {
     ENABLED.store(on, Ordering::Relaxed);
 }
+/// Apply persisted settings to the Team Trials capture module at boot.
+pub fn apply(s: &crate::settings::Settings) {
+    set_enabled(s.tt_capture);
+}
 /// Number of Team Trials results captured this session. Currently not surfaced in the
 /// unified menu (the TT toggle is a plain on/off) — kept for the count display / future use.
 #[allow(dead_code)]
@@ -40,13 +43,7 @@ pub fn saved() -> usize {
 }
 
 fn hlog(msg: &str) {
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("horsethetrails.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log_to("horsethetrails.log", msg);
 }
 
 type CtorFn = unsafe extern "C" fn(*mut RawObject, *mut RawObject, *const RawMethod);
@@ -290,51 +287,6 @@ fn save(val: Value) {
 // Hook installation — resolve the ctor directly from the game image.
 // ---------------------------------------------------------------------------
 
-pub(crate) unsafe fn find_game_image() -> *mut RawImage {
-    for n in [
-        "umamusume",
-        "Assembly-CSharp",
-        "Gallop",
-    ] {
-        let img = find_image_by_name(n);
-        if !img.is_null() {
-            return img;
-        }
-    }
-    std::ptr::null_mut()
-}
-
-unsafe fn find_image_by_name(name: &str) -> *mut RawImage {
-    let domain = h::DOMAIN_GET.unwrap()();
-    if domain.is_null() {
-        return std::ptr::null_mut();
-    }
-    let mut count = 0usize;
-    let asms = h::DOMAIN_GET_ASSEMBLIES.unwrap()(domain, &mut count);
-    if asms.is_null() {
-        return std::ptr::null_mut();
-    }
-    for i in 0..count {
-        let a = *asms.add(i);
-        if a.is_null() {
-            continue;
-        }
-        let img = h::ASSEMBLY_GET_IMAGE.unwrap()(a);
-        if img.is_null() {
-            continue;
-        }
-        let np = h::IMAGE_GET_NAME.unwrap()(img);
-        if np.is_null() {
-            continue;
-        }
-        let nm = CStr::from_ptr(np).to_string_lossy();
-        if nm.eq_ignore_ascii_case(name) || nm.trim_end_matches(".dll").eq_ignore_ascii_case(name) {
-            return img;
-        }
-    }
-    std::ptr::null_mut()
-}
-
 /// Find a class in the image whose (namespace-less) name contains `needle`.
 unsafe fn find_class(image: *mut RawImage, needle: &str) -> *mut crate::htt_il2cpp::RawClass {
     let count = h::IMAGE_GET_CLASS_COUNT.unwrap()(image);
@@ -362,7 +314,7 @@ pub fn install() -> String {
         if !h::init() {
             return "il2cpp reflection init failed".into();
         }
-        let image = find_game_image();
+        let image = h::find_game_image();
         if image.is_null() {
             return "game image not found".into();
         }

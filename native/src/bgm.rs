@@ -26,10 +26,7 @@ static RESOLVED: AtomicBool = AtomicBool::new(false);
 static VOICE_TICK: AtomicU32 = AtomicU32::new(0); // throttles the per-frame voice re-kill
 
 fn log(msg: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    if let Ok(mut f) = OpenOptions::new().create(true).append(true)
-        .open(crate::paths::log_file("heaven-native.log")) { let _ = writeln!(f, "{msg}"); }
+    crate::tools::log(msg);
 }
 
 /// Resolve the AudioManager methods once (call after the runtime is ready).

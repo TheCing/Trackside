@@ -2,7 +2,7 @@
 //!
 //! With no Python host, the DLL persists its own UI/toggle state to a small JSON
 //! file. Loaded once at boot (after modules install) and re-saved whenever the
-//! user changes a control in the overlay — so predictions stick across sessions.
+//! user changes a control in the overlay — so selections stick across sessions.
 //!
 //! Defaults (first run): Training + Events skip ON, Race-result OFF, FPS Off,
 //! rail docked to the right edge.
@@ -14,7 +14,8 @@ use std::sync::{Mutex, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{fps, htt, skip};
+use crate::performance::fps;
+use crate::{htt, skip};
 
 // True once apply_on_boot has applied the persisted state. Until then, save_current() must
 // NOT run: the live fps/ui_tempo modules still hold pre-apply defaults (0 / 1.0), so a menu
@@ -27,14 +28,7 @@ fn settings_path() -> std::path::PathBuf {
 }
 
 fn slog(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -106,7 +100,7 @@ pub struct Settings {
     // Use the classic "Controls" rail menu instead of the premium sidebar menu.
     #[serde(default)]
     pub classic_menu: bool,
-    // Event the full build (prediction) enabled. Private/the full build build only; the field is
+    // Reserved feature toggle (full build only); the field is
     // always present so the JSON stays stable across builds.
     #[serde(default)]
     pub oracle: bool,
@@ -278,30 +272,15 @@ fn write_file(s: &Settings) {
 /// Apply persisted settings at startup. Call after all modules are installed.
 pub fn apply_on_boot() {
     let s = load_file();
-    skip::set_train_enabled(s.skip_training);
-    skip::set_event_enabled(s.skip_events);
-    skip::set_shop_enabled(s.skip_shop);
-    skip::set_rival_enabled(s.skip_rival);
-    skip::set_race_result_enabled(s.race_result);
-    fps::set_cap(s.fps);
-    crate::ui_tempo::set_tempo(s.ui_tempo);
-    crate::cyspring::set_enabled(s.cyspring_uncap);
-    crate::graphics::set_quality_unlocked(s.gfx_quality);
-    crate::graphics::set_extras_enabled(s.gfx_extras);
-    crate::display::set_block_minimize(s.block_minimize);
-    crate::display::set_display_mode(s.display_mode);
-    crate::display::set_render_scale(s.render_scale);
-    crate::display::set_ui_scale(s.ui_scale);
-    crate::display::set_always_on_top(s.always_on_top);
-    crate::graphics::set_low_spec(s.low_spec);
-    crate::cyspring::set_low_spec(s.low_spec);
-    crate::display::set_low_spec(s.low_spec);
-    htt::set_enabled(s.tt_capture);
+    crate::skip::apply(&s);
+    crate::performance::apply(&s);
+    crate::ui_tempo::apply(&s);
+    crate::htt::apply(&s);
     #[cfg(feature = "freecam")]
-    crate::freecam::set_enabled(s.freecam);
+    crate::freecam::apply(&s);
     #[cfg(feature = "raceread")]
-    crate::race_export::set_enabled(s.race_export);
-    crate::umas::set_enabled(s.umas_export);
+    crate::race_export::apply(&s);
+    crate::umas::apply(&s);
     if let Ok(mut c) = cache().lock() {
         *c = s;
     }
@@ -442,7 +421,7 @@ pub fn cyspring_uncap() -> bool {
 }
 
 pub fn set_cyspring_uncap(on: bool) {
-    crate::cyspring::set_enabled(on);
+    crate::performance::cyspring::set_enabled(on);
     if let Ok(mut c) = cache().lock() {
         c.cyspring_uncap = on;
         write_file(&c);
@@ -455,7 +434,7 @@ pub fn gfx_quality() -> bool {
 }
 
 pub fn set_gfx_quality(on: bool) {
-    crate::graphics::set_quality_unlocked(on);
+    crate::performance::graphics::set_quality_unlocked(on);
     if let Ok(mut c) = cache().lock() {
         c.gfx_quality = on;
         write_file(&c);
@@ -468,7 +447,7 @@ pub fn gfx_extras() -> bool {
 }
 
 pub fn set_gfx_extras(on: bool) {
-    crate::graphics::set_extras_enabled(on);
+    crate::performance::graphics::set_extras_enabled(on);
     if let Ok(mut c) = cache().lock() {
         c.gfx_extras = on;
         write_file(&c);
@@ -480,7 +459,7 @@ pub fn always_on_top() -> bool {
     cache().lock().map(|c| c.always_on_top).unwrap_or(false)
 }
 pub fn set_always_on_top(on: bool) {
-    crate::display::set_always_on_top(on);
+    crate::performance::display::set_always_on_top(on);
     if let Ok(mut c) = cache().lock() {
         c.always_on_top = on;
         write_file(&c);
@@ -491,7 +470,7 @@ pub fn block_minimize() -> bool {
     cache().lock().map(|c| c.block_minimize).unwrap_or(false)
 }
 pub fn set_block_minimize(on: bool) {
-    crate::display::set_block_minimize(on);
+    crate::performance::display::set_block_minimize(on);
     if let Ok(mut c) = cache().lock() {
         c.block_minimize = on;
         write_file(&c);
@@ -502,7 +481,7 @@ pub fn display_mode() -> i32 {
     cache().lock().map(|c| c.display_mode).unwrap_or(0)
 }
 pub fn set_display_mode(m: i32) {
-    crate::display::set_display_mode(m);
+    crate::performance::display::set_display_mode(m);
     if let Ok(mut c) = cache().lock() {
         c.display_mode = m;
         write_file(&c);
@@ -513,7 +492,7 @@ pub fn render_scale() -> f32 {
     cache().lock().map(|c| c.render_scale).unwrap_or(1.0)
 }
 pub fn set_render_scale(s: f32) {
-    crate::display::set_render_scale(s);
+    crate::performance::display::set_render_scale(s);
     if let Ok(mut c) = cache().lock() {
         c.render_scale = s;
         write_file(&c);
@@ -524,7 +503,7 @@ pub fn ui_scale() -> f32 {
     cache().lock().map(|c| c.ui_scale).unwrap_or(1.0)
 }
 pub fn set_ui_scale(s: f32) {
-    crate::display::set_ui_scale(s);
+    crate::performance::display::set_ui_scale(s);
     if let Ok(mut c) = cache().lock() {
         c.ui_scale = s;
         write_file(&c);
@@ -536,9 +515,7 @@ pub fn low_spec() -> bool {
     cache().lock().map(|c| c.low_spec).unwrap_or(false)
 }
 pub fn set_low_spec(on: bool) {
-    crate::graphics::set_low_spec(on);
-    crate::cyspring::set_low_spec(on);
-    crate::display::set_low_spec(on);
+    crate::performance::set_low_spec(on);
     if let Ok(mut c) = cache().lock() {
         c.low_spec = on;
         write_file(&c);
@@ -600,7 +577,7 @@ pub fn set_show_energy(on: bool) {
     }
 }
 
-/// Event the full build (prediction) enabled + persisted. Module call is the full build-build only.
+/// Reserved feature toggle, persisted. Module call is full-build only.
 pub fn oracle() -> bool {
     cache().lock().map(|c| c.oracle).unwrap_or(false)
 }

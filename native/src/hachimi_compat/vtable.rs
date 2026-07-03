@@ -1,0 +1,185 @@
+//! The host `Vtable` ABI struct (SDK v3) + the 66-slot const table + the
+//! compile-time size/layout assert.
+//!
+//! ABI CONTRACT: field order, every signature, and the slot count are fixed by the
+//! external SDK v3. Do NOT reorder/renumber slots or change signatures — a plugin
+//! calls the wrong pointer and crashes. The const `VTABLE` wires each slot to its
+//! backing fn in `interceptor`/`services`.
+
+use std::ffi::{c_char, c_void};
+
+use super::interceptor::{
+    vt_hachimi_get_interceptor, vt_hachimi_instance, vt_interceptor_get_trampoline_addr,
+    vt_interceptor_hook, vt_interceptor_hook_vtable, vt_interceptor_unhook,
+};
+use super::services::{
+    vt_android_bool_u64, vt_android_dex_call_noargs, vt_android_dex_call_string,
+    vt_android_dex_load, vt_class_get_methods, vt_create_array, vt_find_nested_class,
+    vt_get_assembly_image, vt_get_attached_threads, vt_get_base_dir, vt_get_class,
+    vt_get_data_path, vt_get_field_from_name, vt_get_field_value, vt_get_main_thread,
+    vt_get_method, vt_get_method_addr, vt_get_method_overload, vt_get_method_overload_addr,
+    vt_get_singleton_like_instance, vt_get_static_field_value, vt_gui_close_window,
+    vt_gui_get_menu_width, vt_gui_new_window_id, vt_gui_register_menu_item,
+    vt_gui_register_menu_item_icon, vt_gui_register_menu_section,
+    vt_gui_register_menu_section_with_icon, vt_gui_set_menu_width, vt_gui_show_notification,
+    vt_gui_show_window, vt_gui_ui_callback2, vt_gui_ui_checkbox, vt_gui_ui_colored_label,
+    vt_gui_ui_combo_menu, vt_gui_ui_grid, vt_gui_ui_text2, vt_gui_ui_text_edit, vt_gui_ui_ui1,
+    vt_log, vt_object_new, vt_register_on_game_initialized, vt_register_present_callback,
+    vt_resolve_icall, vt_resolve_symbol, vt_runtime_object_init, vt_schedule_on_thread,
+    vt_set_field_value, vt_set_static_field_value, vt_string_chars, vt_string_length,
+    vt_string_new, vt_unbox,
+};
+use super::{ArrayPtr, ArraySize, Class, Field, Image, Method, Object, StringPtr, ThreadPtr, TypeEnum};
+
+// ════════════════════════════════════════════════════════════════════════════
+// The vtable (SDK v3). FIELD ORDER + SIGNATURES MUST MATCH THE SDK EXACTLY.
+// Callback/opaque params are typed as raw pointers (same ABI as Option<fn>).
+// ════════════════════════════════════════════════════════════════════════════
+#[repr(C)]
+pub struct Vtable {
+    hachimi_instance: unsafe extern "C" fn() -> *const c_void,
+    hachimi_get_interceptor: unsafe extern "C" fn(this: *const c_void) -> *const c_void,
+
+    interceptor_hook: unsafe extern "C" fn(*const c_void, *mut c_void, *mut c_void) -> *mut c_void,
+    interceptor_hook_vtable: unsafe extern "C" fn(*const c_void, *mut *mut c_void, usize, *mut c_void) -> *mut c_void,
+    interceptor_get_trampoline_addr: unsafe extern "C" fn(*const c_void, *mut c_void) -> *mut c_void,
+    interceptor_unhook: unsafe extern "C" fn(*const c_void, *mut c_void) -> *mut c_void,
+
+    il2cpp_resolve_symbol: unsafe extern "C" fn(*const c_char) -> *mut c_void,
+    il2cpp_get_assembly_image: unsafe extern "C" fn(*const c_char) -> Image,
+    il2cpp_get_class: unsafe extern "C" fn(Image, *const c_char, *const c_char) -> Class,
+    il2cpp_get_method: unsafe extern "C" fn(Class, *const c_char, i32) -> Method,
+    il2cpp_get_method_overload: unsafe extern "C" fn(Class, *const c_char, *const TypeEnum, usize) -> Method,
+    il2cpp_get_method_addr: unsafe extern "C" fn(Class, *const c_char, i32) -> *mut c_void,
+    il2cpp_get_method_overload_addr: unsafe extern "C" fn(Class, *const c_char, *const TypeEnum, usize) -> *mut c_void,
+    il2cpp_get_method_cached: unsafe extern "C" fn(Class, *const c_char, i32) -> Method,
+    il2cpp_get_method_addr_cached: unsafe extern "C" fn(Class, *const c_char, i32) -> *mut c_void,
+    il2cpp_find_nested_class: unsafe extern "C" fn(Class, *const c_char) -> Class,
+    il2cpp_resolve_icall: unsafe extern "C" fn(*const c_char) -> *mut c_void,
+    il2cpp_class_get_methods: unsafe extern "C" fn(Class, *mut *mut c_void) -> Method,
+    il2cpp_get_field_from_name: unsafe extern "C" fn(Class, *const c_char) -> Field,
+    il2cpp_get_field_value: unsafe extern "C" fn(Object, Field, *mut c_void),
+    il2cpp_set_field_value: unsafe extern "C" fn(Object, Field, *const c_void),
+    il2cpp_get_static_field_value: unsafe extern "C" fn(Field, *mut c_void),
+    il2cpp_set_static_field_value: unsafe extern "C" fn(Field, *const c_void),
+    il2cpp_object_new: unsafe extern "C" fn(Class) -> Object,
+    il2cpp_unbox: unsafe extern "C" fn(Object) -> *mut c_void,
+    il2cpp_get_main_thread: unsafe extern "C" fn() -> ThreadPtr,
+    il2cpp_get_attached_threads: unsafe extern "C" fn(*mut usize) -> *mut ThreadPtr,
+    il2cpp_schedule_on_thread: unsafe extern "C" fn(ThreadPtr, *mut c_void),
+    il2cpp_create_array: unsafe extern "C" fn(Class, ArraySize) -> ArrayPtr,
+    il2cpp_get_singleton_like_instance: unsafe extern "C" fn(Class) -> Object,
+
+    log: unsafe extern "C" fn(i32, *const c_char, *const c_char),
+
+    gui_register_menu_item: unsafe extern "C" fn(*const c_char, *mut c_void, *mut c_void) -> bool,
+    gui_register_menu_section: unsafe extern "C" fn(*mut c_void, *mut c_void) -> bool,
+    gui_show_notification: unsafe extern "C" fn(*const c_char) -> bool,
+    gui_ui_heading: unsafe extern "C" fn(*mut c_void, *const c_char) -> bool,
+    gui_ui_label: unsafe extern "C" fn(*mut c_void, *const c_char) -> bool,
+    gui_ui_small: unsafe extern "C" fn(*mut c_void, *const c_char) -> bool,
+    gui_ui_separator: unsafe extern "C" fn(*mut c_void) -> bool,
+    gui_ui_button: unsafe extern "C" fn(*mut c_void, *const c_char) -> bool,
+    gui_ui_small_button: unsafe extern "C" fn(*mut c_void, *const c_char) -> bool,
+    gui_ui_checkbox: unsafe extern "C" fn(*mut c_void, *const c_char, *mut bool) -> bool,
+    gui_ui_text_edit_singleline: unsafe extern "C" fn(*mut c_void, *mut c_char, usize) -> bool,
+    gui_ui_horizontal: unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void) -> bool,
+    gui_ui_grid: unsafe extern "C" fn(*mut c_void, *const c_char, usize, f32, f32, *mut c_void, *mut c_void) -> bool,
+    gui_ui_end_row: unsafe extern "C" fn(*mut c_void) -> bool,
+    gui_ui_colored_label: unsafe extern "C" fn(*mut c_void, u8, u8, u8, u8, *const c_char) -> bool,
+    gui_register_menu_item_icon: unsafe extern "C" fn(*const c_char, *const c_char, *const u8, usize) -> bool,
+    gui_register_menu_section_with_icon: unsafe extern "C" fn(*const c_char, *const c_char, *const u8, usize, *mut c_void, *mut c_void) -> bool,
+    gui_new_window_id: unsafe extern "C" fn() -> i32,
+    gui_show_window: unsafe extern "C" fn(i32, *const c_char, *mut c_void, *mut c_void, *mut c_void) -> bool,
+    gui_close_window: unsafe extern "C" fn(i32),
+
+    android_dex_load: unsafe extern "C" fn(*const u8, usize, *const c_char) -> u64,
+    android_dex_unload: unsafe extern "C" fn(u64) -> bool,
+    android_dex_call_static_noargs: unsafe extern "C" fn(u64, *const c_char, *const c_char) -> bool,
+    android_dex_call_static_string: unsafe extern "C" fn(u64, *const c_char, *const c_char, *const c_char) -> bool,
+
+    il2cpp_runtime_object_init: unsafe extern "C" fn(Object),
+    il2cpp_string_new: unsafe extern "C" fn(*const c_char) -> StringPtr,
+    il2cpp_string_chars: unsafe extern "C" fn(StringPtr) -> *mut u16,
+    il2cpp_string_length: unsafe extern "C" fn(StringPtr) -> i32,
+    gui_ui_combo_menu: unsafe extern "C" fn(*mut c_void, *const c_char, *mut i32, *const *const c_char, usize, *mut c_char, usize) -> bool,
+    hachimi_register_on_game_initialized: unsafe extern "C" fn(*mut c_void, *mut c_void) -> bool,
+    hachimi_register_present_callback: unsafe extern "C" fn(*mut c_void, *mut c_void) -> bool,
+    gui_get_menu_width: unsafe extern "C" fn() -> f32,
+    gui_set_menu_width: unsafe extern "C" fn(f32),
+    hachimi_get_base_dir: unsafe extern "C" fn() -> *const c_char,
+    hachimi_get_data_path: unsafe extern "C" fn() -> *const c_char,
+}
+
+// ABI guard: the SDK v3 vtable is exactly 66 fn-pointer slots. If this fails, a
+// field was added/removed/misordered and the layout no longer matches the SDK.
+const _: () = assert!(std::mem::size_of::<Vtable>() == 66 * std::mem::size_of::<usize>());
+
+pub(crate) const VTABLE: Vtable = Vtable {
+    hachimi_instance: vt_hachimi_instance,
+    hachimi_get_interceptor: vt_hachimi_get_interceptor,
+    interceptor_hook: vt_interceptor_hook,
+    interceptor_hook_vtable: vt_interceptor_hook_vtable,
+    interceptor_get_trampoline_addr: vt_interceptor_get_trampoline_addr,
+    interceptor_unhook: vt_interceptor_unhook,
+    il2cpp_resolve_symbol: vt_resolve_symbol,
+    il2cpp_get_assembly_image: vt_get_assembly_image,
+    il2cpp_get_class: vt_get_class,
+    il2cpp_get_method: vt_get_method,
+    il2cpp_get_method_overload: vt_get_method_overload,
+    il2cpp_get_method_addr: vt_get_method_addr,
+    il2cpp_get_method_overload_addr: vt_get_method_overload_addr,
+    il2cpp_get_method_cached: vt_get_method,
+    il2cpp_get_method_addr_cached: vt_get_method_addr,
+    il2cpp_find_nested_class: vt_find_nested_class,
+    il2cpp_resolve_icall: vt_resolve_icall,
+    il2cpp_class_get_methods: vt_class_get_methods,
+    il2cpp_get_field_from_name: vt_get_field_from_name,
+    il2cpp_get_field_value: vt_get_field_value,
+    il2cpp_set_field_value: vt_set_field_value,
+    il2cpp_get_static_field_value: vt_get_static_field_value,
+    il2cpp_set_static_field_value: vt_set_static_field_value,
+    il2cpp_object_new: vt_object_new,
+    il2cpp_unbox: vt_unbox,
+    il2cpp_get_main_thread: vt_get_main_thread,
+    il2cpp_get_attached_threads: vt_get_attached_threads,
+    il2cpp_schedule_on_thread: vt_schedule_on_thread,
+    il2cpp_create_array: vt_create_array,
+    il2cpp_get_singleton_like_instance: vt_get_singleton_like_instance,
+    log: vt_log,
+    gui_register_menu_item: vt_gui_register_menu_item,
+    gui_register_menu_section: vt_gui_register_menu_section,
+    gui_show_notification: vt_gui_show_notification,
+    gui_ui_heading: vt_gui_ui_text2,
+    gui_ui_label: vt_gui_ui_text2,
+    gui_ui_small: vt_gui_ui_text2,
+    gui_ui_separator: vt_gui_ui_ui1,
+    gui_ui_button: vt_gui_ui_text2,
+    gui_ui_small_button: vt_gui_ui_text2,
+    gui_ui_checkbox: vt_gui_ui_checkbox,
+    gui_ui_text_edit_singleline: vt_gui_ui_text_edit,
+    gui_ui_horizontal: vt_gui_ui_callback2,
+    gui_ui_grid: vt_gui_ui_grid,
+    gui_ui_end_row: vt_gui_ui_ui1,
+    gui_ui_colored_label: vt_gui_ui_colored_label,
+    gui_register_menu_item_icon: vt_gui_register_menu_item_icon,
+    gui_register_menu_section_with_icon: vt_gui_register_menu_section_with_icon,
+    gui_new_window_id: vt_gui_new_window_id,
+    gui_show_window: vt_gui_show_window,
+    gui_close_window: vt_gui_close_window,
+    android_dex_load: vt_android_dex_load,
+    android_dex_unload: vt_android_bool_u64,
+    android_dex_call_static_noargs: vt_android_dex_call_noargs,
+    android_dex_call_static_string: vt_android_dex_call_string,
+    il2cpp_runtime_object_init: vt_runtime_object_init,
+    il2cpp_string_new: vt_string_new,
+    il2cpp_string_chars: vt_string_chars,
+    il2cpp_string_length: vt_string_length,
+    gui_ui_combo_menu: vt_gui_ui_combo_menu,
+    hachimi_register_on_game_initialized: vt_register_on_game_initialized,
+    hachimi_register_present_callback: vt_register_present_callback,
+    gui_get_menu_width: vt_gui_get_menu_width,
+    gui_set_menu_width: vt_gui_set_menu_width,
+    hachimi_get_base_dir: vt_get_base_dir,
+    hachimi_get_data_path: vt_get_data_path,
+};
