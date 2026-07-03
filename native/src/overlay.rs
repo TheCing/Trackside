@@ -2125,7 +2125,6 @@ fn cat_icon(name: &str) -> &'static str {
         "Performance" => "\u{E9D9}", // Speed
         "Interface" => "\u{E8A9}",   // ViewAll
         "About" => "\u{E946}",       // Info
-        "Dev Lab" => "\u{EC7A}",     // DeveloperTools
         _ => "\u{E700}",             // GlobalNav
     }
 }

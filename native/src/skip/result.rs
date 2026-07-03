@@ -48,7 +48,7 @@ fn rr_should_advance() -> bool {
     }
     // Auto-advance when the player WON (placement 1), OR when no race retries remain
     // (`available_continue_num` == 0): a retry isn't possible, so don't hold the result
-    // screen on a loss. Placement + continues come from the response hooks (race_net in
+    // screen on a loss. Placement + continues come from the response hooks (the response hook in
     // public, the response hook in private). continues == -1 means "unknown" → fall back
     // to the win-only gate. Both builds ship `raceread`.
     #[cfg(feature = "raceread")]

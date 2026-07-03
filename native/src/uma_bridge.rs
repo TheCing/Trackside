@@ -184,7 +184,7 @@ unsafe extern "C" fn on_compress_request(arr: *mut c_void, method: *const c_void
 }
 
 /// Install the request-capture hook (CompressRequest). Response capture is fed from the existing
-/// DecompressResponse hook. Run on an IL2CPP-attached thread (boot).
+/// DecompressResponse hook in the response hook. Run on an IL2CPP-attached thread (boot).
 pub fn install() {
     if REQ_INSTALLED.swap(true, Ordering::SeqCst) {
         return;

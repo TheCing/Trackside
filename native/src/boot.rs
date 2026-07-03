@@ -180,7 +180,7 @@ pub fn spawn() {
         }
 
         // Network response hook: reads each msgpack API response to identify the player's horse
-        // (Top-1 race-result skip gate), remaining race retries, feed the companion bridge, and
+        // (Top-1 race-result skip gate), remaining race retries, feed the companion bridge, and —
         // full-build-only extras. One detour for all.
         #[cfg(any(feature = "oracle", feature = "racenet"))]
         {

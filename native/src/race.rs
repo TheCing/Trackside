@@ -96,7 +96,7 @@ pub fn set_continues_available(n: i32) {
     CONTINUES.store(n, Ordering::Relaxed);
 }
 
-// Player's horse identity from the msgpack race response (published by the response
+// Player's horse identity from the msgpack race response (published by the response hook
 // DecompressResponse hook). The player is the only horse with viewer_id != 0;
 // its `frame_order - 1` is the sim horse index used to index the result array.
 static NET_PLAYER_FRAMEORDER: AtomicI32 = AtomicI32::new(-1);

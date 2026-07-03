@@ -10,7 +10,7 @@
 //! `ImguiDx12Hooks` / the Vulkan hook (see build.md).
 
 // Intro player support (native song playback, original-BGM mute, title-scene probe).
-// Gated with the `banner` feature, like the video player itself.
+// gated with the `banner` feature, like the video player itself.
 mod affinity;
 #[cfg(feature = "banner")]
 mod audio;
@@ -44,7 +44,9 @@ mod names;
 // Only compiled when an rmpv-pulling feature is on.
 #[cfg(any(feature = "racenet", feature = "oracle"))]
 mod msgpack;
-// Extra response consumers, compiled only in the full build.
+// Extra response consumers
+// modules; compiled only in the full build
+// public API stable for the rest of the app.
 mod overlay;
 mod padder;
 mod paths;
@@ -61,7 +63,7 @@ mod race_export;
 mod reset;
 mod umas;
 // The single Gallop.HttpHelper::DecompressResponse hook: player-id (race-result gate) + race
-// retries + companion-bridge fan-out.
+// retries + companion-bridge fan-out + full-build extras.
 #[cfg(any(feature = "racenet", feature = "oracle"))]
 mod response_hook;
 mod selfupdate;

@@ -10,7 +10,7 @@
 //! Read-only: it calls the original, reads the decompressed result, and returns it UNCHANGED. If a
 //! co-resident mod already detoured DecompressResponse (e.g. a spark collector) we CHAIN on top —
 //! both hooks are read-only, so the response passes through both. This replaces the former duplicate
-//! response hooks that were previously split across separate modules.
+//! response hooks that lived in the full build.rs and the response hook.rs.
 
 #![allow(dead_code)]
 
@@ -51,7 +51,7 @@ unsafe fn on_response(ret: *mut c_void) {
     let has_race = contains(slice, b"race_horse_data");
     let has_cont = contains(slice, b"available_continue_num");
     // These payloads only matter to a full-build consumer, and only while it's on
-    // (the `is_enabled()` short-circuit avoids scanning every response when it's off).
+    // (the `is_enabled()` short-circuit avoids scanning every response when the overlay is off).
         && (contains(slice, b"choice_array") || contains(slice, b"choice_reward_array"));
     #[cfg(not(feature = "oracle"))]
     let has_event = false;
