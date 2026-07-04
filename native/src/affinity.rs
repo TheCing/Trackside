@@ -75,7 +75,7 @@ pub fn active() -> bool {
     detail == 0
 }
 
-/// Main-thread poll (driven by hunter's TweenManager.Update pump): refresh DIALOG_OPEN from the game's
+/// Main-thread poll (driven by ui_tempo's single TweenManager.Update detour): refresh DIALOG_OPEN from the game's
 /// own `DialogManager.get_IsShowDialog()`. Only sampled while on Legacy Select (STEP set) — cheap and
 /// avoids calling the getter on unrelated screens / before DialogManager exists.
 pub fn poll() {
@@ -190,11 +190,10 @@ pub fn persist() {
 }
 
 fn clock() -> &'static Instant {
-    static C: OnceLock<Instant> = OnceLock::new();
-    C.get_or_init(Instant::now)
+    crate::tools::clock()
 }
 fn now_ms() -> u64 {
-    clock().elapsed().as_millis() as u64
+    crate::tools::now_ms()
 }
 
 // ── CalcRelationPoint hook (the exact game value) ──────────────────────────────────
@@ -256,14 +255,7 @@ unsafe extern "C" fn hide_hook(this: *mut c_void, force: bool, mi: *const c_void
 }
 
 fn log(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "[affinity] {msg}");
-    }
+    crate::tools::log(&format!("[affinity] {msg}"));
 }
 
 
@@ -352,4 +344,129 @@ pub fn install() -> String {
     }
     let _ = log;
     format!("affinity: {}", notes.trim())
+}
+
+/// Draw the exact succession-affinity numbers on the Legacy Select screen as three user-placed
+/// badges (Total / Parent 1 / Parent 2), each its own borderless imgui window so it can be dragged
+/// (edit mode) and font-scaled. Positions persist as screen fractions (resolution independent).
+pub(crate) fn draw_badges_panel(ui: &hudhook::imgui::Ui) {
+    use hudhook::imgui;
+    use hudhook::imgui::{StyleColor, StyleVar};
+    use crate::overlay::VALUE_FONT;
+    if !crate::affinity::is_enabled() || !crate::affinity::active() {
+        return;
+    }
+    let edit = crate::affinity::edit_mode();
+    let (total, ind1, ind2) = crate::affinity::values().unwrap_or((-1, -1, -1));
+    let [dw, dh] = ui.io().display_size;
+    if dw < 1.0 || dh < 1.0 {
+        return;
+    }
+    let scale = crate::affinity::size();
+    let raw = [total, ind1, ind2];
+    // dashboard-style pill: dark fill + thick rounded accent border + white Orbitron number.
+    let accents = [
+        [1.00, 0.60, 0.13, 1.0], // total — orange/gold
+        [0.36, 0.90, 0.52, 1.0], // parent 1 — green
+        [0.40, 0.68, 1.00, 1.0], // parent 2 — blue
+    ];
+    let vfont = VALUE_FONT.with(|c| c.get());
+
+    for i in 0..3usize {
+        let v = raw[i];
+        if v < 0 && !edit {
+            continue; // parent unset → nothing to show (still placeable in edit mode)
+        }
+        let (fx, fy) = crate::affinity::pos(i);
+        let pos = [fx * dw, fy * dh];
+        let s = if v < 0 { "\u{2014}".to_string() } else { v.to_string() };
+        let cond = if edit { imgui::Condition::FirstUseEver } else { imgui::Condition::Always };
+        let accent = accents[i];
+
+        let _r = ui.push_style_var(StyleVar::WindowRounding(40.0));
+        let _bs = ui.push_style_var(StyleVar::WindowBorderSize(2.6 * scale.max(0.8)));
+        let _pd = ui.push_style_var(StyleVar::WindowPadding([15.0 * scale, 5.0 * scale]));
+        let _cb = ui.push_style_color(StyleColor::Border, accent);
+        let _cw = ui.push_style_color(StyleColor::WindowBg, [0.06, 0.05, 0.045, 0.96]);
+
+        let mut w = ui
+            .window(format!("##aff{i}"))
+            .no_decoration()
+            .always_auto_resize(true)
+            .save_settings(false)
+            .focus_on_appearing(false)
+            .position(pos, cond)
+            .movable(edit);
+        if !edit {
+            w = w.no_inputs();
+        }
+        w.build(|| {
+            let _f = vfont.map(|f| ui.push_font(f));
+            ui.set_window_font_scale(scale);
+            ui.text_colored([1.0, 1.0, 1.0, 1.0], &s);
+            if edit {
+                let wp = ui.window_pos();
+                crate::affinity::set_pos(i, (wp[0] / dw).clamp(0.0, 1.0), (wp[1] / dh).clamp(0.0, 1.0));
+            }
+        });
+    }
+
+    if edit {
+        let dl = ui.get_background_draw_list();
+        let msg = "Affinity: drag each number into place \u{2014} turn off Edit in the menu to save";
+        let tw = ui.calc_text_size(msg)[0];
+        dl.add_rect([dw * 0.5 - tw * 0.5 - 12.0, 8.0], [dw * 0.5 + tw * 0.5 + 12.0, 32.0], [0.0, 0.0, 0.0, 0.72])
+            .filled(true)
+            .rounding(6.0)
+            .build();
+        dl.add_text([dw * 0.5 - tw * 0.5, 12.0], [1.0, 0.95, 0.7, 1.0], msg);
+    }
+}
+
+/// Legacy Select affinity numbers: enable, drag-to-place (edit mode), size. The value is the game's
+/// own CalcRelationPoint result, so it matches the in-game rank exactly.
+pub(crate) fn draw_tt_panel(ui: &hudhook::imgui::Ui, w: f32) {
+    use crate::overlay::{help_icon, status_dot, DIM, GOOD, WARN};
+    ui.dummy([0.0, 4.0]);
+    if crate::affinity::active() {
+        status_dot(ui, GOOD, "Legacy Select open");
+    } else {
+        status_dot(ui, WARN, "Open Legacy Select");
+    }
+    ui.same_line();
+    help_icon(
+        ui,
+        "Shows the exact succession affinity on the Legacy Select screen: the pair Total plus each parent's chain (parent + its 2 grandparents, with win-saddle bonus). Turn on Edit and drag each number where you want it — positions and size are saved.",
+    );
+    ui.dummy([0.0, 8.0]);
+
+    let mut en = crate::affinity::is_enabled();
+    if ui.checkbox("Show affinity numbers", &mut en) {
+        crate::affinity::set_enabled(en);
+    }
+    let mut ed = crate::affinity::edit_mode();
+    if ui.checkbox("Edit \u{2014} drag numbers to place them", &mut ed) {
+        crate::affinity::set_edit_mode(ed);
+    }
+    if ed {
+        ui.text_colored(DIM, "Drag each number on screen. Uncheck Edit to save.");
+    }
+    let mut sz = crate::affinity::size();
+    ui.set_next_item_width(w * 0.8);
+    if ui.slider("Size", 0.8, 4.0, &mut sz) {
+        crate::affinity::set_size(sz);
+    }
+
+    if let Some((t, a, b)) = crate::affinity::values() {
+        ui.dummy([0.0, 6.0]);
+        ui.text_colored(DIM, "Current:");
+        ui.same_line();
+        ui.text_colored([1.0, 0.92, 0.55, 1.0], &format!("Total {t}"));
+        ui.same_line();
+        let p1 = if a < 0 { "\u{2014}".to_string() } else { a.to_string() };
+        let p2 = if b < 0 { "\u{2014}".to_string() } else { b.to_string() };
+        ui.text_colored([0.78, 1.0, 0.86, 1.0], &format!("\u{00b7} P1 {p1}"));
+        ui.same_line();
+        ui.text_colored([0.72, 0.90, 1.0, 1.0], &format!("\u{00b7} P2 {p2}"));
+    }
 }

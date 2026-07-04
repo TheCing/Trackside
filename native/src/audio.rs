@@ -45,10 +45,7 @@ pub fn stop() {
 }
 
 fn log(msg: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    if let Ok(mut f) = OpenOptions::new().create(true).append(true)
-        .open(crate::paths::log_file("heaven-native.log")) { let _ = writeln!(f, "{msg}"); }
+    crate::tools::log(msg);
 }
 
 /// Spawn the audio worker. The output device (and its WASAPI/COM backend thread) is

@@ -46,15 +46,7 @@ pub fn record_install(module: &str, status: &str) {
 }
 
 fn log_line(msg: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    if let Ok(mut f) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 // Minimal kernel32 import so module detection works in EVERY build (the `windows` crate is only
@@ -68,10 +60,6 @@ fn module_loaded(name: &str) -> bool {
     unsafe { !GetModuleHandleA(bytes.as_ptr()).is_null() }
 }
 
-// Identify the build so a report tells us which DLL the user is actually running. `#[cfg]` (not a
-// runtime `if cfg!()`) so the wording for OTHER builds is never COMPILED IN — the public build's
-// leak guard hard-fails if the literal "the full build" appears anywhere in the public DLL.
-#[cfg(all(not(feature = "oracle"), not(feature = "panels")))]
 fn build_kind() -> &'static str {
     "public"
 }
@@ -92,7 +80,7 @@ pub fn report() -> String {
     s.push_str(&format!("Build          : {}\n", build_kind()));
     // Compile-time feature fingerprint of the DLL. `#[cfg]` pushes (not an array of `cfg!()` bools)
     // so feature-name literals for absent features are NOT compiled in — the public leak guard
-    // hard-fails on the literal "the full build"/"career"/"panels".
+    // keeps private-only feature names out of the public DLL.
     let mut feats: Vec<&str> = Vec::new();
     #[cfg(feature = "raceread")]
     feats.push("raceread");
@@ -156,7 +144,7 @@ pub fn report() -> String {
     s.push_str(&format!("Superskip shop      : {}\n", yn(crate::skip::is_shop_enabled())));
     s.push_str(&format!("Race-result skip    : {}\n", yn(crate::skip::is_race_result_enabled())));
     s.push_str(&format!("UI tempo            : {:.1}x\n", crate::ui_tempo::tempo()));
-    s.push_str(&format!("FPS cap             : {}\n", crate::fps::current()));
+    s.push_str(&format!("FPS cap             : {}\n", crate::performance::fps::current()));
     s.push_str(&format!("Max 3D quality      : {}\n", yn(crate::settings::gfx_quality())));
     s.push_str(&format!("Cloth uncap         : {}\n", yn(crate::settings::cyspring_uncap())));
 

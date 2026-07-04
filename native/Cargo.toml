@@ -56,7 +56,8 @@ windows = { version = "0.54", optional = true, features = [
   "Win32_Graphics_Dxgi",
   "Win32_Graphics_Dxgi_Common",
 ] }
-# GetModuleHandleW / GetProcAddress / thread spawn / input + window helpers.
+# GetModuleHandleW / GetProcAddress / thread spawn / input + window helpers + clipboard,
+# shared memory, audio (title BGM mute), shell, and WinHttp (Team Trials capture).
 windows-sys = { version = "0.59", features = [
   "Win32_Foundation",
   "Win32_Networking_WinHttp",
@@ -64,6 +65,7 @@ windows-sys = { version = "0.59", features = [
   "Win32_System_LibraryLoader",
   "Win32_System_Memory",
   "Win32_System_Threading",
+  "Win32_Media_Audio",
   "Win32_UI_Input_KeyboardAndMouse",
   "Win32_UI_Shell",
   "Win32_UI_WindowsAndMessaging",

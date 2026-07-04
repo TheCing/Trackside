@@ -4,8 +4,8 @@
 //!
 //! Everything is resolved BY NAME at boot (so a game patch that shifts RVAs doesn't break it). The
 //! overlay button (render thread) only sets a flag via `request()`; the actual managed call runs from
-//! `poll()`, which is driven on the game's MAIN thread by hunter's per-frame `TweenManager.Update`
-//! pump. Never call IL2CPP from the render thread.
+//! `poll()`, which is driven on the game's MAIN thread by the single `ui_tempo::update_hook`
+//! `TweenManager.Update` detour. Never call IL2CPP from the render thread.
 
 #![allow(dead_code)]
 
@@ -76,7 +76,7 @@ pub fn install() -> String {
     "OK".into()
 }
 
-/// Main-thread pump (called from hunter's TweenManager.Update tick). If a reset was requested and none
+/// Main-thread pump (called from ui_tempo's single TweenManager.Update detour). If a reset was requested and none
 /// is already in progress, calls GameSystem.SoftwareReset() exactly once.
 pub fn poll() {
     if !REQUESTED.swap(false, Ordering::SeqCst) {

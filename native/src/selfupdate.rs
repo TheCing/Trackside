@@ -19,8 +19,6 @@ use crate::http;
 /// This build's version (from Cargo.toml). Releases are tagged `v<this>`.
 const CURRENT: &str = env!("CARGO_PKG_VERSION");
 
-// Private/full build checks the private repo (collaborators); public build the public repo.
-#[cfg(not(feature = "panels"))]
 const REPO: &str = "Nighty3333/Heaven-Internal-Public-Version-";
 
 /// The loose DLL asset the release must carry for one-click updates (uploaded alongside the zips
@@ -39,7 +37,9 @@ pub struct Pending {
     pub changelog: String,   // combined, slimmed notes, newest-first (or the diff for a hotfix)
     pub dll_url: String,     // download URL of the DLL on the target release
     pub same_version: bool,  // true = a hotfix under our SAME tag (DLL changed, number didn't)
+    pub is_direct: bool,     // true = set by an alternate (non-GitHub) update source
 }
+
 
 static PENDING: OnceLock<Mutex<Option<Pending>>> = OnceLock::new();
 fn pending_slot() -> &'static Mutex<Option<Pending>> {
@@ -246,6 +246,7 @@ fn run_check(force: bool) {
             changelog,
             dll_url,
             same_version: false,
+            is_direct: false,
         });
     }
     set_status(format!("Update {target} available"));
@@ -296,6 +297,7 @@ fn check_same_tag_hotfix(arr: &[Value]) {
                     changelog: diff,
                     dll_url,
                     same_version: true,
+                    is_direct: false,
                 });
             }
             return set_status(format!("Hotfix for {cur} available"));
@@ -502,4 +504,164 @@ pub fn skip() {
         crate::settings::set_update_skip(&p.target);
     }
     clear_pending();
+}
+
+/// The self-update prompt — drawn independently of the menu whenever the updater has a pending
+/// update. Combined changelog + Download / Not now. The "don't ask again" tick only takes effect
+/// on Not now (silences just that version; a newer release re-opens the prompt).
+pub(crate) fn draw_dialog(ui: &hudhook::imgui::Ui) {
+    use hudhook::imgui::{Condition, StyleColor, StyleVar};
+    use crate::overlay::open_url;
+    // The GitHub self-update, or an alternate in-app update source when one is present.
+    let p = match crate::selfupdate::pending() {
+        Some(p) => p,
+        None => {
+            { return }
+        }
+    };
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static REMEMBER: AtomicBool = AtomicBool::new(false);
+
+    // Muted, opaque, easy-on-the-eyes palette (darker + more solid than the menu; no bright white).
+    const DLG_BG: [f32; 4] = [0.071, 0.047, 0.133, 0.99]; // solid dark purple, near-opaque
+    const DLG_CHILD: [f32; 4] = [0.047, 0.031, 0.094, 1.0]; // changelog block, a touch darker
+    const DLG_BORDER: [f32; 4] = [0.45, 0.36, 0.62, 0.26];
+    const DLG_TITLE: [f32; 4] = [0.702, 0.604, 0.847, 1.0]; // soft lavender (not the bright accent)
+    const DLG_SUB: [f32; 4] = [0.447, 0.408, 0.537, 1.0]; // muted grey-lavender
+    const DLG_BODY: [f32; 4] = [0.720, 0.685, 0.790, 1.0]; // changelog bullets — readable, still soft
+    const DLG_VER: [f32; 4] = [0.741, 0.616, 0.906, 1.0]; // version tag headers
+    const DLG_SECTION: [f32; 4] = [0.560, 0.510, 0.660, 1.0]; // section headers (New / Fixes)
+    const DLG_BTN: [f32; 4] = [0.16, 0.13, 0.24, 1.0];
+    const DLG_BTN_HI: [f32; 4] = [0.24, 0.19, 0.35, 1.0];
+    const DLG_BTN_ACT: [f32; 4] = [0.30, 0.24, 0.42, 1.0];
+
+    // Keep the style tokens alive for the whole window scope (tuple = dropped together at fn end).
+    let _sc = (
+        ui.push_style_color(StyleColor::WindowBg, DLG_BG),
+        ui.push_style_color(StyleColor::ChildBg, DLG_CHILD),
+        ui.push_style_color(StyleColor::Border, DLG_BORDER),
+        ui.push_style_color(StyleColor::Button, DLG_BTN),
+        ui.push_style_color(StyleColor::ButtonHovered, DLG_BTN_HI),
+        ui.push_style_color(StyleColor::ButtonActive, DLG_BTN_ACT),
+        ui.push_style_color(StyleColor::Text, DLG_BODY),
+        ui.push_style_color(StyleColor::CheckMark, DLG_TITLE),
+        ui.push_style_color(StyleColor::FrameBg, DLG_CHILD),
+        ui.push_style_color(StyleColor::FrameBgHovered, DLG_BTN),
+    );
+    let _sv = (
+        ui.push_style_var(StyleVar::WindowRounding(11.0)),
+        ui.push_style_var(StyleVar::ChildRounding(8.0)),
+        ui.push_style_var(StyleVar::FrameRounding(7.0)),
+        ui.push_style_var(StyleVar::WindowPadding([16.0, 14.0])),
+    );
+
+    let [dw, dh] = ui.io().display_size;
+    let d = crate::overlay::dpi(ui); // high-DPI/4K baseline
+    let (w, h) = (420.0_f32 * d, 440.0_f32 * d);
+    ui.window("##hv_update")
+        // FirstUseEver = centre the first time, then remember where the user drags/resizes it.
+        .position([(dw - w) * 0.5, (dh - h) * 0.5], Condition::FirstUseEver)
+        .size([w, h], Condition::FirstUseEver)
+        .size_constraints([340.0, 220.0], [1000.0, 1000.0]) // min / max while resizing
+        .title_bar(false) // title lives in the body (drag from the header / empty areas)
+        .collapsible(false)
+        .resizable(true)
+        .movable(true)
+        .build(|| {
+            ui.set_window_font_scale(ui.window_size()[0] / 420.0); // = dpi at default, grows on resize
+            let title = if p.same_version {
+                format!("Update for {}", p.target)
+            } else {
+                format!("{} available", p.target)
+            };
+            ui.text_colored(DLG_TITLE, title);
+            let sub = if p.same_version {
+                "What changed since your version".to_string()
+            } else if p.count > 1 {
+                format!("{} new versions", p.count)
+            } else {
+                "New version".to_string()
+            };
+            ui.text_colored(DLG_SUB, sub);
+            ui.dummy([0.0, 6.0]);
+
+            // Negative height = fill down to ~92px from the bottom (leaving room for the footer), so
+            // the changelog grows/shrinks when the user resizes the window.
+            ui.child_window("##hv_changelog").size([0.0, -92.0]).build(|| {
+                // Colour by line type so a long combined changelog stays scannable: version tags
+                // (lavender + spacing), section headers (New / Fixes), bullets (readable body).
+                for line in p.changelog.lines() {
+                    let t = line.trim_start();
+                    if t.is_empty() {
+                        continue;
+                    }
+                    let is_tag =
+                        t.starts_with('v') && t.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit());
+                    if is_tag {
+                        ui.dummy([0.0, 5.0]);
+                        let _c = ui.push_style_color(StyleColor::Text, DLG_VER);
+                        ui.text(t);
+                    } else if let Some(bullet) = t.strip_prefix('-') {
+                        let _c = ui.push_style_color(StyleColor::Text, DLG_BODY);
+                        ui.text_wrapped(format!("   -{bullet}"));
+                    } else {
+                        let _c = ui.push_style_color(StyleColor::Text, DLG_SECTION);
+                        ui.text(t);
+                    }
+                }
+            });
+            ui.dummy([0.0, 8.0]);
+
+            let staged = crate::selfupdate::staged();
+            let busy = crate::selfupdate::is_busy();
+
+            if staged {
+                // Download done; the game auto-restarts shortly. Offer an immediate restart too.
+                if ui.button("Restart now") {
+                    crate::selfupdate::restart_game();
+                }
+            } else {
+                let mut rem = REMEMBER.load(Ordering::Relaxed);
+                if ui.checkbox("Don't ask again for this version", &mut rem) {
+                    REMEMBER.store(rem, Ordering::Relaxed);
+                }
+                ui.dummy([0.0, 4.0]);
+                if busy {
+                    ui.text_colored(DLG_SUB, "Working...");
+                } else {
+                    if ui.button("Download") {
+                        let handled = false;
+                        if !handled {
+                            crate::selfupdate::download();
+                        }
+                    }
+                    ui.same_line();
+                    if ui.button("Not now") {
+                        let lic = false;
+                        if lic {
+                        } else if REMEMBER.load(Ordering::Relaxed) {
+                            crate::selfupdate::skip();
+                        } else {
+                            crate::selfupdate::dismiss();
+                        }
+                        REMEMBER.store(false, Ordering::Relaxed);
+                    }
+                    if !p.is_direct {
+                        ui.same_line();
+                        if ui.button("View on GitHub") {
+                            open_url(crate::update::RELEASES_URL);
+                        }
+                    }
+                }
+            }
+
+            // Only the GitHub path has a meaningful status line to show.
+            if !p.is_direct {
+                let st = crate::selfupdate::status();
+                if !st.is_empty() {
+                    ui.dummy([0.0, 4.0]);
+                    ui.text_colored(DLG_SUB, st);
+                }
+            }
+        });
 }

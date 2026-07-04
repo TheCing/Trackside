@@ -11,11 +11,9 @@
 //!
 //! A concise startup report is written to logs/heaven-native.log.
 
-use std::fs::OpenOptions;
-use std::io::Write;
 use std::time::Duration;
 
-use crate::fps;
+use crate::performance::fps;
 use crate::htt;
 use crate::il2cpp;
 use crate::ipc;
@@ -25,13 +23,7 @@ use crate::settings;
 use crate::skip;
 
 fn log(msg: &str) {
-    if let Ok(mut f) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 /// Spawn the native engine thread. hudhook re-invokes `new_with_engine()` (→ this) EVERY time it
@@ -129,10 +121,14 @@ pub fn spawn() {
         // runtime is ready, handing them a Heaven-backed compatible vtable. Self-contained mods
         // (no such export) are left untouched (already started by the early loader).
         log(&format!("plugins(sdk): {}", crate::hachimi_compat::init_plugins()));
+        // If an external SDK plugin (e.g. a companion feed) loaded from heaven_plugins/, it already
+        // owns the overlay UDP channel — stand our native feed down so the two don't double-send.
+        if crate::hachimi_compat::sdk_plugins_loaded() > 0 {
+            crate::uma_bridge::set_external_active(true);
+            log("companion feed: external SDK plugin present -> native feed deferred");
+        }
 
-        // 3) Install modules. Each is independent; one failing never blocks the
-        //    others (keeps the proven core alive even if an experimental part
-        //    can't resolve on a future game patch).
+
         let (tr_ok, ev_ok, snotes) = skip::install();
         log(&format!("superskip: training={tr_ok} events={ev_ok} [{}]", snotes.trim_end()));
         crate::diag::record_install("superskip", &format!("training={tr_ok} events={ev_ok} [{}]", snotes.trim_end()));
@@ -156,22 +152,23 @@ pub fn spawn() {
             Err(e) => { log(&format!("ui tempo: deferred ({e})")); crate::diag::record_install("ui tempo", &format!("deferred ({e})")); }
         }
         crate::crashlog::crumb(4);
-        match crate::cyspring::install() {
-            Ok(()) => { log("cyspring uncap: OK"); crate::diag::record_install("cyspring uncap", "OK"); }
-            Err(e) => { log(&format!("cyspring uncap: deferred ({e})")); crate::diag::record_install("cyspring uncap", &format!("deferred ({e})")); }
-        }
+        // cyspring (cloth-physics uncap) NOT installed — its CySpringController.Init detour crashed
+        // during the URA Finale ending (AV, breadcrumb 31) and the feature is negligible QoL. Code
+        // kept intact; we simply don't arm the hook, so on_init never runs. Re-enable by restoring
+        // the install() call if the crash is ever root-caused.
+        let _ = crate::performance::cyspring::install; // keep the symbol referenced (no-op)
         crate::crashlog::crumb(1);
-        match crate::graphics::install() {
+        match crate::performance::graphics::install() {
             Ok(()) => { log("graphics tweaks: OK"); crate::diag::record_install("graphics tweaks", "OK"); }
             Err(e) => { log(&format!("graphics tweaks: deferred ({e})")); crate::diag::record_install("graphics tweaks", &format!("deferred ({e})")); }
         }
         crate::crashlog::crumb(2);
-        match crate::display::install() {
+        match crate::performance::display::install() {
             Ok(()) => { log("display tweaks: OK"); crate::diag::record_install("display tweaks", "OK"); }
             Err(e) => { log(&format!("display tweaks: deferred ({e})")); crate::diag::record_install("display tweaks", &format!("deferred ({e})")); }
         }
         crate::crashlog::crumb(3);
-        crate::display::install_window();
+        crate::performance::display::install_window();
         crate::crashlog::crumb(0);
         #[cfg(feature = "raceread")]
         {
@@ -187,21 +184,17 @@ pub fn spawn() {
             crate::diag::record_install("freecam", &r);
         }
 
-        // Response hook (full build): parses the msgpack race response to
-        // identify the player's horse → needed by the Top-1 race-result skip gate.
-
-        // Public build: the player-horse identity parse that the full build would otherwise
-        // provide (so the race-result skip's "only when you WON" gate works). Only
-        // when the full build is absent — with the full build present its hook already does this.
-        #[cfg(all(feature = "racenet", not(feature = "oracle")))]
+        // Network response hook: reads each msgpack API response to identify the player's horse
+        // (Top-1 race-result skip gate), remaining race retries, feed the companion bridge, and —
+        // full-build-only extras. One detour for all.
         {
-            crate::race_net::install();
-            log("race_net: armed (player-id only)");
-            crate::diag::record_install("race_net", "armed (player-id only)");
+            crate::response_hook::install();
+            log("response hook: armed");
+            crate::diag::record_install("response_hook", "armed");
         }
 
         // Companion-overlay bridge: forward requests (CompressRequest hook) + responses (fed from the
-        // DecompressResponse hook in the full build/race_net) to companion overlays over UDP 17229,
+        // DecompressResponse hook) to companion overlays over UDP 17229,
         // so tools that used a separate capture plugin work with Heaven directly.
         {
             crate::uma_bridge::install();
@@ -252,7 +245,7 @@ pub fn spawn() {
             crate::diag::record_install("room finder", &r);
         }
         // Legacy Select affinity numbers (on-screen exact pair total + per-parent values).
-        // Read-only; its per-frame tick rides hunter's TweenManager.Update pump.
+        // Read-only; its per-frame tick rides ui_tempo's single TweenManager.Update detour.
         {
             let r = crate::affinity::install();
             log(&format!("affinity: {r}"));

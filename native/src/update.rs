@@ -19,7 +19,6 @@ use std::os::windows::process::CommandExt;
 #[cfg(windows)]
 const NO_WINDOW: u32 = 0x0800_0000; // CREATE_NO_WINDOW — no console flash
 
-#[cfg(not(feature = "panels"))]
 pub const RELEASES_URL: &str =
     "https://github.com/Nighty3333/Heaven-Internal-Public-Version-/releases";
 
@@ -42,7 +41,6 @@ fn set_status(s: impl Into<String>) {
 }
 
 
-#[cfg(not(feature = "dev"))]
 fn repo_root() -> PathBuf {
     PathBuf::from(".")
 }

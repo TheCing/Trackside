@@ -132,3 +132,72 @@ pub fn get_string(url: &str) -> Result<String, String> {
     let bytes = get(url)?;
     String::from_utf8(bytes).map_err(|_| "response not valid utf-8".to_string())
 }
+
+/// HTTPS POST with a body (e.g. JSON) → response body bytes. Blocking; background thread only.
+pub fn post(url: &str, body: &[u8], content_type: &str) -> Result<Vec<u8>, String> {
+    let (host, path) = split_url(url).ok_or_else(|| "bad url (need https://)".to_string())?;
+    let ua = wide(UA);
+    let host_w = wide(&host);
+    let path_w = wide(&path);
+    let verb = wide("POST");
+    let headers = wide(&format!("Content-Type: {content_type}\r\n"));
+
+    unsafe {
+        let session = Handle(WinHttpOpen(ua.as_ptr(), WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, ptr::null(), ptr::null(), 0));
+        if session.0.is_null() {
+            return Err("WinHttpOpen failed".into());
+        }
+        let connect = Handle(WinHttpConnect(session.0, host_w.as_ptr(), HTTPS_PORT, 0));
+        if connect.0.is_null() {
+            return Err("WinHttpConnect failed".into());
+        }
+        let request = Handle(WinHttpOpenRequest(
+            connect.0, verb.as_ptr(), path_w.as_ptr(), ptr::null(), ptr::null(), ptr::null(), WINHTTP_FLAG_SECURE,
+        ));
+        if request.0.is_null() {
+            return Err("WinHttpOpenRequest failed".into());
+        }
+        // Send with the Content-Type header + the body in one call.
+        if WinHttpSendRequest(
+            request.0,
+            headers.as_ptr(),
+            (headers.len() - 1) as u32, // wide chars, minus the NUL
+            body.as_ptr() as *const c_void,
+            body.len() as u32,
+            body.len() as u32,
+            0,
+        ) == 0
+        {
+            return Err("WinHttpSendRequest(POST) failed (no network?)".into());
+        }
+        if WinHttpReceiveResponse(request.0, ptr::null_mut()) == 0 {
+            return Err("WinHttpReceiveResponse failed".into());
+        }
+        let mut status: u32 = 0;
+        let mut len: u32 = 4;
+        WinHttpQueryHeaders(
+            request.0,
+            WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+            ptr::null(),
+            &mut status as *mut u32 as *mut c_void,
+            &mut len,
+            ptr::null_mut(),
+        );
+        // Read the whole body regardless of status (the Worker returns JSON with 200 or 403).
+        let mut out = Vec::new();
+        loop {
+            let mut avail: u32 = 0;
+            if WinHttpQueryDataAvailable(request.0, &mut avail) == 0 || avail == 0 {
+                break;
+            }
+            let mut buf = vec![0u8; avail as usize];
+            let mut read: u32 = 0;
+            if WinHttpReadData(request.0, buf.as_mut_ptr() as *mut c_void, avail, &mut read) == 0 || read == 0 {
+                break;
+            }
+            buf.truncate(read as usize);
+            out.extend_from_slice(&buf);
+        }
+        Ok(out)
+    }
+}

@@ -14,20 +14,21 @@ use hudhook::{ImguiRenderLoop, TextureLoader};
 
 use std::time::Instant;
 
-// Career/Race data types are only used by the info panels (feature `panels`).
+use crate::data::GameState;
 use crate::ipc;
 
 // ── Heaven palette (RGBA 0..1) — muted slate-violet, softened from the original neon theme ──
-const ACCENT: [f32; 4] = [0.64, 0.60, 0.90, 1.0]; // soft periwinkle (section titles, checks)
-const ACCENT_HI: [f32; 4] = [0.78, 0.74, 0.97, 1.0];
-const PINK: [f32; 4] = [0.86, 0.52, 0.70, 1.0]; // muted rose — race FIGHT/SPURT tags only
-const TEXT: [f32; 4] = [0.90, 0.89, 0.94, 1.0];
-const DIM: [f32; 4] = [0.58, 0.56, 0.66, 1.0]; // neutral gray
-const GOLD: [f32; 4] = [0.80, 0.70, 0.52, 1.0]; // softened, art-only warmth
-const GOOD: [f32; 4] = [0.55, 0.82, 0.66, 1.0];
-const WARN: [f32; 4] = [0.95, 0.74, 0.48, 1.0];
-const BAD: [f32; 4] = [0.92, 0.50, 0.60, 1.0];
-const BLUE: [f32; 4] = [0.58, 0.72, 1.0, 1.0];
+// Content palette — pub(crate) so feature panels moved out of overlay can theme with it.
+pub(crate) const ACCENT: [f32; 4] = [0.64, 0.60, 0.90, 1.0]; // soft periwinkle (section titles, checks)
+pub(crate) const ACCENT_HI: [f32; 4] = [0.78, 0.74, 0.97, 1.0];
+pub(crate) const PINK: [f32; 4] = [0.86, 0.52, 0.70, 1.0]; // muted rose — race FIGHT/SPURT tags only
+pub(crate) const TEXT: [f32; 4] = [0.90, 0.89, 0.94, 1.0];
+pub(crate) const DIM: [f32; 4] = [0.58, 0.56, 0.66, 1.0]; // neutral gray
+pub(crate) const GOLD: [f32; 4] = [0.80, 0.70, 0.52, 1.0]; // softened, art-only warmth
+pub(crate) const GOOD: [f32; 4] = [0.55, 0.82, 0.66, 1.0];
+pub(crate) const WARN: [f32; 4] = [0.95, 0.74, 0.48, 1.0];
+pub(crate) const BAD: [f32; 4] = [0.92, 0.50, 0.60, 1.0];
+pub(crate) const BLUE: [f32; 4] = [0.58, 0.72, 1.0, 1.0];
 
 const PANEL_BG: [f32; 4] = [0.082, 0.078, 0.110, 0.985]; // page behind the cards (cool slate)
 const TITLE_BG: [f32; 4] = [0.105, 0.100, 0.140, 1.0];
@@ -35,8 +36,8 @@ const TITLE_BG_ON: [f32; 4] = [0.165, 0.150, 0.225, 1.0];
 const BORDER: [f32; 4] = [0.46, 0.44, 0.58, 0.30];
 const FRAME_BG: [f32; 4] = [0.165, 0.155, 0.225, 1.0];
 const FRAME_HI: [f32; 4] = [0.215, 0.200, 0.285, 1.0];
-const BTN_BG: [f32; 4] = [0.190, 0.175, 0.255, 1.0];
-const BTN_HI: [f32; 4] = [0.255, 0.235, 0.330, 1.0];
+pub(crate) const BTN_BG: [f32; 4] = [0.190, 0.175, 0.255, 1.0];
+pub(crate) const BTN_HI: [f32; 4] = [0.255, 0.235, 0.330, 1.0];
 const AMBER_SOFT: [f32; 4] = [0.64, 0.60, 0.90, 0.18]; // accent soft (name kept for reuse)
 const AMBER_MED: [f32; 4] = [0.64, 0.60, 0.90, 0.34];
 
@@ -52,6 +53,15 @@ const GRAD_R: [f32; 4] = [0.72, 0.62, 0.94, 1.0]; // slider fill right (soft lil
 const SIDEBAR_W: f32 = 176.0;
 const MENU_W: f32 = 720.0;
 const MENU_H: f32 = 720.0;
+
+/// Global display-scale factor for every overlay window: 1.0 at 1080p, ~2.0 at 4K, clamped. Shared
+/// so ALL windows (menu, Race Director HUD, panels, dialogs) open at a sane size on high-DPI/4K —
+/// each window multiplies its default size by this, and scales its font by `window_width / base`
+/// (which equals this at the default size, and grows further when the user drag-resizes). Per-frame
+/// (uses the live render size), so it's correct whether the game is fullscreen 4K or windowed.
+pub(crate) fn dpi(ui: &Ui) -> f32 {
+    (ui.io().display_size[1] / 1080.0).clamp(1.0, 3.0)
+}
 
 // Bundled fonts (SIL OFL): Inter for body/UI, Orbitron for section titles. Premium-launcher look.
 // Per the design kit: body = Inter Medium, section titles = Cinzel SemiBold, numbers = Orbitron Medium.
@@ -229,20 +239,15 @@ fn menu_key_button(ui: &Ui, premium: bool) {
     }
 }
 
-const STATS: [(&str, &str); 5] = [
-    ("SPD", "speed"), ("STA", "stamina"), ("POW", "power"),
-    ("GUT", "guts"), ("WIZ", "wiz"),
-];
-
 // The icon font id (Segoe MDL2). `FontId` wraps a raw `*const Font` so it isn't Send/Sync
 // and can't live in the (Send+Sync) overlay struct — but initialize() and draw_menu() both
 // run on the render thread, so a thread-local holds it safely.
 thread_local! {
-    static ICON_FONT: std::cell::Cell<Option<imgui::FontId>> = const { std::cell::Cell::new(None) };
+    pub(crate) static ICON_FONT: std::cell::Cell<Option<imgui::FontId>> = const { std::cell::Cell::new(None) };
     // Orbitron face for section titles (the "premium launcher" look).
-    static TITLE_FONT: std::cell::Cell<Option<imgui::FontId>> = const { std::cell::Cell::new(None) };
+    pub(crate) static TITLE_FONT: std::cell::Cell<Option<imgui::FontId>> = const { std::cell::Cell::new(None) };
     // Inter SemiBold for emphasised values (FPS, speed, ON/OFF).
-    static VALUE_FONT: std::cell::Cell<Option<imgui::FontId>> = const { std::cell::Cell::new(None) };
+    pub(crate) static VALUE_FONT: std::cell::Cell<Option<imgui::FontId>> = const { std::cell::Cell::new(None) };
     // Inter SemiBold for sidebar nav labels (slightly heavier than the Medium body font).
     static NAV_FONT: std::cell::Cell<Option<imgui::FontId>> = const { std::cell::Cell::new(None) };
     // Sidebar nav icons (image textures, indexed by `nav_icon_idx`). TextureId is Copy, so the
@@ -304,7 +309,7 @@ thread_local! {
 
 /// Exponential ease toward `target` (frame-rate independent). `speed` ≈ how fast (10–20 feels
 /// like 100–180 ms). Returns the eased value to use this frame.
-fn anim_step(key: &str, target: f32, speed: f32) -> f32 {
+pub(crate) fn anim_step(key: &str, target: f32, speed: f32) -> f32 {
     let dt = FRAME_DT.with(|c| c.get());
     ANIM.with(|m| {
         let mut m = m.borrow_mut();
@@ -340,7 +345,7 @@ fn lerp_col(a: [f32; 4], b: [f32; 4], t: f32) -> [f32; 4] {
 /// Truncate `s` to fit `max_w` px in the current font, appending "…" when cut (measures the
 /// real glyph width instead of a fixed char count, so wide names don't overflow their column).
 #[allow(dead_code)]
-fn ellipsize(ui: &Ui, s: &str, max_w: f32) -> String {
+pub(crate) fn ellipsize(ui: &Ui, s: &str, max_w: f32) -> String {
     if ui.calc_text_size(s)[0] <= max_w {
         return s.to_string();
     }
@@ -359,7 +364,7 @@ fn ellipsize(ui: &Ui, s: &str, max_w: f32) -> String {
 }
 
 /// Draw a value in the heavier (SemiBold) font.
-fn val(ui: &Ui, col: [f32; 4], text: &str) {
+pub(crate) fn val(ui: &Ui, col: [f32; 4], text: &str) {
     if let Some(f) = VALUE_FONT.with(|c| c.get()) {
         let _t = ui.push_font(f);
         ui.text_colored(col, text);
@@ -408,9 +413,6 @@ pub struct HeavenOverlay {
     intro_auto_started: bool,
 }
 
-// Umamusume header banner — baked RGBA (sky + ground + circular character + nameplate),
-// embedded by the `banner` build.
-#[cfg(all(feature = "banner", not(feature = "oracle")))]
 const BANNER_RGBA: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/banner.rgba"));
 #[cfg(feature = "banner")]
 const BANNER_W: f32 = 960.0;
@@ -491,7 +493,7 @@ const PETAL_SZ: u32 = 96;
 
 impl HeavenOverlay {
     pub fn new() -> Self {
-        let cur = crate::fps::current();
+        let cur = crate::performance::fps::current();
         let (ex, ey) = crate::settings::energy_pos();
         Self {
             show: false,
@@ -540,6 +542,13 @@ impl ImguiRenderLoop for HeavenOverlay {
     /// authoritative every session.
     fn initialize<'a>(&'a mut self, ctx: &mut Context, _loader: TextureLoader<'a>) {
         ctx.set_ini_filename(None);
+        // Let the user grab ANY edge or corner to resize windows (the menu), not just the
+        // bottom-right grip. Width drives the menu zoom, height gives room — so a side/bottom drag
+        // lets you tune each independently.
+        ctx.io_mut().config_windows_resize_from_edges = true;
+        // ImGui DISABLES edge-resize unless the backend advertises mouse-cursor support (it uses
+        // cursor feedback), so advertise it — without this, only the bottom-right grip resizes.
+        ctx.io_mut().backend_flags.insert(imgui::BackendFlags::HAS_MOUSE_CURSORS);
         // Wire Ctrl+C / Ctrl+V / Ctrl+X to the Windows clipboard in every text field.
         ctx.set_clipboard_backend(crate::clipboard::WinClipboard);
         // Upload the header banner (raw RGBA) once. Non-fatal: if it fails, we just
@@ -732,6 +741,11 @@ impl ImguiRenderLoop for HeavenOverlay {
     }
 
     fn render(&mut self, ui: &mut Ui) {
+        // Diagnostic: detect the inter-frame gap (main-thread stalls) now, and measure Heaven's own
+        // render cost when this scope drops at the end of the frame.
+        let _lp = crate::loadprof::frame();
+
+        // (The update prompt is the shared rich dialog drawn by selfupdate::draw_dialog below.)
         // Keep DOTween's timeScale pinned to our UI tempo (survives any game reset).
         crate::ui_tempo::enforce();
 
@@ -812,7 +826,7 @@ impl ImguiRenderLoop for HeavenOverlay {
                 // The ONLY way to skip: a "START GAME" button bottom-right. Clicking
                 // anywhere else does nothing (no accidental skips).
                 let [dw, dh] = ui.io().display_size;
-                let bh = 88.0;
+                let bh = 88.0 * dpi(ui); // high-DPI/4K baseline
                 let bw = bh * (START_W / START_H);
                 let margin = 46.0;
                 let pad = ui.push_style_var(StyleVar::WindowPadding([0.0, 0.0]));
@@ -872,14 +886,11 @@ impl ImguiRenderLoop for HeavenOverlay {
         draw_hunter_alert(ui);
 
         // Self-update prompt — shown over everything when a new release is pending, menu or not.
-        draw_update_dialog(ui);
+        crate::selfupdate::draw_dialog(ui);
 
         // Legacy Select affinity numbers — anchored on the game UI, menu open or not.
-        draw_affinity(ui);
+        crate::affinity::draw_badges_panel(ui);
 
-        // the extra overlay boxes draw on the game's native popup regardless of the
-        // Insert toggle — they belong to the game UI, not the Heaven panel, so
-        // hiding the controls must not hide the prediction box.
 
         // Freecam mouse zoom — works even with the panel hidden (drag/keys are polled in
         // freecam's own input thread). Wheel → zoom, when not over the Heaven panel.
@@ -898,7 +909,7 @@ impl ImguiRenderLoop for HeavenOverlay {
         // on screen during the race whether or not the Heaven menu is open (it's a HUD, not a
         // menu panel). Only while the freecam is following a Uma. panel_style is self-sufficient.
         #[cfg(feature = "freecam")]
-        if crate::freecam::race_active() {
+        if crate::race_director::race_active() {
             let [dw, _dh] = ui.io().display_size;
             let tx = if self.rail_right { (dw - 300.0 - 14.0).max(0.0) } else { 14.0 };
             // Main followed-Uma panel — its own toggle, so tower-only setups can hide just this.
@@ -934,7 +945,7 @@ impl ImguiRenderLoop for HeavenOverlay {
         // this the checkbox/slider would show stale values (e.g. unchecked while
         // the game is already capped from settings.json). Dragging the slider
         // sets current()==fps_val, so this never fights the user.
-        let cur = crate::fps::current();
+        let cur = crate::performance::fps::current();
         self.fps_on = cur != 0;
         if cur > 0 {
             self.fps_val = cur;
@@ -992,8 +1003,6 @@ impl ImguiRenderLoop for HeavenOverlay {
         } else {
             self.draw_menu(ui);
         }
-        // Info panels + info chip — private/full build only (feature `panels`).
-        // The public build ships SuperSkip/FPS/TT without the career/race readers.
 
         if applied {
             self.relayout = false;
@@ -1012,7 +1021,12 @@ impl HeavenOverlay {
         let saved = crate::settings::win_rect("menu");
         let (w, h) = match saved {
             Some(r) => (r[2].clamp(280.0, dw - 28.0), r[3].clamp(200.0, dh - 28.0)),
-            None => (MENU_W.min(dw - 28.0), MENU_H.min(dh - 28.0)),
+            None => {
+                // First-open size scales to the display so the menu isn't tiny on 4K/high-DPI.
+                // The uniform-zoom `s` (= width / MENU_W) then scales text+layout to match.
+                let dpi = (dh / 1080.0).clamp(1.0, 3.0);
+                ((MENU_W * dpi).min(dw - 28.0), (MENU_H * dpi).min(dh - 28.0))
+            }
         };
         // Default position from the centered/rail layout (used on first open or a relayout toggle).
         let default_pos = if centered {
@@ -1043,7 +1057,7 @@ impl HeavenOverlay {
         // Re-sync the cached slider values from the live state every frame, so the UI shows the
         // PERSISTED settings: they're applied (settings::apply_on_boot) after this overlay is
         // constructed, so the values captured at construction are stale otherwise.
-        let cur_fps = crate::fps::current();
+        let cur_fps = crate::performance::fps::current();
         self.fps_on = cur_fps != 0;
         if cur_fps > 0 {
             self.fps_val = cur_fps;
@@ -1086,6 +1100,14 @@ impl HeavenOverlay {
             .build(|| {
                 let p0 = ui.window_pos();
                 let wsz = ui.window_size();
+                // UNIFORM zoom: one scale factor from the window width (base = default menu width)
+                // drives EVERYTHING together — text, the sidebar, the nav rows and widget spacing —
+                // so dragging the menu bigger grows the whole thing proportionally, not just text.
+                let s = (wsz[0] / MENU_W).clamp(0.85, 2.5);
+                ui.set_window_font_scale(s);
+                let sbw = SIDEBAR_W * s; // scaled sidebar width (all sidebar layout keys off this)
+                let _sp_is = ui.push_style_var(StyleVar::ItemSpacing([8.0 * s, 7.0 * s]));
+                let _sp_fp = ui.push_style_var(StyleVar::FramePadding([9.0 * s, 5.0 * s]));
                 // Below this height the silhouette/sparkles are hidden so the nav rows never
                 // overlap them; the nav reclaims that reserved bottom space (see bottom_limit).
                 let show_decor = wsz[1] >= 520.0;
@@ -1100,7 +1122,7 @@ impl HeavenOverlay {
                 }
                 // Darker sidebar strip on the left (rounded only on the left to match the window).
                 ui.get_window_draw_list()
-                    .add_rect(p0, [p0[0] + SIDEBAR_W, p0[1] + wsz[1]], SIDEBAR_BG)
+                    .add_rect(p0, [p0[0] + sbw, p0[1] + wsz[1]], SIDEBAR_BG)
                     .filled(true)
                     .rounding(10.0)
                     .round_top_right(false)
@@ -1127,7 +1149,7 @@ impl HeavenOverlay {
                             if let Some(t) = petals[ti] {
                                 let yy = p0[1] - 40.0 + ((anim_t * sp + ph) % span);
                                 let sway = (anim_t * 0.7 + ph).sin() * 9.0;
-                                let cx = p0[0] + 10.0 + xf * (SIDEBAR_W - 30.0) + sway;
+                                let cx = p0[0] + 10.0 + xf * (sbw - 30.0) + sway;
                                 dl.add_image(t, [cx, yy], [cx + sz, yy + sz])
                                     .col([1.0, 1.0, 1.0, 0.22])
                                     .build();
@@ -1137,7 +1159,7 @@ impl HeavenOverlay {
                 }
 
                 ui.columns(2, "##menu", false);
-                ui.set_column_width(0, SIDEBAR_W);
+                ui.set_column_width(0, sbw);
 
                 // ── sidebar: clean "Heaven" wordmark (replaces the crest + logo art) ──
                 // The crest/orb/logo textures are still loaded but intentionally no longer drawn;
@@ -1145,26 +1167,27 @@ impl HeavenOverlay {
                 #[cfg(feature = "banner")]
                 let _ = (crest_tex, logo_tex);
                 {
-                    let top = 18.0;
-                    // Scale the 18px title font up for a logo-sized wordmark.
+                    let top = 18.0 * s;
+                    // Scale the 18px title font up for a logo-sized wordmark (on top of the
+                    // menu-wide display scale `s`, which we must restore afterwards).
                     let scale = 1.95;
-                    let line_h = 18.0 * scale;
+                    let line_h = 18.0 * scale * s;
                     let _t = TITLE_FONT.with(|c| c.get()).map(|f| ui.push_font(f));
-                    ui.set_window_font_scale(scale);
+                    ui.set_window_font_scale(scale * s);
                     let label = "Heaven";
                     let tw = ui.calc_text_size(label)[0];
-                    ui.set_cursor_pos([((SIDEBAR_W - tw) * 0.5).max(10.0), top]);
+                    ui.set_cursor_pos([((sbw - tw) * 0.5).max(10.0), top]);
                     ui.text_colored(TEXT, label);
-                    ui.set_window_font_scale(1.0);
+                    ui.set_window_font_scale(s);
                     // Thin accent underline, matched to the wordmark width — a clean divider.
-                    let uw = tw.min(SIDEBAR_W - 24.0);
-                    let ux = p0[0] + (SIDEBAR_W - uw) * 0.5;
+                    let uw = tw.min(sbw - 24.0);
+                    let ux = p0[0] + (sbw - uw) * 0.5;
                     let uy = p0[1] + top + line_h + 5.0;
                     ui.get_window_draw_list()
                         .add_line([ux, uy], [ux + uw, uy], [ACCENT[0], ACCENT[1], ACCENT[2], 0.55])
                         .thickness(1.5)
                         .build();
-                    ui.set_cursor_pos([10.0, top + line_h + 16.0]);
+                    ui.set_cursor_pos([10.0, top + line_h + 16.0 * s]);
                 }
                 {
                     // The selected/hover backgrounds are drawn by hand (animated), so the
@@ -1180,9 +1203,9 @@ impl HeavenOverlay {
                     let n_items = tabs.len() as f32;
                     let bottom_limit = wsz[1] - if show_decor { 200.0 } else { 36.0 };
                     let nav_avail = (bottom_limit - nav_y0).max(n_items * 46.0);
-                    let nav_pitch = (nav_avail / n_items).clamp(46.0, 56.0);
+                    let nav_pitch = (nav_avail / n_items).clamp(46.0 * s, 56.0 * s);
                     let nav_half = nav_pitch * 0.5;
-                    let icon_sz = 42.0_f32;
+                    let icon_sz = 42.0_f32 * s;
                     // Animated active background + a soft accent bar that slide toward the
                     // selected row (~160 ms). Drawn BEFORE the rows so content sits on top.
                     let active_y = anim_step("nav_bar_y", nav_y0 + (*tab as f32) * nav_pitch, 12.0);
@@ -1190,7 +1213,7 @@ impl HeavenOverlay {
                         let dl = ui.get_window_draw_list();
                         dl.add_rect(
                             [p0[0] + 8.0, p0[1] + active_y + 3.0],
-                            [p0[0] + SIDEBAR_W - 8.0, p0[1] + active_y + nav_pitch - 3.0],
+                            [p0[0] + sbw - 8.0, p0[1] + active_y + nav_pitch - 3.0],
                             SEL_BG,
                         )
                         .filled(true)
@@ -1214,7 +1237,7 @@ impl HeavenOverlay {
                         if ui
                             .selectable_config(format!("##nav{i}"))
                             .selected(sel)
-                            .size([SIDEBAR_W - 20.0, nav_pitch - 6.0])
+                            .size([sbw - 20.0, nav_pitch - 6.0])
                             .build()
                         {
                             *tab = i;
@@ -1226,7 +1249,7 @@ impl HeavenOverlay {
                             ui.get_window_draw_list()
                                 .add_rect(
                                     [p0[0] + 8.0, p0[1] + cy + 3.0],
-                                    [p0[0] + SIDEBAR_W - 8.0, p0[1] + cy + nav_pitch - 3.0],
+                                    [p0[0] + sbw - 8.0, p0[1] + cy + nav_pitch - 3.0],
                                     [0.64, 0.60, 0.92, 0.11 * hv],
                                 )
                                 .filled(true)
@@ -1269,8 +1292,9 @@ impl HeavenOverlay {
                         }
                         if let Some(f) = icon_font {
                             let _t = ui.push_font(f);
-                            // Scale the 16px MDL2 glyph up to fill the badge, then centre it.
-                            ui.set_window_font_scale(1.6);
+                            // Scale the 16px MDL2 glyph up to fill the badge, then centre it
+                            // (on top of the menu-wide display scale `s`, restored after).
+                            ui.set_window_font_scale(1.6 * s);
                             let glyph = cat_icon(name);
                             let gs = ui.calc_text_size(glyph);
                             let gcol = if sel {
@@ -1280,9 +1304,9 @@ impl HeavenOverlay {
                             };
                             ui.get_window_draw_list()
                                 .add_text([icc[0] - gs[0] * 0.5, icc[1] - gs[1] * 0.5], gcol, glyph);
-                            ui.set_window_font_scale(1.0);
+                            ui.set_window_font_scale(s);
                         }
-                        ui.set_cursor_pos([66.0, cy + nav_half - 9.0]);
+                        ui.set_cursor_pos([66.0 * s, cy + nav_half - 9.0 * s]);
                         if let Some(f) = NAV_FONT.with(|c| c.get()) {
                             let _t = ui.push_font(f);
                             ui.text_colored(col, name);
@@ -1298,7 +1322,7 @@ impl HeavenOverlay {
                 if let Some(t) = sil_tex.filter(|_| show_decor) {
                     let sw = 150.0;
                     let sh = sw * (SIL_H / SIL_W);
-                    let sx = p0[0] + (SIDEBAR_W - sw) * 0.5;
+                    let sx = p0[0] + (sbw - sw) * 0.5;
                     let sy = p0[1] + wsz[1] - sh - 14.0;
                     ui.get_window_draw_list()
                         .add_image(t, [sx, sy], [sx + sw, sy + sh])
@@ -1347,7 +1371,7 @@ impl HeavenOverlay {
                     let ft = concat!("v", env!("CARGO_PKG_VERSION"), "   \u{00b7}   Night DC");
                     let fw = ui.calc_text_size(ft)[0];
                     ui.get_window_draw_list().add_text(
-                        [p0[0] + (SIDEBAR_W - fw) * 0.5, p0[1] + wsz[1] - 19.0],
+                        [p0[0] + (sbw - fw) * 0.5, p0[1] + wsz[1] - 19.0],
                         [0.50, 0.44, 0.62, 0.85],
                         ft,
                     );
@@ -1355,7 +1379,7 @@ impl HeavenOverlay {
 
                 // Thin luminous divider between the sidebar and the content column.
                 {
-                    let lx = p0[0] + SIDEBAR_W;
+                    let lx = p0[0] + sbw;
                     let midy = p0[1] + wsz[1] * 0.5;
                     let solid = [0.86, 0.55, 1.0, 0.42];
                     let trans = [0.86, 0.55, 1.0, 0.0];
@@ -1367,7 +1391,7 @@ impl HeavenOverlay {
                 ui.next_column();
 
                 // ── content column ──
-                let content_w = wsz[0] - SIDEBAR_W - 24.0;
+                let content_w = wsz[0] - sbw - 24.0;
 
                 // Header: a glass strip (gradient sheen + gold border) with the wordmark on the
                 // left and live FPS / speed / skip metrics on the right (numbers in Orbitron).
@@ -1572,7 +1596,7 @@ impl HeavenOverlay {
                                             ui.text_colored(DIM, *t);
                                         }
                                         Ctrl::Custom(Custom::Fps) => {
-                                            let cur = crate::fps::current();
+                                            let cur = crate::performance::fps::current();
                                             let capped = cur > 0;
                                             let unlimited = cur < 0;
                                             ui.dummy([0.0, 6.0]);
@@ -1580,20 +1604,20 @@ impl HeavenOverlay {
                                             // mode; toggling the active one returns to Off (no more "both on").
                                             if toggle_row(ui, "##cap", "Cap FPS", capped, cw) {
                                                 *fps_on = !capped;
-                                                crate::fps::set_cap(if capped { 0 } else { *fps_val });
+                                                crate::performance::fps::set_cap(if capped { 0 } else { *fps_val });
                                                 crate::settings::save_current();
                                             }
                                             ui.dummy([0.0, 6.0]);
                                             if toggle_row(ui, "##unl", "Unlimited", unlimited, cw) {
                                                 *fps_on = false;
-                                                crate::fps::set_cap(if unlimited { 0 } else { -1 });
+                                                crate::performance::fps::set_cap(if unlimited { 0 } else { -1 });
                                                 crate::settings::save_current();
                                             }
                                             ui.dummy([0.0, 8.0]);
                                             ui.text_colored(DIM, "FPS limit");
                                             if pink_slider_i32(ui, "##fpscap", 1, 300, fps_val, cw - 32.0) {
                                                 *fps_on = true;
-                                                crate::fps::set_cap(*fps_val);
+                                                crate::performance::fps::set_cap(*fps_val);
                                                 crate::settings::save_current();
                                             }
                                             ui.dummy([0.0, 4.0]);
@@ -1632,7 +1656,7 @@ impl HeavenOverlay {
                                                     }
                                                 }
                                                 ui.dummy([0.0, 4.0]);
-                                                draw_preset_manager(ui, cw);
+                                                crate::freecam::draw_preset_panel(ui, cw);
                                                 let pose = crate::freecam::captured_pose();
                                                 if !pose.is_empty() {
                                                     ui.text_colored(GOOD, pose);
@@ -1641,7 +1665,7 @@ impl HeavenOverlay {
                                         }
                                         #[cfg(feature = "freecam")]
                                         Ctrl::Custom(Custom::KeyBinds) => {
-                                            draw_rd_keybinds(ui, cw);
+                                            crate::freecam::draw_keybinds_panel(ui, cw);
                                         }
                                         #[cfg(feature = "banner")]
                                         Ctrl::Custom(Custom::Intro) => {
@@ -1756,10 +1780,10 @@ impl HeavenOverlay {
                                             }
                                         }
                                         Ctrl::Custom(Custom::TtPadder) => {
-                                            draw_tt_padder(ui, cw);
+                                            crate::padder::draw_panel(ui, cw);
                                         }
                                         Ctrl::Custom(Custom::TtHunter) => {
-                                            draw_tt_hunter(ui, cw);
+                                            crate::hunter::draw_panel(ui, cw);
                                         }
                                         Ctrl::Custom(Custom::Followers) => {
                                             draw_followers(ui, cw);
@@ -1768,7 +1792,7 @@ impl HeavenOverlay {
                                             draw_room_finder(ui, cw);
                                         }
                                         Ctrl::Custom(Custom::Affinity) => {
-                                            draw_tt_affinity(ui, cw);
+                                            crate::affinity::draw_tt_panel(ui, cw);
                                         }
                                         #[allow(unreachable_patterns)]
                                         Ctrl::Custom(_) => {}
@@ -1808,7 +1832,7 @@ impl HeavenOverlay {
         // Re-sync the cached slider values from LIVE state every frame, so the classic menu
         // shows the PERSISTED settings (applied by apply_on_boot AFTER this overlay is built,
         // so the construction-time values are stale). Same fix the premium menu has.
-        let cur_fps = crate::fps::current();
+        let cur_fps = crate::performance::fps::current();
         self.fps_on = cur_fps != 0;
         if cur_fps > 0 {
             self.fps_val = cur_fps;
@@ -1827,7 +1851,7 @@ impl HeavenOverlay {
                 r[2].clamp(280.0, (dw - 28.0).max(280.0)),
                 r[3].clamp(0.0, (dh - 28.0).max(0.0)),
             ],
-            None => [400.0, 0.0],
+            None => [(400.0 * (dh / 1080.0).clamp(1.0, 3.0)).min(dw - 28.0), 0.0],
         };
         let win_pos = if self.relayout {
             [x, 14.0]
@@ -1853,6 +1877,12 @@ impl HeavenOverlay {
             .resizable(true)
             .build(|| {
                 // Header banner image removed (texture still loaded, just not drawn).
+                // UNIFORM zoom: one scale factor (base = default classic width) grows the text AND
+                // the widget spacing/padding together, so the whole menu zooms with the window.
+                let s = (ui.window_size()[0] / 400.0).clamp(0.85, 2.5);
+                ui.set_window_font_scale(s);
+                let _sp_is = ui.push_style_var(StyleVar::ItemSpacing([8.0 * s, 7.0 * s]));
+                let _sp_fp = ui.push_style_var(StyleVar::FramePadding([9.0 * s, 5.0 * s]));
                 #[cfg(feature = "banner")]
                 let _ = self_banner_tex;
 
@@ -1921,11 +1951,11 @@ impl HeavenOverlay {
                                         ui.text_colored(DIM, *t);
                                     }
                                     Ctrl::Custom(Custom::Fps) => {
-                                        let cur = crate::fps::current();
+                                        let cur = crate::performance::fps::current();
                                         let mut capped = cur > 0;
                                         if ui.checkbox("Cap FPS##capc", &mut capped) {
                                             *fps_on = capped;
-                                            crate::fps::set_cap(if capped { *fps_val } else { 0 });
+                                            crate::performance::fps::set_cap(if capped { *fps_val } else { 0 });
                                             crate::settings::save_current();
                                         }
                                         ui.same_line();
@@ -1942,7 +1972,7 @@ impl HeavenOverlay {
                                         let mut unlimited = cur < 0;
                                         if ui.checkbox("Unlimited##unlc", &mut unlimited) {
                                             *fps_on = false;
-                                            crate::fps::set_cap(if unlimited { -1 } else { 0 });
+                                            crate::performance::fps::set_cap(if unlimited { -1 } else { 0 });
                                             crate::settings::save_current();
                                         }
                                         ui.same_line();
@@ -1950,7 +1980,7 @@ impl HeavenOverlay {
                                         ui.set_next_item_width(-1.0);
                                         if ui.slider("##fpscapc", 1, 300, fps_val) {
                                             *fps_on = true;
-                                            crate::fps::set_cap(*fps_val);
+                                            crate::performance::fps::set_cap(*fps_val);
                                             crate::settings::save_current();
                                         }
                                     }
@@ -1973,7 +2003,7 @@ impl HeavenOverlay {
                                                     crate::freecam::cycle_target(1);
                                                 }
                                             }
-                                            draw_preset_manager(ui, 240.0);
+                                            crate::freecam::draw_preset_panel(ui, 240.0);
                                             let pose = crate::freecam::captured_pose();
                                             if !pose.is_empty() {
                                                 ui.text_colored(GOOD, pose);
@@ -1982,7 +2012,7 @@ impl HeavenOverlay {
                                     }
                                     #[cfg(feature = "freecam")]
                                     Ctrl::Custom(Custom::KeyBinds) => {
-                                        draw_rd_keybinds(ui, 240.0);
+                                        crate::freecam::draw_keybinds_panel(ui, 240.0);
                                     }
                                     #[cfg(feature = "banner")]
                                     Ctrl::Custom(Custom::Intro) => {
@@ -2057,11 +2087,11 @@ impl HeavenOverlay {
                                     }
                                     Ctrl::Custom(Custom::TtPadder) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
-                                        draw_tt_padder(ui, w);
+                                        crate::padder::draw_panel(ui, w);
                                     }
                                     Ctrl::Custom(Custom::TtHunter) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
-                                        draw_tt_hunter(ui, w);
+                                        crate::hunter::draw_panel(ui, w);
                                     }
                                     Ctrl::Custom(Custom::Followers) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
@@ -2073,7 +2103,7 @@ impl HeavenOverlay {
                                     }
                                     Ctrl::Custom(Custom::Affinity) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
-                                        draw_tt_affinity(ui, w);
+                                        crate::affinity::draw_tt_panel(ui, w);
                                     }
                                     #[allow(unreachable_patterns)]
                                     Ctrl::Custom(_) => {}
@@ -2095,7 +2125,7 @@ impl HeavenOverlay {
 
 /// Open a URL in the user's default browser without flashing a console window.
 /// `explorer.exe <url>` hands the URL to the default protocol handler.
-fn open_url(url: &str) {
+pub(crate) fn open_url(url: &str) {
     let _ = std::process::Command::new("explorer.exe").arg(url).spawn();
 }
 
@@ -2122,19 +2152,21 @@ fn nav_icon_idx(name: &str) -> Option<usize> {
 fn cat_icon(name: &str) -> &'static str {
     match name {
         "Gameplay" => "\u{E768}",    // Play
+        "Plugins" => "\u{E71D}",     // AllApps (companion plugins)
         "Team Trials" => "\u{E716}", // People (team)
         "Race Director" => "\u{E722}", // Camera (was "Camera")
         "Visuals" => "\u{E790}",     // Brightness/visuals
         "Performance" => "\u{E9D9}", // Speed
         "Interface" => "\u{E8A9}",   // ViewAll
         "About" => "\u{E946}",       // Info
-        "Dev Lab" => "\u{EC7A}",     // DeveloperTools
         _ => "\u{E700}",             // GlobalNav
     }
 }
 
 /// First-launch hint pill (top-center): "Press <key> to open Heaven". Shown only until the
 /// user opens the menu once, so a closed menu with an unknown toggle key isn't a dead end.
+
+
 fn draw_first_launch_hint(ui: &Ui) {
     let key = MENU_KEYS[menu_key_idx()].0;
     let label = format!("Press  {key}  to open Heaven");
@@ -2160,148 +2192,6 @@ fn draw_first_launch_hint(ui: &Ui) {
 /// Big on-screen alert when the opponent hunter finds the target. Drawn over everything (no menu
 /// needed), centered near the top, with a pulsing green glow. Fades in, holds, fades out after a
 /// few seconds. Self-gates on `hunter::found_vid()`; a new hunt or finding a new target re-triggers.
-/// The self-update prompt — drawn independently of the menu whenever the updater has a pending
-/// update. Combined changelog + Download / Not now. The "don't ask again" tick only takes effect
-/// on Not now (silences just that version; a newer release re-opens the prompt).
-fn draw_update_dialog(ui: &Ui) {
-    let Some(p) = crate::selfupdate::pending() else {
-        return;
-    };
-    use std::sync::atomic::{AtomicBool, Ordering};
-    static REMEMBER: AtomicBool = AtomicBool::new(false);
-
-    // Muted, opaque, easy-on-the-eyes palette (darker + more solid than the menu; no bright white).
-    const DLG_BG: [f32; 4] = [0.071, 0.047, 0.133, 0.99]; // solid dark purple, near-opaque
-    const DLG_CHILD: [f32; 4] = [0.047, 0.031, 0.094, 1.0]; // changelog block, a touch darker
-    const DLG_BORDER: [f32; 4] = [0.45, 0.36, 0.62, 0.26];
-    const DLG_TITLE: [f32; 4] = [0.702, 0.604, 0.847, 1.0]; // soft lavender (not the bright accent)
-    const DLG_SUB: [f32; 4] = [0.447, 0.408, 0.537, 1.0]; // muted grey-lavender
-    const DLG_BODY: [f32; 4] = [0.720, 0.685, 0.790, 1.0]; // changelog bullets — readable, still soft
-    const DLG_VER: [f32; 4] = [0.741, 0.616, 0.906, 1.0]; // version tag headers
-    const DLG_SECTION: [f32; 4] = [0.560, 0.510, 0.660, 1.0]; // section headers (New / Fixes)
-    const DLG_BTN: [f32; 4] = [0.16, 0.13, 0.24, 1.0];
-    const DLG_BTN_HI: [f32; 4] = [0.24, 0.19, 0.35, 1.0];
-    const DLG_BTN_ACT: [f32; 4] = [0.30, 0.24, 0.42, 1.0];
-
-    // Keep the style tokens alive for the whole window scope (tuple = dropped together at fn end).
-    let _sc = (
-        ui.push_style_color(StyleColor::WindowBg, DLG_BG),
-        ui.push_style_color(StyleColor::ChildBg, DLG_CHILD),
-        ui.push_style_color(StyleColor::Border, DLG_BORDER),
-        ui.push_style_color(StyleColor::Button, DLG_BTN),
-        ui.push_style_color(StyleColor::ButtonHovered, DLG_BTN_HI),
-        ui.push_style_color(StyleColor::ButtonActive, DLG_BTN_ACT),
-        ui.push_style_color(StyleColor::Text, DLG_BODY),
-        ui.push_style_color(StyleColor::CheckMark, DLG_TITLE),
-        ui.push_style_color(StyleColor::FrameBg, DLG_CHILD),
-        ui.push_style_color(StyleColor::FrameBgHovered, DLG_BTN),
-    );
-    let _sv = (
-        ui.push_style_var(StyleVar::WindowRounding(11.0)),
-        ui.push_style_var(StyleVar::ChildRounding(8.0)),
-        ui.push_style_var(StyleVar::FrameRounding(7.0)),
-        ui.push_style_var(StyleVar::WindowPadding([16.0, 14.0])),
-    );
-
-    let [dw, dh] = ui.io().display_size;
-    let (w, h) = (420.0_f32, 440.0_f32);
-    ui.window("##hv_update")
-        // FirstUseEver = centre the first time, then remember where the user drags/resizes it.
-        .position([(dw - w) * 0.5, (dh - h) * 0.5], Condition::FirstUseEver)
-        .size([w, h], Condition::FirstUseEver)
-        .size_constraints([340.0, 220.0], [1000.0, 1000.0]) // min / max while resizing
-        .title_bar(false) // title lives in the body (drag from the header / empty areas)
-        .collapsible(false)
-        .resizable(true)
-        .movable(true)
-        .build(|| {
-            let title = if p.same_version {
-                format!("Update for {}", p.target)
-            } else {
-                format!("{} available", p.target)
-            };
-            ui.text_colored(DLG_TITLE, title);
-            let sub = if p.same_version {
-                "What changed since your version".to_string()
-            } else if p.count > 1 {
-                format!("{} new versions", p.count)
-            } else {
-                "New version".to_string()
-            };
-            ui.text_colored(DLG_SUB, sub);
-            ui.dummy([0.0, 6.0]);
-
-            // Negative height = fill down to ~92px from the bottom (leaving room for the footer), so
-            // the changelog grows/shrinks when the user resizes the window.
-            ui.child_window("##hv_changelog").size([0.0, -92.0]).build(|| {
-                // Colour by line type so a long combined changelog stays scannable: version tags
-                // (lavender + spacing), section headers (New / Fixes), bullets (readable body).
-                for line in p.changelog.lines() {
-                    let t = line.trim_start();
-                    if t.is_empty() {
-                        continue;
-                    }
-                    let is_tag =
-                        t.starts_with('v') && t.as_bytes().get(1).is_some_and(|b| b.is_ascii_digit());
-                    if is_tag {
-                        ui.dummy([0.0, 5.0]);
-                        let _c = ui.push_style_color(StyleColor::Text, DLG_VER);
-                        ui.text(t);
-                    } else if let Some(bullet) = t.strip_prefix('-') {
-                        let _c = ui.push_style_color(StyleColor::Text, DLG_BODY);
-                        ui.text_wrapped(format!("   -{bullet}"));
-                    } else {
-                        let _c = ui.push_style_color(StyleColor::Text, DLG_SECTION);
-                        ui.text(t);
-                    }
-                }
-            });
-            ui.dummy([0.0, 8.0]);
-
-            let staged = crate::selfupdate::staged();
-            let busy = crate::selfupdate::is_busy();
-
-            if staged {
-                // Download done; the game auto-restarts shortly. Offer an immediate restart too.
-                if ui.button("Restart now") {
-                    crate::selfupdate::restart_game();
-                }
-            } else {
-                let mut rem = REMEMBER.load(Ordering::Relaxed);
-                if ui.checkbox("Don't ask again for this version", &mut rem) {
-                    REMEMBER.store(rem, Ordering::Relaxed);
-                }
-                ui.dummy([0.0, 4.0]);
-                if busy {
-                    ui.text_colored(DLG_SUB, "Working...");
-                } else {
-                    if ui.button("Download") {
-                        crate::selfupdate::download();
-                    }
-                    ui.same_line();
-                    if ui.button("Not now") {
-                        if REMEMBER.load(Ordering::Relaxed) {
-                            crate::selfupdate::skip();
-                        } else {
-                            crate::selfupdate::dismiss();
-                        }
-                        REMEMBER.store(false, Ordering::Relaxed);
-                    }
-                    ui.same_line();
-                    if ui.button("View on GitHub") {
-                        open_url(crate::update::RELEASES_URL);
-                    }
-                }
-            }
-
-            let st = crate::selfupdate::status();
-            if !st.is_empty() {
-                ui.dummy([0.0, 4.0]);
-                ui.text_colored(DLG_SUB, st);
-            }
-        });
-}
-
 fn draw_hunter_alert(ui: &Ui) {
     let vid = crate::hunter::found_vid();
     if vid == 0 {
@@ -2378,79 +2268,6 @@ fn draw_hunter_alert(ui: &Ui) {
     }
 }
 
-/// Draw the exact succession-affinity numbers on the Legacy Select screen as three user-placed
-/// badges (Total / Parent 1 / Parent 2), each its own borderless imgui window so it can be dragged
-/// (edit mode) and font-scaled. Positions persist as screen fractions (resolution independent).
-fn draw_affinity(ui: &Ui) {
-    if !crate::affinity::is_enabled() || !crate::affinity::active() {
-        return;
-    }
-    let edit = crate::affinity::edit_mode();
-    let (total, ind1, ind2) = crate::affinity::values().unwrap_or((-1, -1, -1));
-    let [dw, dh] = ui.io().display_size;
-    if dw < 1.0 || dh < 1.0 {
-        return;
-    }
-    let scale = crate::affinity::size();
-    let raw = [total, ind1, ind2];
-    // dashboard-style pill: dark fill + thick rounded accent border + white Orbitron number.
-    let accents = [
-        [1.00, 0.60, 0.13, 1.0], // total — orange/gold
-        [0.36, 0.90, 0.52, 1.0], // parent 1 — green
-        [0.40, 0.68, 1.00, 1.0], // parent 2 — blue
-    ];
-    let vfont = VALUE_FONT.with(|c| c.get());
-
-    for i in 0..3usize {
-        let v = raw[i];
-        if v < 0 && !edit {
-            continue; // parent unset → nothing to show (still placeable in edit mode)
-        }
-        let (fx, fy) = crate::affinity::pos(i);
-        let pos = [fx * dw, fy * dh];
-        let s = if v < 0 { "\u{2014}".to_string() } else { v.to_string() };
-        let cond = if edit { imgui::Condition::FirstUseEver } else { imgui::Condition::Always };
-        let accent = accents[i];
-
-        let _r = ui.push_style_var(StyleVar::WindowRounding(40.0));
-        let _bs = ui.push_style_var(StyleVar::WindowBorderSize(2.6 * scale.max(0.8)));
-        let _pd = ui.push_style_var(StyleVar::WindowPadding([15.0 * scale, 5.0 * scale]));
-        let _cb = ui.push_style_color(StyleColor::Border, accent);
-        let _cw = ui.push_style_color(StyleColor::WindowBg, [0.06, 0.05, 0.045, 0.96]);
-
-        let mut w = ui
-            .window(format!("##aff{i}"))
-            .no_decoration()
-            .always_auto_resize(true)
-            .save_settings(false)
-            .focus_on_appearing(false)
-            .position(pos, cond)
-            .movable(edit);
-        if !edit {
-            w = w.no_inputs();
-        }
-        w.build(|| {
-            let _f = vfont.map(|f| ui.push_font(f));
-            ui.set_window_font_scale(scale);
-            ui.text_colored([1.0, 1.0, 1.0, 1.0], &s);
-            if edit {
-                let wp = ui.window_pos();
-                crate::affinity::set_pos(i, (wp[0] / dw).clamp(0.0, 1.0), (wp[1] / dh).clamp(0.0, 1.0));
-            }
-        });
-    }
-
-    if edit {
-        let dl = ui.get_background_draw_list();
-        let msg = "Affinity: drag each number into place \u{2014} turn off Edit in the menu to save";
-        let tw = ui.calc_text_size(msg)[0];
-        dl.add_rect([dw * 0.5 - tw * 0.5 - 12.0, 8.0], [dw * 0.5 + tw * 0.5 + 12.0, 32.0], [0.0, 0.0, 0.0, 0.72])
-            .filled(true)
-            .rounding(6.0)
-            .build();
-        dl.add_text([dw * 0.5 - tw * 0.5, 12.0], [1.0, 0.95, 0.7, 1.0], msg);
-    }
-}
 
 thread_local! {
     // Per-section measured content height (keyed by section id), so a card can draw its
@@ -2647,94 +2464,9 @@ fn pink_slider_f32(ui: &Ui, id: &str, min: f32, max: f32, val: &mut f32, w: f32)
 }
 
 /// Rounded button with an accent border + hover, auto-sized to its label. Returns clicked.
-/// Human-readable name for a Win32 VK code (for the key-bind UI).
-#[cfg(feature = "freecam")]
-fn vk_name(vk: i32) -> String {
-    match vk {
-        0 => "—".into(),
-        0x08 => "Backspace".into(),
-        0x09 => "Tab".into(),
-        0x0D => "Enter".into(),
-        0x1B => "Esc".into(),
-        0x20 => "Space".into(),
-        0x21 => "PgUp".into(),
-        0x22 => "PgDn".into(),
-        0x23 => "End".into(),
-        0x24 => "Home".into(),
-        0x25 => "Left".into(),
-        0x26 => "Up".into(),
-        0x27 => "Right".into(),
-        0x28 => "Down".into(),
-        0x2D => "Insert".into(),
-        0x2E => "Delete".into(),
-        0x30..=0x39 => ((b'0' + (vk - 0x30) as u8) as char).to_string(),
-        0x41..=0x5A => ((b'A' + (vk - 0x41) as u8) as char).to_string(),
-        0x60..=0x69 => format!("Num{}", vk - 0x60),
-        0x70..=0x7B => format!("F{}", vk - 0x70 + 1),
-        0xBA => ";".into(),
-        0xBB => "=".into(),
-        0xBC => ",".into(),
-        0xBD => "-".into(),
-        0xBE => ".".into(),
-        0xBF => "/".into(),
-        0xC0 => "`".into(),
-        0xDB => "[".into(),
-        0xDC => "\\".into(),
-        0xDD => "]".into(),
-        0xDE => "'".into(),
-        _ => format!("0x{vk:02X}"),
-    }
-}
 
-/// Race Director key-bind editor: one row per action with its current key; click a key then press
-/// the new one (Esc cancels). 1-9 = gate numbers, fixed. Used in both the premium + classic menus.
-#[cfg(feature = "freecam")]
-fn draw_rd_keybinds(ui: &Ui, w: f32) {
-    ui.dummy([0.0, 6.0]);
-    ui.text_colored(GOLD, "Key bindings");
-    ui.text_colored(DIM, "click a key, then press the new one (Esc cancels)");
-    ui.dummy([0.0, 2.0]);
-    let cap = crate::freecam::rd_capturing();
-    // Conflict detection: a VK bound to more than one action is flagged red.
-    let vks: Vec<i32> = (0..11).map(crate::settings::rd_key).collect();
-    let conflict = |i: usize| vks[i] != 0 && vks.iter().filter(|&&v| v == vks[i]).count() > 1;
-    const BINDS: &[(usize, &str)] = &[
-        (0, "Orbit left"),
-        (1, "Orbit right"),
-        (2, "Zoom in"),
-        (3, "Zoom out"),
-        (4, "Raise height"),
-        (5, "Lower height"),
-        (6, "Previous Uma"),
-        (7, "Next Uma"),
-        (8, "Cycle preset"),
-        (9, "Save preset"),
-    ];
-    for &(idx, label) in BINDS {
-        let row_y = ui.cursor_screen_pos()[1];
-        ui.set_cursor_screen_pos([ui.cursor_screen_pos()[0], row_y + 8.0]); // align label to button mid
-        let dup = conflict(idx);
-        ui.text_colored(if dup { BAD } else { [0.86, 0.86, 0.91, 1.0] }, label);
-        if dup {
-            ui.same_line();
-            ui.text_colored(BAD, "(dup)");
-        }
-        ui.same_line_with_pos((w - 92.0).max(108.0));
-        ui.set_cursor_screen_pos([ui.cursor_screen_pos()[0], row_y]);
-        let keytxt = if cap == idx as i32 {
-            "press a key…".to_string()
-        } else {
-            vk_name(crate::settings::rd_key(idx))
-        };
-        if btn(ui, &format!("##rdk{idx}"), &keytxt) {
-            // toggle: clicking the armed one again cancels
-            crate::freecam::rd_capture_start(if cap == idx as i32 { -1 } else { idx as i32 });
-        }
-        ui.dummy([0.0, 3.0]);
-    }
-}
 
-fn btn(ui: &Ui, id: &str, label: &str) -> bool {
+pub(crate) fn btn(ui: &Ui, id: &str, label: &str) -> bool {
     let (pad, h) = (15.0, 32.0);
     let ts = ui.calc_text_size(label);
     let w = ts[0] + pad * 2.0;
@@ -2755,7 +2487,7 @@ fn btn(ui: &Ui, id: &str, label: &str) -> bool {
 }
 
 /// Primary (filled pink) button, auto-sized. For the Ko-fi support button.
-fn btn_primary(ui: &Ui, id: &str, label: &str) -> bool {
+pub(crate) fn btn_primary(ui: &Ui, id: &str, label: &str) -> bool {
     let (pad, h) = (16.0, 34.0);
     let ts = ui.calc_text_size(label);
     let w = ts[0] + pad * 2.0;
@@ -2784,8 +2516,7 @@ fn pink_slider_i32(ui: &Ui, id: &str, min: i32, max: i32, val: &mut i32, w: f32)
 // ── Heaven-styled panel helpers (match the menu: glass, gradient bars, Orbitron) ──
 
 /// Push the glass-window style used by the info panels. Tokens must outlive the window.
-#[cfg(any(feature = "panels", feature = "freecam"))]
-fn panel_style(ui: &Ui) -> impl Sized + '_ {
+pub(crate) fn panel_style(ui: &Ui) -> impl Sized + '_ {
     (
         ui.push_style_color(StyleColor::WindowBg, [0.082, 0.047, 0.157, 0.97]),
         ui.push_style_color(StyleColor::Border, CARD_BORDER),
@@ -2796,8 +2527,7 @@ fn panel_style(ui: &Ui) -> impl Sized + '_ {
 }
 
 /// A section title in the Cinzel face (accent colour).
-#[cfg(any(feature = "panels", feature = "freecam"))]
-fn panel_title(ui: &Ui, text: &str) {
+pub(crate) fn panel_title(ui: &Ui, text: &str) {
     if let Some(tf) = TITLE_FONT.with(|c| c.get()) {
         let _t = ui.push_font(tf);
         ui.text_colored(ACCENT, text);
@@ -2807,8 +2537,7 @@ fn panel_title(ui: &Ui, text: &str) {
 }
 
 /// A rounded "pill" bar (track + filled portion), optionally with centred overlay text.
-#[cfg(any(feature = "panels", feature = "freecam"))]
-fn pbar(ui: &Ui, frac: f32, w: f32, h: f32, col: [f32; 4], overlay: &str) {
+pub(crate) fn pbar(ui: &Ui, frac: f32, w: f32, h: f32, col: [f32; 4], overlay: &str) {
     let p = ui.cursor_screen_pos();
     {
         let dl = ui.get_window_draw_list();
@@ -2830,117 +2559,10 @@ fn pbar(ui: &Ui, frac: f32, w: f32, h: f32, col: [f32; 4], overlay: &str) {
 
 
 
-/// Per-circuit camera preset manager — a custom animated dropdown (hover-lit rows, eased open,
-/// gold caret) listing this circuit's presets, with rename of the selected one + Default / Delete
-/// / Add. Keys: O cycles presets live, P saves the current pose into the active one. Width `w`.
-#[cfg(feature = "freecam")]
-fn draw_preset_manager(ui: &Ui, w: f32) {
-    use std::cell::{Cell, RefCell};
-    thread_local! {
-        static OPEN: Cell<bool> = const { Cell::new(false) };
-        static RBUF: RefCell<String> = const { RefCell::new(String::new()) };
-        static RIDX: Cell<usize> = const { Cell::new(usize::MAX) };
-    }
-    let names = crate::freecam::preset_names();
-    let active = crate::freecam::preset_active().min(names.len().saturating_sub(1));
-    let def = crate::freecam::preset_default();
-    let track = crate::freecam::preset_track();
-
-    ui.text_colored(DIM, "Camera presets");
-    ui.same_line();
-    ui.text_colored(DIM, format!("\u{00b7}  O cycle  \u{00b7}  P save"));
-
-    // ── dropdown header (shows the active preset) ──
-    let cur = names.get(active).cloned().unwrap_or_else(|| "— no presets —".into());
-    let h = 30.0;
-    let p = ui.cursor_screen_pos();
-    let clicked = ui.invisible_button("##ddhdr", [w, h]);
-    let hov = ui.is_item_hovered();
-    let hh = anim_step("ddhdrh", if hov { 1.0 } else { 0.0 }, 16.0);
-    let open = OPEN.with(|o| o.get());
-    {
-        let dl = ui.get_window_draw_list();
-        dl.add_rect(p, [p[0] + w, p[1] + h], if hov { BTN_HI } else { BTN_BG }).filled(true).rounding(9.0).build();
-        dl.add_rect(p, [p[0] + w, p[1] + h], [0.60, 0.46, 0.90, 0.32 + 0.33 * hh]).rounding(9.0).thickness(1.2).build();
-        dl.add_text([p[0] + 12.0, p[1] + (h - 14.0) * 0.5], TEXT, &cur);
-        // gold caret (up when open, down when closed)
-        let (cx, cy) = (p[0] + w - 16.0, p[1] + h * 0.5);
-        if open {
-            dl.add_triangle([cx - 5.0, cy + 3.0], [cx + 5.0, cy + 3.0], [cx, cy - 4.0], GOLD).filled(true).build();
-        } else {
-            dl.add_triangle([cx - 5.0, cy - 3.0], [cx + 5.0, cy - 3.0], [cx, cy + 4.0], GOLD).filled(true).build();
-        }
-    }
-    if clicked {
-        OPEN.with(|o| o.set(!open));
-    }
-
-    // ── open list (rows with hover highlight) ──
-    if open && !names.is_empty() {
-        for (i, name) in names.iter().enumerate() {
-            let rh = 26.0;
-            let rp = ui.cursor_screen_pos();
-            let rc = ui.invisible_button(format!("##ddr{i}"), [w, rh]);
-            let rhov = ui.is_item_hovered();
-            let hl = anim_step(&format!("ddrh{i}"), if rhov { 1.0 } else { 0.0 }, 18.0);
-            {
-                let dl = ui.get_window_draw_list();
-                if hl > 0.01 {
-                    dl.add_rect(rp, [rp[0] + w, rp[1] + rh], [0.60, 0.46, 0.90, 0.20 * hl]).filled(true).rounding(7.0).build();
-                }
-                if i == active {
-                    dl.add_circle([rp[0] + 11.0, rp[1] + rh * 0.5], 3.0, GOLD).filled(true).build();
-                }
-                dl.add_text([rp[0] + 24.0, rp[1] + (rh - 14.0) * 0.5], if i == active { GOLD } else { TEXT }, name);
-                if i == def {
-                    let t = "default";
-                    let ts = ui.calc_text_size(t);
-                    dl.add_text([rp[0] + w - ts[0] - 12.0, rp[1] + (rh - 14.0) * 0.5], ACCENT, t);
-                }
-            }
-            if rc {
-                crate::freecam::preset_apply_idx(i);
-                OPEN.with(|o| o.set(false));
-            }
-        }
-    }
-
-    // ── selected-preset management (rename + default/delete) ──
-    if !names.is_empty() {
-        ui.dummy([0.0, 4.0]);
-        // keep the rename buffer synced to the active preset
-        if RIDX.with(|r| r.get()) != active {
-            RIDX.with(|r| r.set(active));
-            RBUF.with(|b| *b.borrow_mut() = names[active].clone());
-        }
-        RBUF.with(|b| {
-            let mut s = b.borrow_mut();
-            ui.set_next_item_width(w);
-            if ui.input_text("##presetname", &mut s).hint("preset name").build() {
-                crate::freecam::preset_rename(active, &s);
-            }
-        });
-        ui.dummy([0.0, 2.0]);
-        if def_btn(ui, "##setdef", "Default", active == def) {
-            crate::freecam::preset_set_default(active);
-        }
-        ui.same_line();
-        if btn(ui, "##delpreset", "Delete") {
-            crate::freecam::preset_delete(active);
-        }
-    }
-    if names.len() < 4 && track != 0 {
-        ui.dummy([0.0, 2.0]);
-        if btn(ui, "##addpreset", "+ Add current view") {
-            let n = format!("Preset {}", names.len() + 1);
-            crate::freecam::preset_add(&n);
-        }
-    }
-}
 
 /// Small square icon button (MDL2 glyph). `danger` tints it red on hover (for Delete). Shows `tip`
 /// as a tooltip. Returns clicked. Keeps the TT rows compact vs three text buttons.
-fn icon_btn(ui: &Ui, id: &str, glyph: &str, tip: &str, danger: bool) -> bool {
+pub(crate) fn icon_btn(ui: &Ui, id: &str, glyph: &str, tip: &str, danger: bool) -> bool {
     let sz = 30.0;
     let p = ui.cursor_screen_pos();
     let clicked = ui.invisible_button(id, [sz, sz]);
@@ -2974,7 +2596,7 @@ fn icon_btn(ui: &Ui, id: &str, glyph: &str, tip: &str, danger: bool) -> bool {
 }
 
 /// A dim "ⓘ" info glyph that reveals `tip` on hover — replaces walls of helper text.
-fn help_icon(ui: &Ui, tip: &str) {
+pub(crate) fn help_icon(ui: &Ui, tip: &str) {
     if let Some(f) = ICON_FONT.with(|c| c.get()) {
         let _t = ui.push_font(f);
         ui.text_colored(DIM, "\u{E946}"); // Info
@@ -2997,7 +2619,7 @@ fn text_wrapped_colored(ui: &Ui, col: [f32; 4], text: &str) {
 }
 
 /// A small colored status dot followed by short text (replaces full-sentence status lines).
-fn status_dot(ui: &Ui, color: [f32; 4], text: &str) {
+pub(crate) fn status_dot(ui: &Ui, color: [f32; 4], text: &str) {
     let p = ui.cursor_screen_pos();
     let h = ui.text_line_height_with_spacing();
     ui.get_window_draw_list()
@@ -3009,275 +2631,10 @@ fn status_dot(ui: &Ui, color: [f32; 4], text: &str) {
     ui.text_colored(color, text);
 }
 
-/// Team Trials deck profiles: list saved profiles with Apply / Rename / Delete, plus a
-/// "save current team" row. Apply asks for an inline confirm (user preference). Profiles pin
-/// each Uma by its stable trained_chara_id, so they survive inventory reordering (see padder.rs).
-fn draw_tt_padder(ui: &Ui, w: f32) {
-    use std::cell::{Cell, RefCell};
-    thread_local! {
-        static NEWBUF: RefCell<String> = RefCell::new(String::new());
-        static CONFIRM: Cell<i32> = Cell::new(-1);     // idx pending apply-confirm (-1 = none)
-        static RIDX: Cell<i32> = Cell::new(-1);        // idx being renamed (-1 = none)
-        static RBUF: RefCell<String> = RefCell::new(String::new());
-        static STATUS: RefCell<String> = RefCell::new(String::new());
-    }
-    let set_status = |m: String| STATUS.with(|s| *s.borrow_mut() = m);
 
-    let profiles = crate::padder::list();
 
-    ui.dummy([0.0, 4.0]);
-    if crate::padder::edit_screen_open() {
-        status_dot(ui, GOOD, "Edit screen ready");
-    } else {
-        status_dot(ui, WARN, "Open the team-edit screen");
-    }
-    ui.same_line();
-    help_icon(ui, "Save your team as a profile, then Apply to swap all 15 Umas in the in-game editor (then press the game's Confirm to save). Profiles pin each Uma by id, so they survive inventory changes.");
-    ui.dummy([0.0, 8.0]);
-
-    // ── existing profiles ──
-    for (i, (name, n)) in profiles.iter().enumerate() {
-        let idx = i as i32;
-        let renaming = RIDX.with(|r| r.get()) == idx;
-        // right-align a group of `count` icon buttons on this row
-        let align_icons = |ui: &Ui, count: f32| {
-            ui.same_line();
-            let cur = ui.cursor_pos();
-            let icons_w = count * 30.0 + (count - 1.0).max(0.0) * 6.0;
-            let tx = (w - icons_w - 2.0).max(cur[0] + 8.0);
-            ui.set_cursor_pos([tx, cur[1] - 2.0]);
-        };
-        if renaming {
-            RBUF.with(|b| {
-                let mut s = b.borrow_mut();
-                ui.set_next_item_width(w * 0.58);
-                let _ = ui.input_text(&format!("##rn{i}"), &mut s).hint("new name").build();
-            });
-            align_icons(ui, 2.0);
-            if icon_btn(ui, &format!("##rok{i}"), "\u{E73E}", "Save name", false) {
-                let newname = RBUF.with(|b| b.borrow().clone());
-                match crate::padder::rename(i, &newname) {
-                    Ok(_) => set_status(format!("Renamed to \"{}\".", newname.trim())),
-                    Err(e) => set_status(e),
-                }
-                RIDX.with(|r| r.set(-1));
-            }
-            ui.same_line();
-            if icon_btn(ui, &format!("##rcancel{i}"), "\u{E711}", "Cancel", false) {
-                RIDX.with(|r| r.set(-1));
-            }
-        } else if CONFIRM.with(|c| c.get()) == idx {
-            ui.text_colored(ACCENT, &format!("Apply \"{name}\"?"));
-            align_icons(ui, 2.0);
-            if icon_btn(ui, &format!("##yes{i}"), "\u{E73E}", "Confirm apply", false) {
-                if let Err(e) = crate::padder::apply(i) {
-                    set_status(e);
-                }
-                CONFIRM.with(|c| c.set(-1));
-            }
-            ui.same_line();
-            if icon_btn(ui, &format!("##no{i}"), "\u{E711}", "Cancel", false) {
-                CONFIRM.with(|c| c.set(-1));
-            }
-        } else {
-            ui.text_colored(TEXT, name);
-            ui.same_line();
-            ui.text_colored(DIM, &format!("({n})"));
-            align_icons(ui, 3.0);
-            if icon_btn(ui, &format!("##ap{i}"), "\u{E895}", "Apply (swap to this team)", false) {
-                CONFIRM.with(|c| c.set(idx));
-            }
-            ui.same_line();
-            if icon_btn(ui, &format!("##rnbtn{i}"), "\u{E70F}", "Rename", false) {
-                RIDX.with(|r| r.set(idx));
-                RBUF.with(|b| *b.borrow_mut() = name.clone());
-            }
-            ui.same_line();
-            if icon_btn(ui, &format!("##del{i}"), "\u{E74D}", "Delete", true) {
-                match crate::padder::delete(i) {
-                    Ok(_) => set_status(format!("Deleted \"{name}\".")),
-                    Err(e) => set_status(e),
-                }
-                CONFIRM.with(|c| c.set(-1));
-            }
-        }
-        ui.dummy([0.0, 5.0]);
-    }
-
-    // ── save current team as a new profile ──
-    if profiles.len() < crate::padder::MAX_PROFILES {
-        ui.dummy([0.0, 4.0]);
-        NEWBUF.with(|b| {
-            let mut s = b.borrow_mut();
-            ui.set_next_item_width(w * 0.62);
-            let _ = ui.input_text("##ttnew", &mut s).hint("profile name").build();
-        });
-        ui.same_line();
-        if btn_primary(ui, "##ttsave", "Save current") {
-            let name = NEWBUF.with(|b| b.borrow().clone());
-            match crate::padder::save_current(&name) {
-                Ok(saved) => {
-                    set_status(format!("Saved current team as \"{saved}\"."));
-                    NEWBUF.with(|b| b.borrow_mut().clear());
-                }
-                Err(e) => set_status(e),
-            }
-        }
-    } else {
-        ui.dummy([0.0, 4.0]);
-        ui.text_colored(DIM, &format!("Max {} profiles — delete one to add more.", crate::padder::MAX_PROFILES));
-    }
-
-    // ── status line ──
-    STATUS.with(|s| {
-        let st = s.borrow();
-        if !st.is_empty() {
-            ui.dummy([0.0, 6.0]);
-            ui.text_colored(GOOD, &*st);
-        }
-    });
-    // deferred-apply result (sent from the main-thread pump)
-    let ps = crate::padder::pump_status();
-    if !ps.is_empty() {
-        ui.dummy([0.0, 2.0]);
-        let col = if ps.starts_with("Apply failed") { WARN } else { GOOD };
-        ui.text_colored(col, &ps);
-    }
-}
-
-/// Legacy Select affinity numbers: enable, drag-to-place (edit mode), size. The value is the game's
-/// own CalcRelationPoint result, so it matches the in-game ◎/○/△ rank exactly.
-fn draw_tt_affinity(ui: &Ui, w: f32) {
-    ui.dummy([0.0, 4.0]);
-    if crate::affinity::active() {
-        status_dot(ui, GOOD, "Legacy Select open");
-    } else {
-        status_dot(ui, WARN, "Open Legacy Select");
-    }
-    ui.same_line();
-    help_icon(
-        ui,
-        "Shows the exact succession affinity on the Legacy Select screen: the pair Total plus each parent's chain (parent + its 2 grandparents, with win-saddle bonus). Turn on Edit and drag each number where you want it — positions and size are saved.",
-    );
-    ui.dummy([0.0, 8.0]);
-
-    let mut en = crate::affinity::is_enabled();
-    if ui.checkbox("Show affinity numbers", &mut en) {
-        crate::affinity::set_enabled(en);
-    }
-    let mut ed = crate::affinity::edit_mode();
-    if ui.checkbox("Edit \u{2014} drag numbers to place them", &mut ed) {
-        crate::affinity::set_edit_mode(ed);
-    }
-    if ed {
-        ui.text_colored(DIM, "Drag each number on screen. Uncheck Edit to save.");
-    }
-    let mut sz = crate::affinity::size();
-    ui.set_next_item_width(w * 0.8);
-    if ui.slider("Size", 0.8, 4.0, &mut sz) {
-        crate::affinity::set_size(sz);
-    }
-
-    if let Some((t, a, b)) = crate::affinity::values() {
-        ui.dummy([0.0, 6.0]);
-        ui.text_colored(DIM, "Current:");
-        ui.same_line();
-        ui.text_colored([1.0, 0.92, 0.55, 1.0], &format!("Total {t}"));
-        ui.same_line();
-        let p1 = if a < 0 { "\u{2014}".to_string() } else { a.to_string() };
-        let p2 = if b < 0 { "\u{2014}".to_string() } else { b.to_string() };
-        ui.text_colored([0.78, 1.0, 0.86, 1.0], &format!("\u{00b7} P1 {p1}"));
-        ui.same_line();
-        ui.text_colored([0.72, 0.90, 1.0, 1.0], &format!("\u{00b7} P2 {p2}"));
-    }
-}
-
-/// Team Trials opponent hunter: name/viewer-id of a target, Start/Stop, live roll counter + last 3.
-/// Drives the game's own Reload (SendApi) until the target shows up, then stops + beeps.
-fn draw_tt_hunter(ui: &Ui, w: f32) {
-    use std::cell::{Cell, RefCell};
-    thread_local! {
-        static NAMEBUF: RefCell<String> = RefCell::new(String::new());
-        static VIDBUF: RefCell<String> = RefCell::new(String::new());
-        static ERR: RefCell<String> = RefCell::new(String::new());
-        static LOADED: Cell<bool> = const { Cell::new(false) };
-    }
-    // Pre-fill the fields from the persisted target on the first draw (survives restarts).
-    if !LOADED.with(|l| l.get()) {
-        LOADED.with(|l| l.set(true));
-        let (sn, sv) = crate::hunter::saved_target();
-        NAMEBUF.with(|b| *b.borrow_mut() = sn);
-        VIDBUF.with(|b| *b.borrow_mut() = sv);
-    }
-    ui.dummy([0.0, 4.0]);
-    if crate::hunter::screen_open() {
-        status_dot(ui, GOOD, "Select Opponent ready");
-    } else {
-        status_dot(ui, WARN, "Open Select Opponent");
-    }
-    ui.same_line();
-    help_icon(ui, "Auto-refreshes the opponent list until your target shows up, then stops and alerts. Match by trainer name and/or exact viewer ID. The pool is random, so a target may take many rolls (or not appear).");
-    ui.dummy([0.0, 8.0]);
-
-    let hunting = crate::hunter::is_hunting();
-    if !hunting {
-        ui.text_colored(DIM, "Target — name and/or viewer ID:");
-        let ch_n = NAMEBUF.with(|b| {
-            let mut s = b.borrow_mut();
-            ui.set_next_item_width(w * 0.9);
-            ui.input_text("##huntname", &mut s).hint("trainer name").build()
-        });
-        ui.dummy([0.0, 3.0]);
-        let ch_v = VIDBUF.with(|b| {
-            let mut s = b.borrow_mut();
-            ui.set_next_item_width(w * 0.9);
-            ui.input_text("##huntvid", &mut s).hint("viewer ID (exact, optional)").build()
-        });
-        // Persist on any edit so the target survives a game restart.
-        if ch_n || ch_v {
-            let n = NAMEBUF.with(|b| b.borrow().clone());
-            let v = VIDBUF.with(|b| b.borrow().clone());
-            crate::hunter::save_target(&n, &v);
-        }
-        ui.dummy([0.0, 6.0]);
-        if btn_primary(ui, "##huntstart", "Start hunt") {
-            let name = NAMEBUF.with(|b| b.borrow().clone());
-            let vid = VIDBUF.with(|b| b.borrow().clone());
-            match crate::hunter::start(&name, &vid) {
-                Ok(_) => ERR.with(|e| e.borrow_mut().clear()),
-                Err(e) => ERR.with(|x| *x.borrow_mut() = e),
-            }
-        }
-        ERR.with(|e| {
-            let s = e.borrow();
-            if !s.is_empty() {
-                ui.dummy([0.0, 4.0]);
-                ui.text_colored(WARN, &*s);
-            }
-        });
-    } else {
-        ui.text_colored(ACCENT, "Hunting…");
-        ui.same_line();
-        if btn(ui, "##huntstop", "Stop") {
-            crate::hunter::stop();
-        }
-    }
-
-    // status + last three
-    let st = crate::hunter::status();
-    if !st.is_empty() {
-        ui.dummy([0.0, 6.0]);
-        let col = if crate::hunter::found() { GOOD } else if st.starts_with("Not found") { WARN } else { TEXT };
-        ui.text_colored(col, &st);
-    }
-    let last = crate::hunter::last_three();
-    if !last.is_empty() {
-        ui.dummy([0.0, 4.0]);
-        for (vid, name) in last.iter() {
-            ui.text_colored(DIM, &format!("\u{00b7} {}  ({})", if name.is_empty() { "?" } else { name.as_str() }, vid));
-        }
-    }
-}
+// NOTE: the Team Trials opponent-hunter panel moved to `hunter::draw_panel` upstream (the
+// menu dispatches Custom::TtHunter there); overlay keeps only the pruner/room-finder panels.
 
 /// Follower pruner: live count vs the 1000 cap, target size, dry-run preview of the
 /// oldest-inactive followers that would be removed (with per-row pin/keep), Start/Stop.
@@ -3674,30 +3031,6 @@ fn draw_room_finder(ui: &Ui, w: f32) {
     }
 }
 
-/// A small button that reads as "selected" (gold border/fill) when `on`. Returns clicked.
-#[cfg(feature = "freecam")]
-fn def_btn(ui: &Ui, id: &str, label: &str, on: bool) -> bool {
-    let (pad, h) = (14.0, 30.0);
-    let ts = ui.calc_text_size(label);
-    let w = ts[0] + pad * 2.0 + if on { 16.0 } else { 0.0 };
-    let p = ui.cursor_screen_pos();
-    let clicked = ui.invisible_button(id, [w, h]);
-    let hov = ui.is_item_hovered();
-    let dl = ui.get_window_draw_list();
-    let bg = if on { [0.30, 0.24, 0.12, 1.0] } else if hov { BTN_HI } else { BTN_BG };
-    dl.add_rect(p, [p[0] + w, p[1] + h], bg).filled(true).rounding(9.0).build();
-    dl.add_rect(p, [p[0] + w, p[1] + h], if on { GOLD } else { [0.60, 0.46, 0.90, if hov { 0.65 } else { 0.32 }] })
-        .rounding(9.0)
-        .thickness(if on { 1.6 } else { 1.2 })
-        .build();
-    let mut tx = p[0] + pad;
-    if on {
-        dl.add_circle([p[0] + pad + 4.0, p[1] + h * 0.5], 3.0, GOLD).filled(true).build();
-        tx += 16.0;
-    }
-    dl.add_text([tx, p[1] + (h - ts[1]) * 0.5], if on { GOLD } else { TEXT }, label);
-    clicked
-}
 
 /// Race grade → (label, badge colour). None for grades we don't badge (Maiden/Debut/etc.).
 #[cfg(feature = "freecam")]
@@ -3853,7 +3186,7 @@ fn draw_follow_marker(ui: &Ui) {
 /// finish. Two horses head-to-head: name, stamina, speed, the gap + who's closing.
 #[cfg(feature = "freecam")]
 fn draw_battle_callout(ui: &Ui) {
-    let tv = match crate::freecam::telemetry() {
+    let tv = match crate::race_director::telemetry() {
         Some(t) => t,
         None => return,
     };
@@ -3870,7 +3203,8 @@ fn draw_battle_callout(ui: &Ui) {
     let tele = crate::settings::tele_scale();
     let base_w = 410.0; // content width at scale 1.0
     let [dw, dh] = ui.io().display_size;
-    let w0 = base_w * tele;
+    let d = dpi(ui); // high-DPI/4K baseline so it isn't tiny by default
+    let w0 = base_w * tele * d;
     // Default = centred lower-third; movable + RESIZABLE (drag the corner to scale), remembered.
     let (cx, cy) = (((dw - w0) * 0.5).max(0.0), (dh - 168.0 * tele).max(0.0));
     let saved = crate::settings::win_rect("battle");
@@ -3878,7 +3212,7 @@ fn draw_battle_callout(ui: &Ui) {
     let (sw, sh) = saved
         .filter(|r| r[2] > 60.0 && r[3] > 40.0)
         .map(|r| (r[2], r[3]))
-        .unwrap_or((w0, 130.0 * tele));
+        .unwrap_or((w0, 130.0 * tele * d));
     let sta = |hp: f32, max: f32| if max > 0.0 { (hp / max).clamp(0.0, 1.0) } else { 0.0 };
     let bc = |r: f32| if r > 0.5 { GOOD } else if r > 0.25 { WARN } else { BAD };
     let fr = sta(f.hp, f.max_hp);
@@ -3942,11 +3276,11 @@ thread_local! {
 /// ticks. Data from `freecam::field_rows()` (all pure HorseRaceInfo reads). Read-only.
 #[cfg(feature = "freecam")]
 fn draw_timing_tower(ui: &Ui, x: f32, y: f32) {
-    let rows = crate::freecam::field_rows();
+    let rows = crate::race_director::field_rows();
     if rows.is_empty() {
         return;
     }
-    let epoch = crate::freecam::race_epoch();
+    let epoch = crate::race_director::race_epoch();
     if TOWER_EPOCH.with(|c| {
         let prev = c.get();
         c.set(epoch);
@@ -3963,7 +3297,7 @@ fn draw_timing_tower(ui: &Ui, x: f32, y: f32) {
     let (sw, sh) = saved
         .filter(|r| r[2] > 60.0 && r[3] > 40.0)
         .map(|r| (r[2], r[3]))
-        .unwrap_or((base_w * tele, base_h * tele));
+        .unwrap_or((base_w * tele * dpi(ui), base_h * tele * dpi(ui)));
     let _style = panel_style(ui);
     ui.window("Heaven \u{00b7} Timing Tower")
         .position([px, py], Condition::FirstUseEver)
@@ -4155,7 +3489,7 @@ fn draw_timing_tower(ui: &Ui, x: f32, y: f32) {
 /// no image assets). Data comes from `freecam::telemetry()` (live HorseRaceInfo reads).
 #[cfg(feature = "freecam")]
 fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
-    let tv = match crate::freecam::telemetry() {
+    let tv = match crate::race_director::telemetry() {
         Some(t) => t,
         None => return,
     };
@@ -4178,7 +3512,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
     let (sw, sh) = saved
         .filter(|r| r[2] > 60.0 && r[3] > 40.0)
         .map(|r| (r[2], r[3]))
-        .unwrap_or((base_w * tele, 440.0 * tele));
+        .unwrap_or((base_w * tele * dpi(ui), 440.0 * tele * dpi(ui)));
     let _style = panel_style(ui);
     ui.window("Heaven \u{00b7} Freecam Telemetry")
         .position([px, py], Condition::FirstUseEver)
@@ -4239,7 +3573,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
             if f.spurt {
                 // Single spurt badge, coloured by the sustainability outlook.
                 ui.same_line();
-                let so = crate::freecam::spurt_outlook();
+                let so = crate::race_director::spurt_outlook();
                 if so & 12 != 0 {
                     val(ui, BAD, "SPURT \u{00b7} WON'T LAST");
                 } else if so & 3 != 0 {
@@ -4275,7 +3609,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
                 val(ui, WARN, lbl);
             }
             // Live AI states: kakari (burning stamina), down-slope accel (free speed), position-keep.
-            let fs = crate::freecam::follow_state();
+            let fs = crate::race_director::follow_state();
             if fs.kakari {
                 ui.same_line();
                 val(ui, WARN, "KAKARI");
@@ -4303,12 +3637,12 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
             // ── pace trace (rolling speed sparkline) + final-3-furlong (上がり3F) marker ──
             if crate::settings::tele_pace() {
                 ui.dummy([0.0, 2.0]);
-                let trace = crate::freecam::speed_trace();
+                let trace = crate::race_director::speed_trace();
                 ui.text_colored(DIM, "Pace");
                 ui.same_line_with_pos(c_bar);
                 let sp = ui.cursor_screen_pos();
                 let sh = 20.0 * scale;
-                spark(ui, &trace, crate::freecam::PACE_BUCKETS, bar_w, sh, PINK);
+                spark(ui, &trace, crate::race_director::PACE_BUCKETS, bar_w, sh, PINK);
                 // Hover the pace graph → max / average / min speed for the race so far.
                 if trace.len() >= 2 && ui.is_mouse_hovering_rect(sp, [sp[0] + bar_w, sp[1] + sh]) {
                     let mn = trace.iter().cloned().fold(f32::MAX, f32::min);
@@ -4362,9 +3696,9 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
 
             // ── currently-active skill effects (live countdown bar + category colour) ──
             if show_skills {
-                let active = crate::freecam::active_skills();
+                let active = crate::race_director::active_skills();
                 if !active.is_empty() {
-                    let names = crate::freecam::skill_feed();
+                    let names = crate::race_director::skill_feed();
                     ui.dummy([0.0, 5.0]);
                     ui.text_colored(GOLD, "ACTIVE NOW");
                     for a in &active {
@@ -4384,7 +3718,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
             }
 
             // ── skill activation feed (selected Uma only) — BOUNDED so it can't grow off-screen ──
-            let feed = crate::freecam::skill_feed();
+            let feed = crate::race_director::skill_feed();
             if show_skills && !feed.is_empty() {
                 ui.dummy([0.0, 5.0]);
                 ui.text_colored(GOLD, &format!("SKILLS ({})", feed.len()));
@@ -4392,7 +3726,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
                 const TELE_FEED_MAX: usize = 8;
                 let start = feed.len().saturating_sub(TELE_FEED_MAX);
                 for (id, name) in feed.iter().skip(start) {
-                    let eff = crate::freecam::skill_effect_of(*id); // "+0.35 m/s 3s" (empty if unknown)
+                    let eff = crate::race_director::skill_effect_of(*id); // "+0.35 m/s 3s" (empty if unknown)
                     ui.group(|| {
                         if let Some(tex) = skill_icon_tex(*id) {
                             imgui::Image::new(tex, [18.0 * scale, 18.0 * scale]).build(ui);
@@ -4424,7 +3758,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
             }
 
             // ── live win probability (top 5) — softmax over the field, swings with the race ──
-            let mut wr = if crate::settings::tele_winprob() { crate::freecam::field_rows() } else { Vec::new() };
+            let mut wr = if crate::settings::tele_winprob() { crate::race_director::field_rows() } else { Vec::new() };
             if wr.len() >= 2 {
                 wr.sort_by(|a, b| b.win.partial_cmp(&a.win).unwrap_or(std::cmp::Ordering::Equal));
                 ui.dummy([0.0, 6.0]);

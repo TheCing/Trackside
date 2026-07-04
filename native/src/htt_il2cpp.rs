@@ -177,6 +177,62 @@ pub unsafe fn init() -> bool {
         && CLASS_GET_METHOD_FROM_NAME.is_some()
 }
 
+/// Find the main game IL2CPP image (tries `umamusume`, `Assembly-CSharp`, `Gallop`).
+/// Shared by htt / race / umas / uma_bridge — returns null if none resolve.
+pub unsafe fn find_game_image() -> *mut RawImage {
+    for n in ["umamusume", "Assembly-CSharp", "Gallop"] {
+        let img = find_image_by_name(n);
+        if !img.is_null() {
+            return img;
+        }
+    }
+    std::ptr::null_mut()
+}
+
+/// The IL2CPP image whose assembly name matches `name` (case-insensitive, `.dll` trimmed).
+pub unsafe fn find_image_by_name(name: &str) -> *mut RawImage {
+    let dom = match DOMAIN_GET {
+        Some(f) => f(),
+        None => return std::ptr::null_mut(),
+    };
+    if dom.is_null() {
+        return std::ptr::null_mut();
+    }
+    let mut count = 0usize;
+    let asms = match DOMAIN_GET_ASSEMBLIES {
+        Some(f) => f(dom, &mut count),
+        None => return std::ptr::null_mut(),
+    };
+    if asms.is_null() {
+        return std::ptr::null_mut();
+    }
+    for i in 0..count {
+        let a = *asms.add(i);
+        if a.is_null() {
+            continue;
+        }
+        let img = match ASSEMBLY_GET_IMAGE {
+            Some(f) => f(a),
+            None => continue,
+        };
+        if img.is_null() {
+            continue;
+        }
+        let np = match IMAGE_GET_NAME {
+            Some(f) => f(img),
+            None => continue,
+        };
+        if np.is_null() {
+            continue;
+        }
+        let nm = CStr::from_ptr(np).to_string_lossy();
+        if nm.eq_ignore_ascii_case(name) || nm.trim_end_matches(".dll").eq_ignore_ascii_case(name) {
+            return img;
+        }
+    }
+    std::ptr::null_mut()
+}
+
 /// The compiled native function pointer of a MethodInfo = *(MethodInfo + 0).
 pub unsafe fn method_addr(method: *mut RawMethod) -> usize {
     if method.is_null() {
@@ -276,15 +332,6 @@ unsafe fn field_addr(v: &Val, name: &str) -> Option<*mut u8> {
 
 pub unsafe fn read_i32(v: &Val, name: &str) -> Option<i32> {
     Some(*(field_addr(v, name)? as *const i32))
-}
-pub unsafe fn read_i64(v: &Val, name: &str) -> Option<i64> {
-    Some(*(field_addr(v, name)? as *const i64))
-}
-pub unsafe fn read_f32(v: &Val, name: &str) -> Option<f32> {
-    Some(*(field_addr(v, name)? as *const f32))
-}
-pub unsafe fn read_bool(v: &Val, name: &str) -> Option<bool> {
-    Some(*(field_addr(v, name)? as *const bool))
 }
 
 /// Read a reference-typed field (array / string / nested object) as a `Val`.

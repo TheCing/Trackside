@@ -55,10 +55,8 @@ static VC: AtomicUsize = AtomicUsize::new(0);
 
 static ONEND_ORIG: AtomicUsize = AtomicUsize::new(0);
 static PLAYOUT_ORIG: AtomicUsize = AtomicUsize::new(0);
-static TWEEN_ORIG: AtomicUsize = AtomicUsize::new(0);
 static DETOUR: OnceLock<RawDetour> = OnceLock::new();
 static PLAYOUT_DETOUR: OnceLock<RawDetour> = OnceLock::new();
-static TWEEN_DETOUR: OnceLock<RawDetour> = OnceLock::new();
 
 /// Human-like delay before the next auto-roll: 1.8–4.8 s, with an occasional longer "rest" (~1/8 of
 /// the time, +3–7 s) so the cadence isn't a constant drum-beat. Uses a tiny xorshift seeded once.
@@ -80,11 +78,10 @@ fn next_delay_ms() -> u64 {
 }
 
 fn clock() -> &'static Instant {
-    static C: OnceLock<Instant> = OnceLock::new();
-    C.get_or_init(Instant::now)
+    crate::tools::clock()
 }
 fn now_ms() -> u64 {
-    clock().elapsed().as_millis() as u64
+    crate::tools::now_ms()
 }
 
 fn target_vid() -> &'static Mutex<Option<i64>> {
@@ -134,14 +131,7 @@ pub fn saved_target() -> (String, String) {
 }
 
 fn log(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "[hunter] {msg}");
-    }
+    crate::tools::log(&format!("[hunter] {msg}"));
 }
 
 // ── public API (menu) ─────────────────────────────────────────────────────────
@@ -406,7 +396,7 @@ fn alert(name: &str, vid: i64) {
 /// (2) flash the game's taskbar button continuously until it's focused. The toast carries its own
 /// notification sound.
 pub(crate) fn notify(title: &str, body: &str) {
-    let hwnd = crate::display::game_hwnd();
+    let hwnd = crate::performance::display::game_hwnd();
     if hwnd == 0 {
         return;
     }
@@ -456,56 +446,8 @@ pub(crate) fn notify(title: &str, body: &str) {
     }
 }
 
-// ── small IL2CPP helpers ──────────────────────────────────────────────────────
-
-#[inline]
-unsafe fn rd_ptr(base: *mut c_void, off: usize) -> *mut c_void {
-    if base.is_null() {
-        return std::ptr::null_mut();
-    }
-    *((base as usize + off) as *const *mut c_void)
-}
-#[inline]
-unsafe fn rd_i32(base: *mut c_void, off: usize) -> i32 {
-    if base.is_null() {
-        return 0;
-    }
-    *((base as usize + off) as *const i32)
-}
-
-/// Call a 0-arg instance getter returning an object pointer.
-unsafe fn call_getter_obj(this: *mut c_void, klass: &str, method: &str) -> *mut c_void {
-    if this.is_null() {
-        return std::ptr::null_mut();
-    }
-    let k = il2cpp::class(klass);
-    if k.is_null() {
-        return std::ptr::null_mut();
-    }
-    let m = il2cpp::method(k, method, 0);
-    let p = il2cpp::method_pointer(m);
-    if p.is_null() {
-        return std::ptr::null_mut();
-    }
-    let f: extern "C" fn(*mut c_void, *const c_void) -> *mut c_void = std::mem::transmute(p);
-    f(this, m as *const c_void)
-}
-
-/// WorkDataManager.Instance → get_TeamStadiumData(). Null if TT not loaded.
-unsafe fn team_stadium_data() -> *mut c_void {
-    let wdm_class = il2cpp::class("Gallop.WorkDataManager");
-    if wdm_class.is_null() {
-        return std::ptr::null_mut();
-    }
-    let gi = il2cpp::method(wdm_class, "get_Instance", 0);
-    let gip = il2cpp::method_pointer(gi);
-    if gip.is_null() {
-        return std::ptr::null_mut();
-    }
-    let f: extern "C" fn(*const c_void) -> *mut c_void = std::mem::transmute(gip);
-    let wdm = f(gi as *const c_void);
-    call_getter_obj(wdm, "Gallop.WorkDataManager", "get_TeamStadiumData")
-}
+// TT il2cpp field readers + WorkDataManager accessors are shared with padder — see tt_il2cpp.rs.
+use crate::tt_il2cpp::{call_obj_getter as call_getter_obj, rd_i32, rd_ptr, team_stadium_data};
 
 // ── install ───────────────────────────────────────────────────────────────────
 
@@ -521,35 +463,13 @@ unsafe extern "C" fn playout_hook(this: *mut c_void, view_id: i32, info: *mut c_
     }
 }
 
-// TweenManager.Update (static): a per-frame, main-thread tick. Drives the hunter's jittered roll AND
-// the padder's apply pump — this hook STACKS (no is_detoured skip) so it installs even when Hachimi
-// owns Update, making the padder pump robust without depending on ui_tempo winning that hook. Always
-// chains; read-only, no effect on tempo. (updateType, dt, idt, MethodInfo*).
-type UpdateFn = unsafe extern "C" fn(i32, f32, f32, *const c_void);
-unsafe extern "C" fn tween_hook(ut: i32, dt: f32, idt: f32, mi: *const c_void) {
-    crate::crashlog::step("hunter:tween:frame-pump");
-    frame_pump();
-    crate::crashlog::step("hunter:tween:padder-pump");
-    crate::padder::pump(); // robust backup driver for the padder apply (idempotent, guarded)
-    crate::crashlog::step("hunter:tween:reset-pump");
-    crate::reset::poll(); // main-thread execution point for a requested soft reset (guarded, no-op if idle)
-    crate::crashlog::step("hunter:tween:affinity-pump");
-    crate::affinity::poll(); // main-thread sample of "is a dialog open" for the affinity badge gate
-    crate::crashlog::step("hunter:tween:pruner-pump");
-    crate::pruner::pump(); // follower-pruner reads/removals must run on the main thread (guarded, no-op if idle)
-    crate::crashlog::step("hunter:tween:roomfinder-pump");
-    crate::roomfinder::pump(); // room-match finder read/refresh/join cycle (guarded, no-op if idle)
-    crate::crashlog::step("hunter:tween:orig");
-    let o = TWEEN_ORIG.load(Ordering::Relaxed);
-    if o != 0 {
-        let f: UpdateFn = std::mem::transmute(o);
-        f(ut, dt, idt, mi);
-    }
-    crate::crashlog::step("idle:after-tween");
-}
+// NOTE: hunter's per-frame pumps (frame_pump + padder/reset/affinity + pruner/roomfinder) are driven
+// from the SINGLE TweenManager.Update detour in `ui_tempo::update_hook`. hunter no longer installs its
+// own detour on that method — two detours on one 5-byte prologue corrupted each other's trampolines
+// (intermittent AV "after-tween"). `frame_pump()` is pub and called from ui_tempo each frame.
 
-/// Detour OnOpponentInEnd (the read/check loop point) + TweenManager.Update (the jitter timer tick).
-/// Run on an IL2CPP-attached thread (boot).
+/// Detour OnOpponentInEnd (the read/check loop point) + PlayOut (leave). The per-frame roll is pumped
+/// from ui_tempo's TweenManager.Update hook. Run on an IL2CPP-attached thread (boot).
 pub fn install() -> String {
     if !il2cpp::ready() {
         let _ = il2cpp::init();
@@ -595,29 +515,96 @@ pub fn install() -> String {
         } else {
             notes.push_str("playout:skip ");
         }
-        // 3) TweenManager.Update — STACK (don't skip if already detoured); always chains.
-        let tk = il2cpp::class("DG.Tweening.Core.TweenManager");
-        if !tk.is_null() {
-            let m = il2cpp::method(tk, "Update", 3);
-            let p = il2cpp::method_pointer(m);
-            if !p.is_null() {
-                if let Ok(d) = RawDetour::new(p as *const (), tween_hook as *const ()) {
-                    if d.enable().is_ok() {
-                        TWEEN_ORIG.store(d.trampoline() as *const () as usize, Ordering::Relaxed);
-                        let _ = TWEEN_DETOUR.set(d);
-                        notes.push_str("tick:ok");
-                    } else {
-                        notes.push_str("tick:enable-fail");
-                    }
-                } else {
-                    notes.push_str("tick:new-fail");
-                }
-            } else {
-                notes.push_str("tick:no-method");
-            }
-        } else {
-            notes.push_str("tick:no-class");
-        }
+        // 3) Per-frame roll pump: driven from ui_tempo's single TweenManager.Update detour (see NOTE
+        //    above) — hunter installs NO detour here anymore, avoiding the stacked-trampoline crash.
+        notes.push_str("tick:via-uitempo");
     }
     format!("opponent hunter: {}", notes.trim())
+}
+
+// ── UI panel (Team Trials → Opponent Hunter), rendered by the overlay ──────────
+pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
+    use crate::overlay::{btn, btn_primary, help_icon, status_dot, ACCENT, DIM, GOOD, TEXT, WARN};
+    use std::cell::{Cell, RefCell};
+    thread_local! {
+        static NAMEBUF: RefCell<String> = RefCell::new(String::new());
+        static VIDBUF: RefCell<String> = RefCell::new(String::new());
+        static ERR: RefCell<String> = RefCell::new(String::new());
+        static LOADED: Cell<bool> = const { Cell::new(false) };
+    }
+    // Pre-fill the fields from the persisted target on the first draw (survives restarts).
+    if !LOADED.with(|l| l.get()) {
+        LOADED.with(|l| l.set(true));
+        let (sn, sv) = crate::hunter::saved_target();
+        NAMEBUF.with(|b| *b.borrow_mut() = sn);
+        VIDBUF.with(|b| *b.borrow_mut() = sv);
+    }
+    ui.dummy([0.0, 4.0]);
+    if crate::hunter::screen_open() {
+        status_dot(ui, GOOD, "Select Opponent ready");
+    } else {
+        status_dot(ui, WARN, "Open Select Opponent");
+    }
+    ui.same_line();
+    help_icon(ui, "Auto-refreshes the opponent list until your target shows up, then stops and alerts. Match by trainer name and/or exact viewer ID. The pool is random, so a target may take many rolls (or not appear).");
+    ui.dummy([0.0, 8.0]);
+
+    let hunting = crate::hunter::is_hunting();
+    if !hunting {
+        ui.text_colored(DIM, "Target — name and/or viewer ID:");
+        let ch_n = NAMEBUF.with(|b| {
+            let mut s = b.borrow_mut();
+            ui.set_next_item_width(w * 0.9);
+            ui.input_text("##huntname", &mut s).hint("trainer name").build()
+        });
+        ui.dummy([0.0, 3.0]);
+        let ch_v = VIDBUF.with(|b| {
+            let mut s = b.borrow_mut();
+            ui.set_next_item_width(w * 0.9);
+            ui.input_text("##huntvid", &mut s).hint("viewer ID (exact, optional)").build()
+        });
+        // Persist on any edit so the target survives a game restart.
+        if ch_n || ch_v {
+            let n = NAMEBUF.with(|b| b.borrow().clone());
+            let v = VIDBUF.with(|b| b.borrow().clone());
+            crate::hunter::save_target(&n, &v);
+        }
+        ui.dummy([0.0, 6.0]);
+        if btn_primary(ui, "##huntstart", "Start hunt") {
+            let name = NAMEBUF.with(|b| b.borrow().clone());
+            let vid = VIDBUF.with(|b| b.borrow().clone());
+            match crate::hunter::start(&name, &vid) {
+                Ok(_) => ERR.with(|e| e.borrow_mut().clear()),
+                Err(e) => ERR.with(|x| *x.borrow_mut() = e),
+            }
+        }
+        ERR.with(|e| {
+            let s = e.borrow();
+            if !s.is_empty() {
+                ui.dummy([0.0, 4.0]);
+                ui.text_colored(WARN, &*s);
+            }
+        });
+    } else {
+        ui.text_colored(ACCENT, "Hunting…");
+        ui.same_line();
+        if btn(ui, "##huntstop", "Stop") {
+            crate::hunter::stop();
+        }
+    }
+
+    // status + last three
+    let st = crate::hunter::status();
+    if !st.is_empty() {
+        ui.dummy([0.0, 6.0]);
+        let col = if crate::hunter::found() { GOOD } else if st.starts_with("Not found") { WARN } else { TEXT };
+        ui.text_colored(col, &st);
+    }
+    let last = crate::hunter::last_three();
+    if !last.is_empty() {
+        ui.dummy([0.0, 4.0]);
+        for (vid, name) in last.iter() {
+            ui.text_colored(DIM, &format!("\u{00b7} {}  ({})", if name.is_empty() { "?" } else { name.as_str() }, vid));
+        }
+    }
 }

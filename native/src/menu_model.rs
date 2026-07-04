@@ -129,17 +129,6 @@ pub fn model() -> Vec<Tab> {
                 get: crate::ui_tempo::tempo, set: crate::ui_tempo::set_tempo, unit: "x",
             }],
         },
-        Section {
-            title: "Race export",
-            icon: '\u{E7C3}',
-            blurb: "Save each race to a JSON file, grouped by type, for the web viewer.",
-            controls: vec![
-                Ctrl::Toggle { id: "rex", label: "Export races", get: crate::settings::race_export, set: crate::settings::set_race_export },
-                Ctrl::Toggle { id: "vex", label: "Export veterans (Hakuraku)", get: crate::settings::umas_export, set: crate::settings::set_umas_export },
-                Ctrl::Note("Races -> heaven-races, veterans -> heaven_umas, next to the game."),
-                Ctrl::Note("Files land in heaven-races, next to the game."),
-            ],
-        },
     ];
     tabs.push(Tab { name: "Gameplay", icon: '\u{E768}', sections: gameplay });
 
@@ -310,6 +299,25 @@ pub fn model() -> Vec<Tab> {
         controls: vec![Ctrl::Custom(Custom::Intro)],
     });
     tabs.push(Tab { name: "Interface", icon: '\u{E8A9}', sections: interface });
+
+    // ── 5b) PLUGINS ──────────────────────────────────────────────────────────
+    // Native, in-process stand-ins for the companion plugins (horseACT / CarrotBlender),
+    // in their own tab (kept right above About) so all plugin-related tooling lives in one
+    // place. Both builds.
+    tabs.push(Tab {
+        name: "Plugins",
+        icon: '\u{E71D}',
+        sections: vec![Section {
+            title: "Companion plugins",
+            icon: '\u{E7C3}',
+            blurb: "Built-in stand-ins for horseACT and CarrotBlender — no external DLLs needed.",
+            controls: vec![
+                Ctrl::Toggle { id: "rex", label: "Export races (horseACT)", get: crate::settings::race_export, set: crate::settings::set_race_export },
+                Ctrl::Toggle { id: "vex", label: "Export veterans (Hakuraku)", get: crate::settings::umas_export, set: crate::settings::set_umas_export },
+                Ctrl::Toggle { id: "cbr", label: "Companion feed (CarrotBlender)", get: crate::friendlyplugins::bridge_enabled, set: crate::friendlyplugins::set_bridge_enabled },
+            ],
+        }],
+    });
 
     // ── 6) ABOUT ─────────────────────────────────────────────────────────────
     #[allow(unused_mut)]

@@ -19,7 +19,7 @@
 //!      the game itself is never corrupted by our draw.
 //!
 //! Local-only (Cygames IP): the packed frame file lives next to the DLL and is
-//! never bundled or committed. Private build only (`banner`).
+//! never bundled or committed (the `banner` intro assets).
 
 #![allow(dead_code)]
 
@@ -42,15 +42,7 @@ use windows::Win32::Graphics::Dxgi::Common::{
 use hudhook::imgui::sys;
 
 fn log(msg: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    if let Ok(mut f) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 // ── captured game device/context (only ever touched on the render thread) ───────

@@ -37,15 +37,7 @@ static TR_INIT: AtomicUsize = AtomicUsize::new(0);
 static D_INIT: OnceLock<RawDetour> = OnceLock::new();
 
 fn log(msg: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    if let Ok(mut f) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
 pub fn is_enabled() -> bool {

@@ -52,27 +52,13 @@ static QS_TEXLIMIT: AtomicUsize = AtomicUsize::new(0); // set_masterTextureLimit
 static QS_PIXELLIGHTS: AtomicUsize = AtomicUsize::new(0); // set_pixelLightCount(int)
 
 fn log(msg: &str) {
-    use std::fs::OpenOptions;
-    use std::io::Write;
-    if let Ok(mut f) = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(crate::paths::log_file("heaven-native.log"))
-    {
-        let _ = writeln!(f, "{msg}");
-    }
+    crate::tools::log(msg);
 }
 
-pub fn quality_unlocked() -> bool {
-    QUALITY_ON.load(Ordering::Relaxed)
-}
 pub fn set_quality_unlocked(on: bool) {
     QUALITY_ON.store(on, Ordering::Relaxed);
 }
 
-pub fn extras_enabled() -> bool {
-    EXTRAS_ON.load(Ordering::Relaxed)
-}
 pub fn set_extras_enabled(on: bool) {
     EXTRAS_ON.store(on, Ordering::Relaxed);
 }
