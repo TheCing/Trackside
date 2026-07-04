@@ -227,6 +227,7 @@ unsafe extern "C" fn on_home_in(this: *mut c_void, m: *mut c_void) -> *mut c_voi
         std::ptr::null_mut()
     };
     LAST_CAREER_MS.store(0, Ordering::Relaxed); // career heartbeat → stale immediately
+    crate::skip::event::CAREER_END.store(false, Ordering::Relaxed); // left the Goal Complete flow
     let was_open = WINDOW_OPEN.swap(false, Ordering::Relaxed);
     if was_open {
         clear_rr_caches();
@@ -331,6 +332,14 @@ pub(crate) fn install_race_result() -> Result<String, String> {
             note.push_str("home view miss (heartbeat-only gate); ");
         } else if install_one(home, "PlayInView", 0, on_home_in as *const (), &TR_HOME, &D_HOME).is_err() {
             note.push_str("home hook miss; ");
+        }
+        // "Goal Complete" event guard: while that screen is up, the event-skip stands down (its
+        // SkipStory on that story deadlocks the game). See skip::event::CAREER_END.
+        let ccc = il2cpp::class("Gallop.SingleModeConfirmCompleteViewController");
+        if ccc.is_null() {
+            note.push_str("goal-complete miss; ");
+        } else if install_one(ccc, "PlayInView", 0, crate::skip::event::on_confirm_complete_in as *const (), &crate::skip::event::TR_CONFIRM, &crate::skip::event::D_CONFIRM).is_err() {
+            note.push_str("goal-complete hook miss; ");
         }
         if dm.is_null() {
             note.push_str("dialog-mgr miss (no auto-close); ");

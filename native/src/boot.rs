@@ -128,6 +128,7 @@ pub fn spawn() {
             log("companion feed: external SDK plugin present -> native feed deferred");
         }
 
+
         let (tr_ok, ev_ok, snotes) = skip::install();
         log(&format!("superskip: training={tr_ok} events={ev_ok} [{}]", snotes.trim_end()));
         crate::diag::record_install("superskip", &format!("training={tr_ok} events={ev_ok} [{}]", snotes.trim_end()));
@@ -151,10 +152,11 @@ pub fn spawn() {
             Err(e) => { log(&format!("ui tempo: deferred ({e})")); crate::diag::record_install("ui tempo", &format!("deferred ({e})")); }
         }
         crate::crashlog::crumb(4);
-        match crate::performance::cyspring::install() {
-            Ok(()) => { log("cyspring uncap: OK"); crate::diag::record_install("cyspring uncap", "OK"); }
-            Err(e) => { log(&format!("cyspring uncap: deferred ({e})")); crate::diag::record_install("cyspring uncap", &format!("deferred ({e})")); }
-        }
+        // cyspring (cloth-physics uncap) NOT installed — its CySpringController.Init detour crashed
+        // during the URA Finale ending (AV, breadcrumb 31) and the feature is negligible QoL. Code
+        // kept intact; we simply don't arm the hook, so on_init never runs. Re-enable by restoring
+        // the install() call if the crash is ever root-caused.
+        let _ = crate::performance::cyspring::install; // keep the symbol referenced (no-op)
         crate::crashlog::crumb(1);
         match crate::performance::graphics::install() {
             Ok(()) => { log("graphics tweaks: OK"); crate::diag::record_install("graphics tweaks", "OK"); }

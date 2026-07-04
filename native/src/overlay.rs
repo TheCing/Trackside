@@ -741,6 +741,8 @@ impl ImguiRenderLoop for HeavenOverlay {
         // Diagnostic: detect the inter-frame gap (main-thread stalls) now, and measure Heaven's own
         // render cost when this scope drops at the end of the frame.
         let _lp = crate::loadprof::frame();
+
+        // (The update prompt is the shared rich dialog drawn by selfupdate::draw_dialog below.)
         // Keep DOTween's timeScale pinned to our UI tempo (survives any game reset).
         crate::ui_tempo::enforce();
 
@@ -2161,6 +2163,8 @@ fn cat_icon(name: &str) -> &'static str {
 
 /// First-launch hint pill (top-center): "Press <key> to open Heaven". Shown only until the
 /// user opens the menu once, so a closed menu with an unknown toggle key isn't a dead end.
+
+
 fn draw_first_launch_hint(ui: &Ui) {
     let key = MENU_KEYS[menu_key_idx()].0;
     let label = format!("Press  {key}  to open Heaven");

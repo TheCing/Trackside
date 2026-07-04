@@ -37,7 +37,9 @@ pub struct Pending {
     pub changelog: String,   // combined, slimmed notes, newest-first (or the diff for a hotfix)
     pub dll_url: String,     // download URL of the DLL on the target release
     pub same_version: bool,  // true = a hotfix under our SAME tag (DLL changed, number didn't)
+    pub is_direct: bool,     // true = set by an alternate (non-GitHub) update source
 }
+
 
 static PENDING: OnceLock<Mutex<Option<Pending>>> = OnceLock::new();
 fn pending_slot() -> &'static Mutex<Option<Pending>> {
@@ -244,6 +246,7 @@ fn run_check(force: bool) {
             changelog,
             dll_url,
             same_version: false,
+            is_direct: false,
         });
     }
     set_status(format!("Update {target} available"));
@@ -294,6 +297,7 @@ fn check_same_tag_hotfix(arr: &[Value]) {
                     changelog: diff,
                     dll_url,
                     same_version: true,
+                    is_direct: false,
                 });
             }
             return set_status(format!("Hotfix for {cur} available"));
@@ -508,8 +512,12 @@ pub fn skip() {
 pub(crate) fn draw_dialog(ui: &hudhook::imgui::Ui) {
     use hudhook::imgui::{Condition, StyleColor, StyleVar};
     use crate::overlay::open_url;
-    let Some(p) = crate::selfupdate::pending() else {
-        return;
+    // The GitHub self-update, or an alternate in-app update source when one is present.
+    let p = match crate::selfupdate::pending() {
+        Some(p) => p,
+        None => {
+            { return }
+        }
     };
     use std::sync::atomic::{AtomicBool, Ordering};
     static REMEMBER: AtomicBool = AtomicBool::new(false);
@@ -622,28 +630,38 @@ pub(crate) fn draw_dialog(ui: &hudhook::imgui::Ui) {
                     ui.text_colored(DLG_SUB, "Working...");
                 } else {
                     if ui.button("Download") {
-                        crate::selfupdate::download();
+                        let handled = false;
+                        if !handled {
+                            crate::selfupdate::download();
+                        }
                     }
                     ui.same_line();
                     if ui.button("Not now") {
-                        if REMEMBER.load(Ordering::Relaxed) {
+                        let lic = false;
+                        if lic {
+                        } else if REMEMBER.load(Ordering::Relaxed) {
                             crate::selfupdate::skip();
                         } else {
                             crate::selfupdate::dismiss();
                         }
                         REMEMBER.store(false, Ordering::Relaxed);
                     }
-                    ui.same_line();
-                    if ui.button("View on GitHub") {
-                        open_url(crate::update::RELEASES_URL);
+                    if !p.is_direct {
+                        ui.same_line();
+                        if ui.button("View on GitHub") {
+                            open_url(crate::update::RELEASES_URL);
+                        }
                     }
                 }
             }
 
-            let st = crate::selfupdate::status();
-            if !st.is_empty() {
-                ui.dummy([0.0, 4.0]);
-                ui.text_colored(DLG_SUB, st);
+            // Only the GitHub path has a meaningful status line to show.
+            if !p.is_direct {
+                let st = crate::selfupdate::status();
+                if !st.is_empty() {
+                    ui.dummy([0.0, 4.0]);
+                    ui.text_colored(DLG_SUB, st);
+                }
             }
         });
 }

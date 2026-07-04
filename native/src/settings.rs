@@ -678,6 +678,7 @@ pub fn set_umas_export(on: bool) {
 }
 
 
+
 /// A circuit's camera presets (clone). Empty if none saved.
 pub fn cam_presets(track: i32) -> Vec<CamPreset> {
     cache().lock().ok().and_then(|c| c.cam_tracks.get(&track).map(|t| t.presets.clone())).unwrap_or_default()

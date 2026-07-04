@@ -16,7 +16,6 @@
 
 #![allow(dead_code)]
 
-use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicUsize, Ordering};
 use std::sync::OnceLock;
 
@@ -169,34 +168,6 @@ unsafe extern "C" fn on_set_resolution(w: i32, h: i32, mode: i32, refresh: *cons
 // those are tiny thunk getters and `retour`'s relocated trampoline faults when called (access
 // violation in trampoline memory). Removed — the lever is not safe with our hooker.
 
-// ════════════════════ #4 Gallop.UIManager.ChangeResizeUIForPC (UI scale) ══════════════════
-static TR_RESIZE: AtomicUsize = AtomicUsize::new(0);
-static D_RESIZE: OnceLock<RawDetour> = OnceLock::new();
-// Resolved UIManager / CanvasScaler members (Method handles).
-static M_CANVAS_LIST: AtomicUsize = AtomicUsize::new(0); // UIManager.GetCanvasScalerList() -> Array
-static M_SET_SCALEFACTOR: AtomicUsize = AtomicUsize::new(0); // CanvasScaler.set_scaleFactor(float)
-
-unsafe fn apply_ui_scale(_uimgr: *mut c_void) {
-    // DISABLED 2026-06-14 — this crashed the game (0xC0000005, crash breadcrumb 15) when UI
-    // scale was ≠ 1.0. Root cause: `GetCanvasScalerList()` returns a `List<CanvasScaler>`,
-    // NOT a raw Il2CppArray, so reading max_length@0x18 / elements@0x20 off the List object
-    // dereferenced garbage pointers. UI scale is a minor QoL; disabled until the List<T>
-    // layout is verified (backing array `_items`@+0x10, `_size`@+0x18, then iterate that
-    // array's elements@+0x20). The ChangeResizeUIForPC hook still calls the original
-    // untouched, so window resizing is unaffected — only the scale application is off.
-}
-
-// ChangeResizeUIForPC(this, width, height, MethodInfo*) — runs on the game's main thread.
-unsafe extern "C" fn on_resize_ui(this: *mut c_void, w: i32, h: i32, method: *mut c_void) {
-    crate::crashlog::crumb(14);
-    let t = TR_RESIZE.load(Ordering::Relaxed);
-    if t != 0 {
-        let orig: unsafe extern "C" fn(*mut c_void, i32, i32, *mut c_void) = std::mem::transmute(t);
-        orig(this, w, h, method);
-    }
-    apply_ui_scale(this);
-}
-
 // ════════════════════════════════ install ════════════════════════════════════
 pub fn install() -> Result<(), String> {
     let mut notes: Vec<&str> = Vec::new();
@@ -213,22 +184,11 @@ pub fn install() -> Result<(), String> {
         }
     }
 
-    // #4 — Gallop.UIManager.ChangeResizeUIForPC + member methods (UI scale).
-    let uimgr = il2cpp::class("Gallop.UIManager");
-    if !uimgr.is_null() {
-        M_CANVAS_LIST.store(il2cpp::method(uimgr, "GetCanvasScalerList", 0) as usize, Ordering::Relaxed);
-        if let Some(cs) = {
-            let c = il2cpp::class("UnityEngine.UI.CanvasScaler");
-            if c.is_null() { None } else { Some(c) }
-        } {
-            M_SET_SCALEFACTOR.store(il2cpp::method(cs, "set_scaleFactor", 1) as usize, Ordering::Relaxed);
-        }
-        unsafe {
-            if il2cpp::hook_method(uimgr, "ChangeResizeUIForPC", 2, on_resize_ui as *const (), &TR_RESIZE, &D_RESIZE).is_ok() {
-                notes.push("uiscale");
-            }
-        }
-    }
+    // #4 — Gallop.UIManager.ChangeResizeUIForPC — REMOVED 2026-07-04. `apply_ui_scale` has been
+    // disabled since 2026-06-14 (it crashed), so this detour did nothing but call the original. Worse:
+    // ChangeResizeUIForPC throws a managed (C++/0xe06d7363) exception during the URA Finale ending
+    // sequence, and having a RawDetour on it broke the exception unwind -> hard crash on the last
+    // race. Nothing here was useful, so the hook is gone (the fullscreen/render-scale hooks stay).
 
     if notes.is_empty() {
         return Err("no display hooks installed".into());
