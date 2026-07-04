@@ -901,7 +901,10 @@ impl ImguiRenderLoop for HeavenOverlay {
         if crate::freecam::race_active() {
             let [dw, _dh] = ui.io().display_size;
             let tx = if self.rail_right { (dw - 300.0 - 14.0).max(0.0) } else { 14.0 };
-            draw_freecam_telemetry(ui, tx, 150.0, Condition::FirstUseEver);
+            // Main followed-Uma panel — its own toggle, so tower-only setups can hide just this.
+            if crate::settings::tele_main() {
+                draw_freecam_telemetry(ui, tx, 150.0, Condition::FirstUseEver);
+            }
             // Broadcast timing tower (whole field) — opposite rail so it never overlaps the HUD.
             if crate::settings::tele_tower() {
                 let twx = if self.rail_right { 14.0 } else { (dw - 300.0 - 14.0).max(0.0) };
@@ -1136,34 +1139,32 @@ impl HeavenOverlay {
                 ui.columns(2, "##menu", false);
                 ui.set_column_width(0, SIDEBAR_W);
 
-                // ── sidebar: crest + wordmark + category list ──
+                // ── sidebar: clean "Heaven" wordmark (replaces the crest + logo art) ──
+                // The crest/orb/logo textures are still loaded but intentionally no longer drawn;
+                // we render a simple theme-font wordmark instead.
                 #[cfg(feature = "banner")]
+                let _ = (crest_tex, logo_tex);
                 {
-                    let mut y = 6.0;
-                    if let Some(t) = crest_tex {
-                        let cs = 66.0;
-                        // Soft magenta halo behind the crest (floating glow orb).
-                        if let Some(orb) = ORB_TEX.with(|c| c.get()) {
-                            let ocx = p0[0] + SIDEBAR_W * 0.5;
-                            let ocy = p0[1] + y + cs * 0.5;
-                            let os = cs * 0.92;
-                            ui.get_window_draw_list()
-                                .add_image(orb, [ocx - os, ocy - os], [ocx + os, ocy + os])
-                                .col([1.0, 1.0, 1.0, 0.30])
-                                .build();
-                        }
-                        ui.set_cursor_pos([(SIDEBAR_W - cs) * 0.5, y]);
-                        imgui::Image::new(t, [cs, cs]).build(ui);
-                        y += cs;
-                    }
-                    if let Some(t) = logo_tex {
-                        let lw = (SIDEBAR_W - 36.0) * 0.87;
-                        let lh = lw * (LOGO_H / LOGO_W);
-                        ui.set_cursor_pos([(SIDEBAR_W - lw) * 0.5, y]);
-                        imgui::Image::new(t, [lw, lh]).build(ui);
-                        y += lh + 6.0;
-                    }
-                    ui.set_cursor_pos([10.0, y]);
+                    let top = 18.0;
+                    // Scale the 18px title font up for a logo-sized wordmark.
+                    let scale = 1.95;
+                    let line_h = 18.0 * scale;
+                    let _t = TITLE_FONT.with(|c| c.get()).map(|f| ui.push_font(f));
+                    ui.set_window_font_scale(scale);
+                    let label = "Heaven";
+                    let tw = ui.calc_text_size(label)[0];
+                    ui.set_cursor_pos([((SIDEBAR_W - tw) * 0.5).max(10.0), top]);
+                    ui.text_colored(TEXT, label);
+                    ui.set_window_font_scale(1.0);
+                    // Thin accent underline, matched to the wordmark width — a clean divider.
+                    let uw = tw.min(SIDEBAR_W - 24.0);
+                    let ux = p0[0] + (SIDEBAR_W - uw) * 0.5;
+                    let uy = p0[1] + top + line_h + 5.0;
+                    ui.get_window_draw_list()
+                        .add_line([ux, uy], [ux + uw, uy], [ACCENT[0], ACCENT[1], ACCENT[2], 0.55])
+                        .thickness(1.5)
+                        .build();
+                    ui.set_cursor_pos([10.0, top + line_h + 16.0]);
                 }
                 {
                     // The selected/hover backgrounds are drawn by hand (animated), so the
@@ -1172,7 +1173,6 @@ impl HeavenOverlay {
                     let _hh = ui.push_style_color(StyleColor::HeaderHovered, [0.0, 0.0, 0.0, 0.0]);
                     let _ha = ui.push_style_color(StyleColor::HeaderActive, [0.0, 0.0, 0.0, 0.0]);
                     let _fr = ui.push_style_var(StyleVar::FrameRounding(8.0));
-                    let nav_tex = NAV_TEX.with(|c| c.get());
                     let nav_y0 = ui.cursor_pos()[1];
                     // Distribute the items evenly down the available space (above the silhouette)
                     // so the column looks ordered, with larger icons and clear separation —
@@ -1238,10 +1238,12 @@ impl HeavenOverlay {
                         let nav_dim = [0.70, 0.68, 0.80, 1.0];
                         let col = if sel { TEXT } else { lerp_col(nav_dim, ACCENT_HI, hv) };
                         let icc = [p0[0] + 35.0, p0[1] + cy + nav_half]; // icon centre
-                        let nav_t = nav_icon_idx(name).and_then(|ix| nav_tex[ix]);
-                        if let Some(t) = nav_t {
+                        // Clean monochrome glyph icons (Segoe MDL2), tinted purple — replaces the
+                        // baked crystal textures that carried gold accents. The glow / ring / badge
+                        // plate are all accent-purple, so the whole icon reads as one flat theme.
+                        {
                             let dl = ui.get_window_draw_list();
-                            // Soft accent contrast glow: +on hover, +on active (halved vs. before).
+                            // Soft accent glow: +on hover, +on active.
                             let gf = 1.0 + 0.12 * hv + if sel { 0.20 } else { 0.0 };
                             for (r, a) in [
                                 (icon_sz * 0.60, 0.035_f32),
@@ -1252,40 +1254,33 @@ impl HeavenOverlay {
                                     .filled(true)
                                     .build();
                             }
-                            // Active: a faint accent ring behind the icon.
-                            if sel {
-                                dl.add_circle(icc, icon_sz * 0.5 - 2.0, [0.74, 0.70, 0.96, 0.20])
-                                    .thickness(2.0)
-                                    .build();
-                            }
-                            // Subtle rounded badge plate.
-                            let bh = icon_sz * 0.5 + 4.0;
-                            let badge = if sel { [0.62, 0.58, 0.92, 0.22] } else { [0.62, 0.58, 0.92, 0.07] };
+                            // Rounded badge plate: bright accent when selected (dark glyph on top),
+                            // faint purple otherwise (brightening slightly on hover).
+                            let bh = icon_sz * 0.5 + 2.0;
+                            let badge = if sel {
+                                [0.66, 0.62, 0.94, 0.90]
+                            } else {
+                                [0.62, 0.58, 0.92, 0.09 + 0.09 * hv]
+                            };
                             dl.add_rect([icc[0] - bh, icc[1] - bh], [icc[0] + bh, icc[1] + bh], badge)
                                 .filled(true)
                                 .rounding(11.0)
                                 .build();
-                            let ip0 = [icc[0] - icon_sz * 0.5, icc[1] - icon_sz * 0.5];
-                            let ip1 = [icc[0] + icon_sz * 0.5, icc[1] + icon_sz * 0.5];
-                            dl.add_image(t, ip0, ip1).build();
-                            // Brightness pass: +10% on hover, a touch more when active.
-                            let boost = if sel { 0.25 } else { 0.0 } + 0.12 * hv;
-                            if boost > 0.01 {
-                                dl.add_image(t, ip0, ip1).col([1.0, 1.0, 1.0, boost.min(0.85)]).build();
-                            }
-                        } else {
-                            let bh = icon_sz * 0.5 - 1.0;
-                            let badge = if sel { [0.66, 0.62, 0.94, 0.85] } else { [0.62, 0.58, 0.92, 0.12] };
+                        }
+                        if let Some(f) = icon_font {
+                            let _t = ui.push_font(f);
+                            // Scale the 16px MDL2 glyph up to fill the badge, then centre it.
+                            ui.set_window_font_scale(1.6);
+                            let glyph = cat_icon(name);
+                            let gs = ui.calc_text_size(glyph);
+                            let gcol = if sel {
+                                [0.12, 0.09, 0.18, 1.0] // dark, reads on the bright plate
+                            } else {
+                                lerp_col([0.72, 0.68, 0.88, 1.0], ACCENT_HI, hv)
+                            };
                             ui.get_window_draw_list()
-                                .add_rect([icc[0] - bh, icc[1] - bh], [icc[0] + bh, icc[1] + bh], badge)
-                                .filled(true)
-                                .rounding(8.0)
-                                .build();
-                            if let Some(f) = icon_font {
-                                ui.set_cursor_pos([26.0, cy + nav_half - 8.0]);
-                                let _t = ui.push_font(f);
-                                ui.text_colored(if sel { [0.10, 0.07, 0.16, 1.0] } else { ACCENT }, cat_icon(name));
-                            }
+                                .add_text([icc[0] - gs[0] * 0.5, icc[1] - gs[1] * 0.5], gcol, glyph);
+                            ui.set_window_font_scale(1.0);
                         }
                         ui.set_cursor_pos([66.0, cy + nav_half - 9.0]);
                         if let Some(f) = NAV_FONT.with(|c| c.get()) {
@@ -1485,37 +1480,12 @@ impl HeavenOverlay {
                     ui.set_cursor_screen_pos([sp[0], sp[1] + bh + 10.0]);
                 }
 
+                // Header banner image removed — start the page with a small top spacer so the
+                // first card doesn't butt against the panel edge. (banner_tex is still loaded but
+                // intentionally not drawn.)
                 #[cfg(feature = "banner")]
-                if let Some(t) = banner_tex {
-                    let bsp = ui.cursor_screen_pos();
-                    let bh = content_w * (BANNER_H / BANNER_W);
-                    // Multiply-tint toward the page colour: the art's light paper background sinks
-                    // into the dark theme so only the linework stays faintly visible, instead of a
-                    // flat grey box. (imgui multiplies the texture by this tint.)
-                    imgui::Image::new(t, [content_w, bh]).tint_col([0.20, 0.19, 0.26, 1.0]).build(ui);
-                    // Dissolve BOTH edges into the page so there's no hard rectangle — it reads as
-                    // a soft header wash rather than a boxed image.
-                    let fade = 70.0;
-                    let clear = [0.082, 0.078, 0.110, 0.0];
-                    let solid = [0.082, 0.078, 0.110, 1.0];
-                    ui.get_window_draw_list().add_rect_filled_multicolor(
-                        [bsp[0], bsp[1]],
-                        [bsp[0] + content_w, bsp[1] + fade],
-                        solid,
-                        solid,
-                        clear,
-                        clear,
-                    );
-                    ui.get_window_draw_list().add_rect_filled_multicolor(
-                        [bsp[0], bsp[1] + bh - fade],
-                        [bsp[0] + content_w, bsp[1] + bh],
-                        clear,
-                        clear,
-                        solid,
-                        solid,
-                    );
-                    ui.dummy([0.0, 2.0]);
-                }
+                let _ = banner_tex;
+                ui.dummy([0.0, 6.0]);
 
                 let _cardbg = ui.push_style_color(StyleColor::ChildBg, [0.0, 0.0, 0.0, 0.0]);
                 let _cardpad = ui.push_style_var(StyleVar::WindowPadding([2.0, 6.0]));
@@ -1541,10 +1511,13 @@ impl HeavenOverlay {
                     // shared. Bespoke blocks are Ctrl::Custom, drawn by the hand-written arms.
                     let sel_name = tabs[*tab];
                     for mt in menu.iter().filter(|t| t.name == sel_name) {
-                        for sec in &mt.sections {
+                        let n_sec = mt.sections.len();
+                        for (si, sec) in mt.sections.iter().enumerate() {
+                            let first = si == 0;
+                            let last = si + 1 == n_sec;
                             let title_up = sec.title.to_uppercase();
                             let glyph = sec.icon.to_string();
-                            card(ui, cw, sec.title, || {
+                            card(ui, cw, sec.title, first, last, || {
                                 use crate::menu_model::{Ctrl, Custom};
                                 section(ui, icon_font, &glyph, &title_up);
                                 if !sec.blurb.is_empty() {
@@ -1788,6 +1761,12 @@ impl HeavenOverlay {
                                         Ctrl::Custom(Custom::TtHunter) => {
                                             draw_tt_hunter(ui, cw);
                                         }
+                                        Ctrl::Custom(Custom::Followers) => {
+                                            draw_followers(ui, cw);
+                                        }
+                                        Ctrl::Custom(Custom::RoomFinder) => {
+                                            draw_room_finder(ui, cw);
+                                        }
                                         Ctrl::Custom(Custom::Affinity) => {
                                             draw_tt_affinity(ui, cw);
                                         }
@@ -1873,14 +1852,9 @@ impl HeavenOverlay {
             .collapsible(false)
             .resizable(true)
             .build(|| {
+                // Header banner image removed (texture still loaded, just not drawn).
                 #[cfg(feature = "banner")]
-                if let Some(tex) = self_banner_tex {
-                    let ww = ui.window_size()[0];
-                    let h = ww * (BANNER_H / BANNER_W);
-                    ui.set_cursor_pos([0.0, 0.0]);
-                    imgui::Image::new(tex, [ww, h]).build(ui);
-                    ui.set_cursor_pos([12.0, h + 9.0]);
-                }
+                let _ = self_banner_tex;
 
                 // Switch back to the premium menu.
                 let mut classic = crate::settings::classic_menu();
@@ -2089,6 +2063,14 @@ impl HeavenOverlay {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         draw_tt_hunter(ui, w);
                                     }
+                                    Ctrl::Custom(Custom::Followers) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_followers(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::RoomFinder) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_room_finder(ui, w);
+                                    }
                                     Ctrl::Custom(Custom::Affinity) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         draw_tt_affinity(ui, w);
@@ -2121,6 +2103,9 @@ fn open_url(url: &str) {
 
 /// Segoe MDL2 icon glyph for a sidebar category.
 /// Index into `NAV_TEX` (image sidebar icons) for a section name. None → use the font glyph.
+/// Retained for reference: the nav now draws monochrome MDL2 glyphs instead of these baked
+/// crystal textures (which carried gold accents), but the mapping is kept in case we revert.
+#[allow(dead_code)]
 fn nav_icon_idx(name: &str) -> Option<usize> {
     // Reuse the existing baked crystal textures for the redesigned tab names (idx 2/6 freed up).
     Some(match name {
@@ -2476,37 +2461,51 @@ thread_local! {
 }
 
 /// Wrap a section's content in a rounded card. `w` = card width, `key` = stable section id.
-fn card<F: FnOnce()>(ui: &Ui, w: f32, key: &'static str, body: F) {
+/// A settings section rendered as part of ONE seamless panel: sections stack flush (no gaps,
+/// no per-card shadow) sharing a single continuous background, separated by a basic divider
+/// line. Only the very first/last sections round their outer corners, so the whole group reads
+/// as a single streamlined card. `first`/`last` mark the ends of the current tab's list.
+fn card<F: FnOnce()>(ui: &Ui, w: f32, key: &'static str, first: bool, last: bool, body: F) {
     let start = ui.cursor_screen_pos();
     let cached = CARD_H.with(|m| m.borrow().get(key).copied()).unwrap_or(60.0);
     let end = [start[0] + w, start[1] + cached];
     {
         let dl = ui.get_window_draw_list();
-        // Soft neutral drop shadow so the card reads as gently raised above the page. Static —
-        // no hover glow, no coloured halo.
-        for k in 0..3 {
-            let e = 2.0 + k as f32 * 2.6;
-            let a = 0.05 - k as f32 * 0.013;
-            dl.add_rect(
-                [start[0] - e, start[1] - e + 2.0],
-                [end[0] + e, end[1] + e + 2.0],
-                [0.0, 0.0, 0.0, a],
+        // Single continuous surface: adjacent sections share a flat edge; only the outer
+        // top/bottom corners are rounded so it looks like one card, not a stack of boxes.
+        // GOTCHA: clearing ALL four corner flags yields flags==0, which imgui reads as
+        // "default = round everything" — so middle sections must skip rounding entirely.
+        if first || last {
+            dl.add_rect(start, end, CARD_BG)
+                .filled(true)
+                .rounding(16.0)
+                .round_top_left(first)
+                .round_top_right(first)
+                .round_bot_left(last)
+                .round_bot_right(last)
+                .build();
+        } else {
+            dl.add_rect(start, end, CARD_BG).filled(true).build();
+        }
+        // Basic divider between sections (drawn at the top edge, skipped above the first).
+        if !first {
+            dl.add_line(
+                [start[0] + 14.0, start[1]],
+                [end[0] - 14.0, start[1]],
+                [1.0, 1.0, 1.0, 0.07],
             )
-            .filled(true)
-            .rounding(18.0)
+            .thickness(1.0)
             .build();
         }
-        dl.add_rect(start, end, CARD_BG).filled(true).rounding(16.0).build();
-        // Flat, static border (no top highlight band, no hover brighten).
-        dl.add_rect(start, end, CARD_BORDER).rounding(16.0).thickness(1.0).build();
     } // release the draw list before the body draws its own widgets
-    ui.set_cursor_screen_pos([start[0] + 22.0, start[1] + 18.0]);
+    ui.set_cursor_screen_pos([start[0] + 22.0, start[1] + 16.0]);
     ui.group(body);
-    let measured = (ui.item_rect_max()[1] - start[1]) + 18.0;
+    let measured = (ui.item_rect_max()[1] - start[1]) + 16.0;
     CARD_H.with(|m| {
         m.borrow_mut().insert(key, measured);
     });
-    ui.set_cursor_screen_pos([start[0], start[1] + cached.max(measured) + 14.0]);
+    // Flush stacking — no gap between sections — for the seamless single-panel look.
+    ui.set_cursor_screen_pos([start[0], start[1] + cached.max(measured)]);
 }
 
 /// A section header: an icon in a soft rounded badge, then an accent-coloured title.
@@ -2983,8 +2982,18 @@ fn help_icon(ui: &Ui, tip: &str) {
         ui.text_colored(DIM, "(i)");
     }
     if ui.is_item_hovered() {
-        ui.tooltip(|| ui.text(tip));
+        ui.tooltip(|| {
+            ui.dummy([300.0, 0.0]); // pin tooltip width so long tips wrap instead of spanning the screen
+            ui.text_wrapped(tip);
+        });
     }
+}
+
+/// `text_colored` + wrapping at the window edge — long status/error lines otherwise
+/// bleed past the card (imgui text never wraps by default).
+fn text_wrapped_colored(ui: &Ui, col: [f32; 4], text: &str) {
+    let _c = ui.push_style_color(StyleColor::Text, col);
+    ui.text_wrapped(text);
 }
 
 /// A small colored status dot followed by short text (replaces full-sentence status lines).
@@ -3266,6 +3275,401 @@ fn draw_tt_hunter(ui: &Ui, w: f32) {
         ui.dummy([0.0, 4.0]);
         for (vid, name) in last.iter() {
             ui.text_colored(DIM, &format!("\u{00b7} {}  ({})", if name.is_empty() { "?" } else { name.as_str() }, vid));
+        }
+    }
+}
+
+/// Follower pruner: live count vs the 1000 cap, target size, dry-run preview of the
+/// oldest-inactive followers that would be removed (with per-row pin/keep), Start/Stop.
+/// All reads/removals run on the game main thread via pruner::pump(); this panel only
+/// requests them and renders state.
+fn draw_followers(ui: &Ui, w: f32) {
+    use crate::pruner::{self, Phase};
+
+    ui.dummy([0.0, 4.0]);
+    let live = pruner::live_count();
+    if live > 0 {
+        let col = if live >= pruner::FOLLOWER_CAP { WARN } else { GOOD };
+        status_dot(ui, col, &format!("{live} / {} followers", pruner::FOLLOWER_CAP));
+    } else {
+        status_dot(ui, WARN, "Open the follower list, then Preview");
+    }
+    ui.same_line();
+    help_icon(ui, "Removes your oldest-inactive followers (longest since last login) down to the target, so new padders can follow you. Preview always shows the exact list first - nothing is removed until you press Start. Pinned trainers are never touched. Removals are paced like a human tapping the button.");
+    ui.dummy([0.0, 8.0]);
+
+    let phase = pruner::current_phase();
+
+    // ── target size ──
+    if phase == Phase::Idle || phase == Phase::Preview {
+        ui.text_colored(DIM, "Prune down to:");
+        ui.same_line();
+        let mut t = pruner::target() as f32;
+        ui.same_line();
+        if pink_slider_f32(ui, "##prtarget", 500.0, 990.0, &mut t, w * 0.45) {
+            pruner::set_target((t / 10.0).round() as usize * 10); // steps of 10
+        }
+        ui.same_line();
+        val(ui, TEXT, &format!("{}", pruner::target()));
+        ui.dummy([0.0, 6.0]);
+    }
+
+    // ── actions ──
+    match phase {
+        Phase::Idle => {
+            if btn_primary(ui, "##prpreview", "Preview prune") {
+                pruner::request_preview();
+            }
+            ui.same_line();
+            if btn(ui, "##prscan", "Scan (RE log)") {
+                pruner::request_scan();
+            }
+        }
+        Phase::Reading => {
+            ui.text_colored(ACCENT, "Reading follower list…");
+            ui.same_line();
+            if btn(ui, "##prcancelread", "Cancel") {
+                pruner::stop();
+            }
+        }
+        Phase::Preview => {
+            if btn_primary(ui, "##prstart", &format!("Start pruning ({})", pruner::candidates().len())) {
+                let _ = pruner::start(); // failures land in status() below
+            }
+            ui.same_line();
+            if btn(ui, "##prcancel", "Cancel") {
+                pruner::stop();
+            }
+        }
+        Phase::Pruning => {
+            ui.text_colored(ACCENT, "Pruning…");
+            ui.same_line();
+            if btn(ui, "##prstop", "Stop") {
+                pruner::stop();
+            }
+        }
+    }
+
+    // ── status line ── (wrapped: read errors especially run long)
+    let st = pruner::status();
+    if !st.is_empty() {
+        ui.dummy([0.0, 6.0]);
+        let col = if st.starts_with("Done") { GOOD } else if st.contains("failed") || st.starts_with("Stopped:") { WARN } else { TEXT };
+        text_wrapped_colored(ui, col, &st);
+    }
+
+    // Trainer names are player-authored and unbounded; list rows keep the trailing id +
+    // pin button on ONE line, so clamp the name instead of wrapping it.
+    let clamp = |s: &str| -> String {
+        if s.is_empty() {
+            return "?".into();
+        }
+        let mut out: String = s.chars().take(18).collect();
+        if s.chars().count() > 18 {
+            out.push('\u{2026}');
+        }
+        out
+    };
+
+    // ── dry-run list (Preview) / remaining list (Pruning) ──
+    let cands = pruner::candidates();
+    if !cands.is_empty() && (phase == Phase::Preview || phase == Phase::Pruning) {
+        ui.dummy([0.0, 6.0]);
+        text_wrapped_colored(ui, DIM, if phase == Phase::Preview { "Would be removed (oldest-inactive first):" } else { "Remaining:" });
+        ui.dummy([0.0, 2.0]);
+        const SHOW: usize = 12;
+        for (i, f) in cands.iter().take(SHOW).enumerate() {
+            let ago = match f.last_login_days {
+                Some(d) => format!("{d}d"),
+                None => "?".into(),
+            };
+            ui.text_colored(TEXT, &format!("\u{00b7} {}", clamp(&f.name)));
+            ui.same_line();
+            ui.text_colored(DIM, &format!("({}, {ago})", f.viewer_id));
+            if phase == Phase::Preview {
+                ui.same_line();
+                let cur = ui.cursor_pos();
+                ui.set_cursor_pos([(w - 32.0).max(cur[0] + 8.0), cur[1] - 4.0]);
+                if icon_btn(ui, &format!("##prpin{i}"), "\u{E718}", "Keep (pin to whitelist)", false) {
+                    pruner::pin(f.viewer_id, &f.name);
+                }
+            }
+        }
+        if cands.len() > SHOW {
+            ui.text_colored(DIM, &format!("… and {} more", cands.len() - SHOW));
+        }
+    }
+
+    // ── whitelist ──
+    let pins = pruner::whitelist();
+    if !pins.is_empty() {
+        ui.dummy([0.0, 8.0]);
+        text_wrapped_colored(ui, DIM, &format!("Pinned ({}) — never pruned:", pins.len()));
+        ui.dummy([0.0, 2.0]);
+        for (i, p) in pins.iter().enumerate() {
+            ui.text_colored(TEXT, &format!("\u{00b7} {}", clamp(&p.name)));
+            ui.same_line();
+            ui.text_colored(DIM, &format!("({})", p.viewer_id));
+            ui.same_line();
+            let cur = ui.cursor_pos();
+            ui.set_cursor_pos([(w - 32.0).max(cur[0] + 8.0), cur[1] - 4.0]);
+            if icon_btn(ui, &format!("##prunpin{i}"), "\u{E74D}", "Unpin", true) {
+                pruner::unpin(p.viewer_id);
+            }
+        }
+    }
+}
+
+/// Room Match finder: filter combos (track / distance / surface / season / weather / open
+/// slots), auto-join toggle, Start/Stop, live status + last-seen rooms. All reads/refreshes/
+/// joins run on the game main thread via roomfinder::pump(); this panel only sets filters
+/// and renders state.
+fn draw_room_finder(ui: &Ui, w: f32) {
+    use crate::roomfinder as rf;
+
+    ui.dummy([0.0, 4.0]);
+    let hunting = rf::is_hunting();
+    if hunting {
+        status_dot(ui, GOOD, &format!("Hunting \u{2014} check {}/{}", rf::checks(), rf::MAX_CHECKS));
+    } else if rf::found_room() != 0 {
+        status_dot(ui, GOOD, "Room found");
+    } else if rf::screen_open() {
+        status_dot(ui, GOOD, "Room list ready");
+    } else if rf::entry_screen_open() {
+        status_dot(ui, GOOD, "Runner entry \u{2014} load a team below");
+    } else {
+        status_dot(ui, WARN, "Open Room Match > Join Room");
+    }
+    ui.same_line();
+    help_icon(ui, "Auto-refreshes the Room Match room list (the game's own reload button, paced like a human) until a room matches your filters, then stops and alerts. Auto-open jumps straight to the room's Join Race entry screen \u{2014} you just pick your runners and Confirm. Filters left on 'Any' are ignored \u{2014} set at least one.");
+    ui.dummy([0.0, 8.0]);
+
+    // ── Saved-team loader ── shown on the runner-entry screen ("select your runners"): pick a
+    // My Runners team (1–5) and load it in one click, same as the dialog's "Load List" button.
+    if rf::entry_screen_open() {
+        thread_local! {
+            static SLOT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+        }
+        ui.text_colored(ACCENT, "Load a saved team (My Runners)");
+        ui.same_line();
+        help_icon(ui, "Loads one of your five saved My Runners teams straight into this entry, the same as opening My Runners and pressing Load List. Then just press Confirm. Empty slots are skipped.");
+        ui.dummy([0.0, 4.0]);
+        let team_items = ["Team 1", "Team 2", "Team 3", "Team 4", "Team 5"];
+        let mut sel = SLOT.with(|s| s.get());
+        ui.set_next_item_width(w * 0.45);
+        if ui.combo_simple_string("##rfteam", &mut sel, &team_items) {
+            SLOT.with(|s| s.set(sel));
+        }
+        ui.same_line();
+        if btn_primary(ui, "##rfteamload", "Load into entry") {
+            rf::request_load_team(sel as i32 + 1);
+        }
+        let st = rf::status();
+        if !st.is_empty() {
+            ui.dummy([0.0, 4.0]);
+            let col = if st.starts_with("Loaded") || st.contains("Confirm sent") {
+                GOOD
+            } else if st.starts_with("Team ")
+                || st.starts_with("Open the runner")
+                || st.starts_with("Auto-join")
+                || st.starts_with("fetching")
+            {
+                WARN
+            } else {
+                TEXT
+            };
+            text_wrapped_colored(ui, col, &st);
+        }
+        return; // entry screen is a different context from the room-list hunt UI
+    }
+
+    if !hunting {
+        let mut f = rf::filters();
+        let mut changed = false;
+
+        // Track
+        let mut track_items: Vec<&str> = vec!["Any track"];
+        track_items.extend(rf::TRACK_IDS.iter().map(|id| rf::track_name(*id)));
+        let mut ti = rf::TRACK_IDS.iter().position(|id| *id == f.track_id).map(|i| i + 1).unwrap_or(0);
+        ui.set_next_item_width(w * 0.55);
+        if ui.combo_simple_string("##rftrack", &mut ti, &track_items) {
+            f.track_id = if ti == 0 { 0 } else { rf::TRACK_IDS[ti - 1] };
+            changed = true;
+        }
+        ui.same_line();
+        // Surface
+        let surf_items = ["Any surface", "Turf", "Dirt"];
+        let mut si = f.surface.clamp(0, 2) as usize;
+        ui.set_next_item_width(w * 0.38);
+        if ui.combo_simple_string("##rfsurf", &mut si, &surf_items) {
+            f.surface = si as i32;
+            changed = true;
+        }
+        ui.dummy([0.0, 3.0]);
+        // Distance category
+        let dist_items = ["Any distance", "Short", "Mile", "Medium", "Long"];
+        let mut di = f.dist_cat.clamp(0, 4) as usize;
+        ui.set_next_item_width(w * 0.55);
+        if ui.combo_simple_string("##rfdist", &mut di, &dist_items) {
+            f.dist_cat = di as i32;
+            changed = true;
+        }
+        ui.dummy([0.0, 3.0]);
+        // Season + weather
+        let season_items = ["Any season", "Spring", "Summer", "Autumn", "Winter"];
+        let mut sei = f.season.clamp(0, 4) as usize;
+        ui.set_next_item_width(w * 0.45);
+        if ui.combo_simple_string("##rfseason", &mut sei, &season_items) {
+            f.season = sei as i32;
+            changed = true;
+        }
+        ui.same_line();
+        let weather_items = ["Any weather", "Sunny", "Cloudy", "Rainy", "Snowy"];
+        let mut wi = f.weather.clamp(0, 4) as usize;
+        ui.set_next_item_width(w * 0.45);
+        if ui.combo_simple_string("##rfweather", &mut wi, &weather_items) {
+            f.weather = wi as i32;
+            changed = true;
+        }
+        ui.dummy([0.0, 3.0]);
+        // Open slots
+        ui.text_colored(DIM, "Open slots \u{2265}");
+        ui.same_line();
+        let mut open = f.min_open as f32;
+        if pink_slider_f32(ui, "##rfopen", 0.0, 8.0, &mut open, w * 0.40) {
+            f.min_open = open.round() as i32;
+            changed = true;
+        }
+        ui.same_line();
+        val(ui, TEXT, &format!("{}", f.min_open));
+        ui.dummy([0.0, 3.0]);
+        // "Require none" gates — unrestricted rooms are always preferred.
+        let mut nr = f.no_rank_restrict;
+        if ui.checkbox("No career rank requirement", &mut nr) {
+            f.no_rank_restrict = nr;
+            changed = true;
+        }
+        let mut nu = f.no_uma_restrict;
+        if ui.checkbox("No Uma restrictions (bans)", &mut nu) {
+            f.no_uma_restrict = nu;
+            changed = true;
+        }
+        // Auto-open the found room's runner-entry screen (the game's join path)
+        let mut aj = f.auto_join;
+        if ui.checkbox("Auto-open room when found", &mut aj) {
+            f.auto_join = aj;
+            changed = true;
+        }
+        // Preselect a saved team to auto-load into the entry when a room is found (set ahead of
+        // time so you're not racing other players to fill the room).
+        ui.dummy([0.0, 3.0]);
+        let team_items = ["Don't preload", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5"];
+        let mut pi = f.preset_slot.clamp(0, 5) as usize;
+        ui.text_colored(DIM, "Preload team");
+        ui.same_line();
+        ui.set_next_item_width(w * 0.42);
+        if ui.combo_simple_string("##rfpreset", &mut pi, &team_items) {
+            f.preset_slot = pi as i32;
+            changed = true;
+        }
+        ui.same_line();
+        help_icon(ui, "When a matching room is found and Auto-open is on, Heaven jumps to the runner-entry screen and loads this saved My Runners team automatically. Pair with Auto-confirm to send the entry the instant the room opens. Requires you to have saved the team in-game.");
+        if f.preset_slot > 0 && f.auto_join {
+            let mut ac = f.auto_confirm;
+            if ui.checkbox("Auto-confirm entry (join instantly)", &mut ac) {
+                f.auto_confirm = ac;
+                changed = true;
+            }
+        }
+        if changed {
+            rf::set_filters(f);
+        }
+        ui.dummy([0.0, 6.0]);
+
+        thread_local! {
+            static ERR: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
+        }
+        if btn_primary(ui, "##rfstart", "Start hunting") {
+            match rf::start() {
+                Ok(_) => ERR.with(|e| e.borrow_mut().clear()),
+                Err(e) => ERR.with(|x| *x.borrow_mut() = e),
+            }
+        }
+        ui.same_line();
+        if btn(ui, "##rfscan", "Scan (RE log)") {
+            rf::request_scan();
+        }
+        ERR.with(|e| {
+            let s = e.borrow();
+            if !s.is_empty() {
+                ui.dummy([0.0, 4.0]);
+                text_wrapped_colored(ui, WARN, &s);
+            }
+        });
+    } else {
+        ui.text_colored(ACCENT, "Hunting\u{2026}");
+        ui.same_line();
+        if btn(ui, "##rfstop", "Stop") {
+            rf::stop();
+        }
+    }
+
+    // ── status line ── (wrapped: resolve errors run long)
+    let st = rf::status();
+    if !st.is_empty() {
+        ui.dummy([0.0, 6.0]);
+        let col = if st.starts_with("FOUND") {
+            GOOD
+        } else if st.starts_with("Stopped:") || st.starts_with("Not found") {
+            WARN
+        } else {
+            TEXT
+        };
+        text_wrapped_colored(ui, col, &st);
+    }
+
+    // ── last-seen rooms ──
+    let rooms = rf::last_rooms();
+    if !rooms.is_empty() {
+        ui.dummy([0.0, 6.0]);
+        text_wrapped_colored(ui, DIM, &format!("Rooms on last check ({}):", rooms.len()));
+        ui.dummy([0.0, 2.0]);
+        let clamp = |s: &str| -> String {
+            if s.is_empty() {
+                return "?".into();
+            }
+            let mut out: String = s.chars().take(16).collect();
+            if s.chars().count() > 16 {
+                out.push('\u{2026}');
+            }
+            out
+        };
+        const SHOW: usize = 8;
+        for r in rooms.iter().take(SHOW) {
+            let found = r.room_id == rf::found_room() && rf::found_room() != 0;
+            let mut line = format!("\u{00b7} {}", clamp(&r.host));
+            if r.track_id != 0 {
+                line.push_str(&format!("  {}", rf::track_name(r.track_id)));
+            }
+            if r.distance > 0 {
+                line.push_str(&format!(" {}m", r.distance));
+            }
+            if r.surface != 0 {
+                line.push_str(&format!(" {}", rf::surface_name(r.surface)));
+            }
+            if let Some(n) = r.open_slots() {
+                line.push_str(&format!("  ({n} open)"));
+            }
+            if r.rank_restricted == 1 {
+                line.push_str("  [rank]");
+            }
+            if r.uma_restricted == 1 {
+                line.push_str("  [bans]");
+            }
+            ui.text_colored(if found { GOOD } else { TEXT }, &line);
+        }
+        if rooms.len() > SHOW {
+            ui.text_colored(DIM, &format!("\u{2026} and {} more", rooms.len() - SHOW));
         }
     }
 }

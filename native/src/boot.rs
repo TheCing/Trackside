@@ -237,6 +237,20 @@ pub fn spawn() {
             log(&format!("tt hunter: {r}"));
             crate::diag::record_install("tt hunter", &r);
         }
+        // Follower pruner — diagnostic resolve only (which candidate names exist in this
+        // build); its per-frame pump rides hunter's TweenManager.Update tick.
+        {
+            let r = crate::pruner::install();
+            log(&format!("follower pruner: {r}"));
+            crate::diag::record_install("follower pruner", &r);
+        }
+        // Room-match finder — diagnostic resolve only; its per-frame pump also rides
+        // hunter's TweenManager.Update tick.
+        {
+            let r = crate::roomfinder::install();
+            log(&format!("room finder: {r}"));
+            crate::diag::record_install("room finder", &r);
+        }
         // Legacy Select affinity numbers (on-screen exact pair total + per-parent values).
         // Read-only; its per-frame tick rides hunter's TweenManager.Update pump.
         {

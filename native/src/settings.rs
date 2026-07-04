@@ -119,6 +119,10 @@ pub struct Settings {
     pub telemetry: bool,
     // Telemetry HUD — modular per-section toggles (default ON = old behavior) + HUD scale.
     // The skill feed is the big one (it grows the window) — `tele_skills` toggles it.
+    // `tele_main` hides the whole followed-Uma panel while keeping the broadcast panels
+    // (e.g. tower-only setups).
+    #[serde(default = "default_true")]
+    pub tele_main: bool,
     #[serde(default = "default_true")]
     pub tele_grade: bool,
     #[serde(default = "default_true")]
@@ -236,6 +240,7 @@ impl Default for Settings {
             oracle: false,
             freecam: false,
             telemetry: true,
+            tele_main: true,
             tele_grade: true,
             tele_portrait: true,
             tele_rival: true,
@@ -630,6 +635,9 @@ pub fn telemetry() -> bool { cache().lock().map(|c| c.telemetry).unwrap_or(true)
 pub fn set_telemetry(on: bool) {
     if let Ok(mut c) = cache().lock() { c.telemetry = on; write_file(&c); }
 }
+/// The followed-Uma main panel. OFF = tower-only style setups (the other broadcast
+/// panels keep their own toggles).
+pub fn tele_main() -> bool { cache().lock().map(|c| c.tele_main).unwrap_or(true) }
 pub fn tele_grade() -> bool { cache().lock().map(|c| c.tele_grade).unwrap_or(true) }
 pub fn tele_portrait() -> bool { cache().lock().map(|c| c.tele_portrait).unwrap_or(true) }
 pub fn tele_rival() -> bool { cache().lock().map(|c| c.tele_rival).unwrap_or(true) }
@@ -640,6 +648,7 @@ pub fn tele_pace() -> bool { cache().lock().map(|c| c.tele_pace).unwrap_or(true)
 pub fn tele_battle() -> bool { cache().lock().map(|c| c.tele_battle).unwrap_or(true) }
 pub fn tele_marker() -> bool { cache().lock().map(|c| c.tele_marker).unwrap_or(true) }
 pub fn tele_scale() -> f32 { cache().lock().map(|c| c.tele_scale).unwrap_or(1.0) }
+pub fn set_tele_main(v: bool) { if let Ok(mut c) = cache().lock() { c.tele_main = v; write_file(&c); } }
 pub fn set_tele_grade(v: bool) { if let Ok(mut c) = cache().lock() { c.tele_grade = v; write_file(&c); } }
 pub fn set_tele_portrait(v: bool) { if let Ok(mut c) = cache().lock() { c.tele_portrait = v; write_file(&c); } }
 pub fn set_tele_rival(v: bool) { if let Ok(mut c) = cache().lock() { c.tele_rival = v; write_file(&c); } }
@@ -655,6 +664,7 @@ pub fn set_tele_scale(v: f32) { if let Ok(mut c) = cache().lock() { c.tele_scale
 pub fn tele_preset_broadcast() {
     if let Ok(mut c) = cache().lock() {
         c.telemetry = true; // a preset implies you want the HUD on
+        c.tele_main = true;
         c.tele_grade = true; c.tele_portrait = true; c.tele_rival = false; c.tele_skills = false;
         c.tele_tower = true; c.tele_winprob = true; c.tele_pace = true; c.tele_battle = true; c.tele_marker = true;
         write_file(&c);
@@ -664,6 +674,7 @@ pub fn tele_preset_broadcast() {
 pub fn tele_preset_full() {
     if let Ok(mut c) = cache().lock() {
         c.telemetry = true;
+        c.tele_main = true;
         c.tele_grade = true; c.tele_portrait = true; c.tele_rival = true; c.tele_skills = true;
         c.tele_tower = true; c.tele_winprob = true; c.tele_pace = true; c.tele_battle = true; c.tele_marker = true;
         write_file(&c);

@@ -392,19 +392,24 @@ fn wide_into(buf: &mut [u16], s: &str) {
 }
 
 fn alert(name: &str, vid: i64) {
-    // Make it impossible to miss while AFK (e.g. watching a movie): (1) a NATIVE WINDOWS
-    // NOTIFICATION (Shell_NotifyIcon balloon → shows as a toast bottom-right + in the Action Center,
-    // even with the game in the background, like a desktop-app notification). (2) flash the game's
-    // taskbar button continuously until it's focused. The toast carries its own notification sound.
-    let hwnd = crate::display::game_hwnd();
-    if hwnd == 0 {
-        return;
-    }
     let body = if name.is_empty() {
         format!("viewer {vid} — pick them now")
     } else {
         format!("{name} ({vid}) — pick them now")
     };
+    notify("Heaven — Target found!", &body);
+}
+
+/// AFK-proof desktop alert, shared by every hunter-style loop (opponent hunter, room finder):
+/// (1) a NATIVE WINDOWS NOTIFICATION (Shell_NotifyIcon balloon → shows as a toast bottom-right +
+/// in the Action Center, even with the game in the background, like a desktop-app notification).
+/// (2) flash the game's taskbar button continuously until it's focused. The toast carries its own
+/// notification sound.
+pub(crate) fn notify(title: &str, body: &str) {
+    let hwnd = crate::display::game_hwnd();
+    if hwnd == 0 {
+        return;
+    }
     unsafe {
         // (1) toast via a transient tray balloon
         use windows_sys::Win32::UI::Shell::{
@@ -420,9 +425,9 @@ fn alert(name: &str, vid: i64) {
         nid.uFlags = NIF_ICON | NIF_INFO | NIF_TIP;
         nid.hIcon = LoadIconW(std::ptr::null_mut(), IDI_INFORMATION);
         nid.dwInfoFlags = NIIF_INFO;
-        wide_into(&mut nid.szTip, "Heaven — Opponent hunter");
-        wide_into(&mut nid.szInfoTitle, "Heaven — Target found!");
-        wide_into(&mut nid.szInfo, &body);
+        wide_into(&mut nid.szTip, "Heaven");
+        wide_into(&mut nid.szInfoTitle, title);
+        wide_into(&mut nid.szInfo, body);
         Shell_NotifyIconW(NIM_ADD, &nid);
         Shell_NotifyIconW(NIM_MODIFY, &nid); // ensure the balloon shows even if the icon already existed
 
@@ -530,6 +535,10 @@ unsafe extern "C" fn tween_hook(ut: i32, dt: f32, idt: f32, mi: *const c_void) {
     crate::reset::poll(); // main-thread execution point for a requested soft reset (guarded, no-op if idle)
     crate::crashlog::step("hunter:tween:affinity-pump");
     crate::affinity::poll(); // main-thread sample of "is a dialog open" for the affinity badge gate
+    crate::crashlog::step("hunter:tween:pruner-pump");
+    crate::pruner::pump(); // follower-pruner reads/removals must run on the main thread (guarded, no-op if idle)
+    crate::crashlog::step("hunter:tween:roomfinder-pump");
+    crate::roomfinder::pump(); // room-match finder read/refresh/join cycle (guarded, no-op if idle)
     crate::crashlog::step("hunter:tween:orig");
     let o = TWEEN_ORIG.load(Ordering::Relaxed);
     if o != 0 {

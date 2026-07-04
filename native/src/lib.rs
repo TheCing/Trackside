@@ -45,6 +45,8 @@ mod names;
 mod overlay;
 mod padder;
 mod paths;
+mod pruner;
+mod roomfinder;
 // Live race reader (Race panel + race-result win-gate). Built in both the full
 // private build and the public build (the race-result skip needs finish placement).
 #[cfg(feature = "raceread")]

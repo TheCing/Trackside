@@ -263,6 +263,27 @@ pub fn nested_class(outer_full: &str, nested_name: &str) -> Class {
     std::ptr::null_mut()
 }
 
+/// Every nested type of `klass` as (simple_name, Class). Empty when the class has none or
+/// introspection is unavailable. Nested types are invisible to image class enumeration, so
+/// the scanner needs this to reach e.g. `WorkDataUtil.RacePresetData` or `…Item.ItemData`.
+pub fn nested_types(klass: Class) -> Vec<(String, Class)> {
+    let mut out = Vec::new();
+    if klass.is_null() {
+        return out;
+    }
+    unsafe {
+        let mut iter: *mut c_void = std::ptr::null_mut();
+        loop {
+            let k = (api().class_get_nested_types)(klass, &mut iter);
+            if k.is_null() {
+                break;
+            }
+            out.push((class_name(k), k));
+        }
+    }
+    out
+}
+
 /// Look up a method on a class by name + argument count (-1 = any count).
 pub fn method(klass: Class, name: &str, argc: i32) -> Method {
     if klass.is_null() {
@@ -459,6 +480,162 @@ pub fn method_param_types(klass: Class, name: &str) -> Vec<String> {
         }
     }
     out
+}
+
+// ── class enumeration (RE/scan tooling) ──────────────────────────────────────
+// `il2cpp_image_get_class_count` / `il2cpp_image_get_class` enumerate every type in an
+// image. Resolved lazily (like resolve_icall) so a runtime that lacks the exports never
+// breaks init — the scan feature just reports "unavailable".
+type FnImageGetClassCount = unsafe extern "C" fn(Image) -> usize;
+type FnImageGetClass = unsafe extern "C" fn(Image, usize) -> Class;
+type FnClassGetNamespace = unsafe extern "C" fn(Class) -> *const c_char;
+static CLASS_ENUM: OnceLock<Option<(FnImageGetClassCount, FnImageGetClass, FnClassGetNamespace)>> =
+    OnceLock::new();
+
+fn class_enum_api() -> Option<&'static (FnImageGetClassCount, FnImageGetClass, FnClassGetNamespace)> {
+    CLASS_ENUM
+        .get_or_init(|| {
+            let m = game_module();
+            if m.is_null() {
+                return None;
+            }
+            unsafe {
+                let count = resolve::<FnImageGetClassCount>(m, b"il2cpp_image_get_class_count\0")?;
+                let get = resolve::<FnImageGetClass>(m, b"il2cpp_image_get_class\0")?;
+                let ns = resolve::<FnClassGetNamespace>(m, b"il2cpp_class_get_namespace\0")?;
+                Some((count, get, ns))
+            }
+        })
+        .as_ref()
+}
+
+/// Namespace-qualified name of a class ("Namespace.Name", or bare "Name").
+pub fn class_full_name(klass: Class) -> String {
+    if klass.is_null() {
+        return String::new();
+    }
+    let name = class_name(klass);
+    match class_enum_api() {
+        Some((_, _, ns_fn)) => {
+            let ns = unsafe { cstr_to_string((ns_fn)(klass)) };
+            if ns.is_empty() {
+                name
+            } else {
+                format!("{ns}.{name}")
+            }
+        }
+        None => name,
+    }
+}
+
+/// Every loaded class whose SIMPLE NAME contains `substr` (case-insensitive), as
+/// (full_name, Class) pairs. Empty if the enumeration exports are unavailable.
+/// Metadata-only — safe from any attached thread.
+pub fn find_classes(substr: &str) -> Vec<(String, Class)> {
+    let mut out = Vec::new();
+    let Some((count_fn, get_fn, _)) = class_enum_api() else {
+        return out;
+    };
+    let needle = substr.to_lowercase();
+    unsafe {
+        let dom = domain();
+        let mut n_asm: usize = 0;
+        let asms = (api().domain_get_assemblies)(dom, &mut n_asm);
+        if asms.is_null() {
+            return out;
+        }
+        for i in 0..n_asm {
+            let asm = *asms.add(i);
+            if asm.is_null() {
+                continue;
+            }
+            let img = (api().assembly_get_image)(asm);
+            if img.is_null() {
+                continue;
+            }
+            let n = (count_fn)(img);
+            for j in 0..n {
+                let k = (get_fn)(img, j);
+                if k.is_null() {
+                    continue;
+                }
+                if class_name(k).to_lowercase().contains(&needle) {
+                    out.push((class_full_name(k), k));
+                }
+            }
+        }
+    }
+    out
+}
+
+// ── field/parent introspection (RE/scan tooling) ─────────────────────────────
+// Lazily resolved like the class enumeration: absent exports just disable the feature.
+type FnClassGetFields = unsafe extern "C" fn(Class, *mut *mut c_void) -> Field;
+type FnFieldGetName = unsafe extern "C" fn(Field) -> *const c_char;
+type FnFieldGetTypeFn = unsafe extern "C" fn(Field) -> *mut c_void;
+type FnClassGetParent = unsafe extern "C" fn(Class) -> Class;
+static INTROSPECT: OnceLock<Option<(FnClassGetFields, FnFieldGetName, FnFieldGetTypeFn, FnClassGetParent)>> =
+    OnceLock::new();
+
+fn introspect_api() -> Option<&'static (FnClassGetFields, FnFieldGetName, FnFieldGetTypeFn, FnClassGetParent)> {
+    INTROSPECT
+        .get_or_init(|| {
+            let m = game_module();
+            if m.is_null() {
+                return None;
+            }
+            unsafe {
+                let fields = resolve::<FnClassGetFields>(m, b"il2cpp_class_get_fields\0")?;
+                let fname = resolve::<FnFieldGetName>(m, b"il2cpp_field_get_name\0")?;
+                let ftype = resolve::<FnFieldGetTypeFn>(m, b"il2cpp_field_get_type\0")?;
+                let parent = resolve::<FnClassGetParent>(m, b"il2cpp_class_get_parent\0")?;
+                Some((fields, fname, ftype, parent))
+            }
+        })
+        .as_ref()
+}
+
+/// All instance/static fields of a class as (name, offset, type_name). Empty when the
+/// introspection exports are unavailable. For RE/diagnostics.
+pub fn class_fields(klass: Class) -> Vec<(String, usize, String)> {
+    let mut out = Vec::new();
+    if klass.is_null() {
+        return out;
+    }
+    let Some((fields_fn, fname_fn, ftype_fn, _)) = introspect_api() else {
+        return out;
+    };
+    unsafe {
+        let mut iter: *mut c_void = std::ptr::null_mut();
+        loop {
+            let f = (fields_fn)(klass, &mut iter);
+            if f.is_null() {
+                break;
+            }
+            let name = cstr_to_string((fname_fn)(f));
+            let off = (api().field_get_offset)(f);
+            let t = (ftype_fn)(f);
+            let tn = if t.is_null() {
+                "?".to_string()
+            } else {
+                let p = (api().type_get_name)(t);
+                if p.is_null() { "?".to_string() } else { cstr_to_string(p) }
+            };
+            out.push((name, off, tn));
+        }
+    }
+    out
+}
+
+/// Immediate base class (null for System.Object / when introspection is unavailable).
+pub fn class_parent(klass: Class) -> Class {
+    if klass.is_null() {
+        return std::ptr::null_mut();
+    }
+    match introspect_api() {
+        Some((_, _, _, parent_fn)) => unsafe { (parent_fn)(klass) },
+        None => std::ptr::null_mut(),
+    }
 }
 
 // `il2cpp_resolve_icall(const char* signature)` returns the native function backing an

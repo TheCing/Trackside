@@ -64,6 +64,8 @@ pub enum Custom {
     TeamTrials,      // capture toggle + "N saved" count
     TtPadder,        // Team Trials deck profiles — snapshot + 1-click swap
     TtHunter,        // Team Trials opponent hunter — auto-refresh until a target appears
+    Followers,       // Follower pruner — preview + paced removal of oldest-inactive followers
+    RoomFinder,      // Room Match finder — auto-refresh the room list until a room matches the filters
     Affinity,        // Legacy Select succession-affinity numbers — enable + drag-to-place + size
     Intro,           // intro status + replay button
     Updates,         // version + check/pull/releases
@@ -166,6 +168,20 @@ pub fn model() -> Vec<Tab> {
                 blurb: "Saved results are read by the Heaven dashboard.",
                 controls: vec![Ctrl::Custom(Custom::TeamTrials)],
             },
+            Section {
+                title: "Follower pruner",
+                icon: '\u{E8FA}',
+                blurb: "Trim the oldest-inactive followers when you're near the 1000 cap.",
+                controls: vec![Ctrl::Custom(Custom::Followers)],
+            },
+            // Room Match is its own game mode, but this is the hunter-loop toolbox tab —
+            // keeping all the "repeat until target" tools together beats a one-section tab.
+            Section {
+                title: "Room finder",
+                icon: '\u{E774}',
+                blurb: "Auto-refresh the Room Match list until a room matches your filters.",
+                controls: vec![Ctrl::Custom(Custom::RoomFinder)],
+            },
         ],
     });
 
@@ -197,6 +213,7 @@ pub fn model() -> Vec<Tab> {
                 blurb: "Live broadcast HUD — shows all the data during any race, freecam or not.",
                 controls: vec![
                     Ctrl::Toggle { id: "tel", label: "Telemetry HUD", get: crate::settings::telemetry, set: crate::settings::set_telemetry },
+                    Ctrl::Toggle { id: "tmn", label: "Main panel (followed Uma)", get: crate::settings::tele_main, set: crate::settings::set_tele_main },
                     Ctrl::Toggle { id: "ttw", label: "Timing tower", get: crate::settings::tele_tower, set: crate::settings::set_tele_tower },
                     Ctrl::Toggle { id: "twp", label: "Win probability", get: crate::settings::tele_winprob, set: crate::settings::set_tele_winprob },
                     Ctrl::Toggle { id: "tmk", label: "Head marker (needs freecam)", get: crate::settings::tele_marker, set: crate::settings::set_tele_marker },
