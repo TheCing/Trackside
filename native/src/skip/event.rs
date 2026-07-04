@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::OnceLock;
 
 use crate::hooks::{in_heaven, ReentryGuard};
@@ -27,35 +27,10 @@ crate::skip_hook_slot!(TR_TIMELINE, D_TIMELINE);
 crate::skip_hook_slot!(TR_TAGIN, D_TAGIN); // SingleModeMainViewTagTrainingCutInPlayer.PlayCutIn
 crate::skip_hook_slot!(TR_TAGOUT, D_TAGOUT); // .PlayCutInOut
 
-// ── "Goal Complete" event guard ─────────────────────────────────────────────
-// The "All goals achieved / GOAL COMPLETE" event (SingleModeConfirmCompleteViewController, shown
-// before the URA-Finale race) plays a story. SkipStory'ing THAT one deadlocks the game — confirmed:
-// turning the event-skip OFF lets it pass. So while that screen is up, the event-skip stands down
-// (== "Events OFF" but only there, automatic). Set on ConfirmComplete.PlayInView, cleared at Home.
-pub(crate) static CAREER_END: AtomicBool = AtomicBool::new(false);
-crate::skip_hook_slot!(TR_CONFIRM, D_CONFIRM); // SingleModeConfirmCompleteViewController.PlayInView
-
-/// PlayInView of the "Goal Complete" screen — suspend the event-skip until Home.
-pub(crate) unsafe extern "C" fn on_confirm_complete_in(this: *mut c_void, m: *mut c_void) -> *mut c_void {
-    CAREER_END.store(true, Ordering::Relaxed);
-    rr_log("[event] Goal Complete screen — event-skip suspended (anti-deadlock)");
-    let t = TR_CONFIRM.load(Ordering::Relaxed);
-    if t != 0 {
-        let f: unsafe extern "C" fn(*mut c_void, *mut c_void) -> *mut c_void = std::mem::transmute(t);
-        f(this, m)
-    } else {
-        std::ptr::null_mut()
-    }
-}
-
 // ── EVENTS: SkipStory on OnStartPlayingTimeline (guarded + debounced). ──────
 static LAST_EVENT_SKIP_MS: AtomicU64 = AtomicU64::new(0);
 fn try_event_skip(this: *mut c_void) {
     if !is_event_enabled() || in_heaven() || this.is_null() {
-        return;
-    }
-    if CAREER_END.load(Ordering::Relaxed) {
-        rr_log("[event] ignored (Goal Complete guard)");
         return;
     }
     let now = clock().elapsed().as_millis() as u64;

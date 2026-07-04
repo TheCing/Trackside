@@ -468,6 +468,11 @@ pub fn install() -> (bool, bool, String) {
             "Gallop.PartsRivalEntryAnimation",
             "<PlayRivalEntryCoroutine>d__11",
         );
+        // The skip is now context-gated in rival::on_rival_movenext: it is SUPPRESSED when the
+        // coroutine's endAction targets a paddock view controller (the URA/scenario-finals rival
+        // intro is embedded in the paddock as the "VsUniqueNpcEntry" step, and firing that
+        // continuation early corrupted the paddock — default 9999 stats). Normal rival races (entry
+        // card outside the paddock) still skip. (Root-caused 2026-07-05 from a live field dump.)
         if rcoro.is_null() {
             notes.push_str("rival coro miss; ");
         } else {
