@@ -145,22 +145,27 @@ parent's value. The numbers appear as on-screen badges you can **drag anywhere a
 placement and size are remembered. Turn it on under **Interface → Affinity numbers**. It only shows
 on the Legacy Select screen.
 
-### Race export
-Save each race you run to a JSON file (under a `heaven-races` folder next to the game), grouped
-by race type, for web race viewers/analysis. Enable **Export races** under **Gameplay → Race
-export**.
+### Companion plugins
+Built-in, native stand-ins for the popular companion tools — so you get their functionality
+without loading any external DLLs. All toggles live under **Gameplay → Companion plugins**.
 
-### Veterans export (Hakuraku)
-Export your trained Umamusume — your "veterans" — to a local file that the
-[Hakuraku](https://hakuraku.moe/veterans) site reads. Enable **Export veterans (Hakuraku)**
-under **Gameplay → Race export**; the next time your trained-uma roster loads in-game, Heaven
-writes `heaven_umas/veterans.json` next to the game. Upload that file to Hakuraku.
+- **Export races (horseACT)** — save each race you run to a JSON file (under a `heaven-races`
+  folder next to the game), grouped by race type, for web race viewers/analysis. Captures both
+  the races you watch in 3D **and** the ones you simulate/skip.
+- **Export veterans (Hakuraku)** — export your trained Umamusume — your "veterans" — to a local
+  file that the [Hakuraku](https://hakuraku.moe/veterans) site reads. The next time your
+  trained-uma roster loads in-game, Heaven writes `heaven_umas/veterans.json` next to the game;
+  upload that file to Hakuraku.
+- **Companion feed (CarrotBlender)** — serves the game's decrypted responses to companion
+  overlays (such as UmaOverlay-lite) over a local connection, so those overlays work without a
+  separate plugin.
 
-This brings the veterans export — previously provided by the **horseACT** plugin — natively
-into Heaven. Doing it inside Heaven avoids the compatibility issues that came from running both
-mods at once, integrates the feature with the rest of Heaven, and lets you keep using Hakuraku
-without needing a second tool. Included with the kind permission of **ayaliz**, the author of
-horseACT — thank you: **https://github.com/ayaliz/horseACT**
+These replicate the race/veterans dump previously provided by the **horseACT** plugin and the
+response feed provided by **CarrotBlender**, natively inside Heaven. Doing it in-process avoids
+the compatibility issues that came from running several mods at once and keeps the features
+working after game updates that broke the standalone plugins. Included with the kind permission
+of **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT)) and **qwcan**
+([CarrotBlender](https://github.com/qwcan/CarrotBlender)) — thank you both.
 
 ---
 
@@ -262,8 +267,10 @@ Custom intro section above).
 
 Made by **Night DC : nighty3333**.
 
-Thanks to **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT)) for kindly allowing the
-veterans export to be included in Heaven, so users can keep using Hakuraku without conflicts.
+Thanks to **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT)) and **qwcan**
+([CarrotBlender](https://github.com/qwcan/CarrotBlender)) for kindly allowing their tools' race,
+veterans and companion-feed functionality to be included natively in Heaven, so users can keep
+using Hakuraku and their favourite overlays without conflicts.
 
 If Heaven saves you time, a coffee is appreciated:
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nighty33) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/SpCGcXMeFt)

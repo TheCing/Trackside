@@ -103,10 +103,14 @@ unsafe fn dump_inner(ri: *mut c_void) {
         return;
     }
 
-    // Resolve + cache the SimDataBase64 field offset once.
+    // Resolve + cache the SimData field offset once. We key on `<SimData>k__BackingField`
+    // (the deserialized RaceSimulateData OBJECT, offset 0xe8) rather than the base64 STRING
+    // (`<SimDataBase64>`, 0xe0): the object is populated on BOTH the 3D path (SetAndDeserializeBase64)
+    // AND the simulated/skipped path (SetupSimulateData attaches an already-deserialized SimData,
+    // where the base64 string can be empty). Using the object makes "race ready" fire for skips too.
     let mut sim_off = SIM_OFFSET.load(Ordering::Relaxed);
     if sim_off == usize::MAX {
-        sim_off = h::field_offset(klass, "<SimDataBase64>k__BackingField").unwrap_or(0);
+        sim_off = h::field_offset(klass, "<SimData>k__BackingField").unwrap_or(0);
         SIM_OFFSET.store(sim_off, Ordering::Relaxed);
     }
     let sim_ptr = if sim_off != 0 {
@@ -114,11 +118,11 @@ unsafe fn dump_inner(ri: *mut c_void) {
     } else {
         0
     };
-    // One line per distinct RaceInfo so the log shows the getter firing + whether the
-    // SimData blob has populated yet (diagnostic; cheap, ~1 line per race).
+    // One line per distinct RaceInfo so the log shows the trigger firing + whether the
+    // SimData object has populated yet (diagnostic; cheap, ~1 line per race).
     if (ri as usize) != LAST_DIAG.load(Ordering::Relaxed) {
         LAST_DIAG.store(ri as usize, Ordering::Relaxed);
-        elog(&format!("[race-export] rt hook: ri={ri:p} sim_off={sim_off:#x} sim_ptr={sim_ptr:#x}"));
+        elog(&format!("[race-export] trigger: ri={ri:p} sim_off={sim_off:#x} sim_ptr={sim_ptr:#x}"));
     }
     // If we know the SimData slot and it's still empty, the race isn't ready —
     // don't dump (and don't mark it seen, so we retry on the next call).

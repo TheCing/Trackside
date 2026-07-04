@@ -60,10 +60,6 @@ fn module_loaded(name: &str) -> bool {
     unsafe { !GetModuleHandleA(bytes.as_ptr()).is_null() }
 }
 
-// Identify the build so a report tells us which DLL the user is actually running. `#[cfg]` (not a
-// runtime `if cfg!()`) so the wording for OTHER builds is never COMPILED IN — the public build's
-// private-only wording is never present in the public DLL.
-#[cfg(all(not(feature = "oracle"), not(feature = "panels")))]
 fn build_kind() -> &'static str {
     "public"
 }

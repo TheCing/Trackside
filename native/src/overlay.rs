@@ -14,7 +14,6 @@ use hudhook::{ImguiRenderLoop, TextureLoader};
 
 use std::time::Instant;
 
-// Career/Race data types are only used by the info panels (feature `panels`).
 use crate::data::GameState;
 use crate::ipc;
 
@@ -412,9 +411,6 @@ pub struct HeavenOverlay {
     intro_auto_started: bool,
 }
 
-// Umamusume header banner — baked RGBA (sky + ground + circular character + nameplate),
-// embedded by the `banner` build.
-#[cfg(all(feature = "banner", not(feature = "oracle")))]
 const BANNER_RGBA: &[u8] = include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/banner.rgba"));
 #[cfg(feature = "banner")]
 const BANNER_W: f32 = 960.0;
@@ -742,6 +738,9 @@ impl ImguiRenderLoop for HeavenOverlay {
     }
 
     fn render(&mut self, ui: &mut Ui) {
+        // Diagnostic: detect the inter-frame gap (main-thread stalls) now, and measure Heaven's own
+        // render cost when this scope drops at the end of the frame.
+        let _lp = crate::loadprof::frame();
         // Keep DOTween's timeScale pinned to our UI tempo (survives any game reset).
         crate::ui_tempo::enforce();
 
@@ -887,9 +886,6 @@ impl ImguiRenderLoop for HeavenOverlay {
         // Legacy Select affinity numbers — anchored on the game UI, menu open or not.
         crate::affinity::draw_badges_panel(ui);
 
-        // Full-build overlays draw on the game's native popup regardless of the
-        // Insert toggle — they belong to the game UI, not the Heaven panel, so
-        // hiding the controls must not hide them.
 
         // Freecam mouse zoom — works even with the panel hidden (drag/keys are polled in
         // freecam's own input thread). Wheel → zoom, when not over the Heaven panel.
@@ -999,8 +995,6 @@ impl ImguiRenderLoop for HeavenOverlay {
         } else {
             self.draw_menu(ui);
         }
-        // Info panels + info chip — private/full build only (feature `panels`).
-        // The public build ships SuperSkip/FPS/TT without the career/race readers.
 
         if applied {
             self.relayout = false;
@@ -2154,6 +2148,7 @@ fn nav_icon_idx(name: &str) -> Option<usize> {
 fn cat_icon(name: &str) -> &'static str {
     match name {
         "Gameplay" => "\u{E768}",    // Play
+        "Plugins" => "\u{E71D}",     // AllApps (companion plugins)
         "Team Trials" => "\u{E716}", // People (team)
         "Race Director" => "\u{E722}", // Camera (was "Camera")
         "Visuals" => "\u{E790}",     // Brightness/visuals
@@ -2530,7 +2525,6 @@ fn pink_slider_i32(ui: &Ui, id: &str, min: i32, max: i32, val: &mut i32, w: f32)
 // ── Heaven-styled panel helpers (match the menu: glass, gradient bars, Orbitron) ──
 
 /// Push the glass-window style used by the info panels. Tokens must outlive the window.
-#[cfg(any(feature = "panels", feature = "freecam"))]
 pub(crate) fn panel_style(ui: &Ui) -> impl Sized + '_ {
     (
         ui.push_style_color(StyleColor::WindowBg, [0.082, 0.047, 0.157, 0.97]),
@@ -2542,7 +2536,6 @@ pub(crate) fn panel_style(ui: &Ui) -> impl Sized + '_ {
 }
 
 /// A section title in the Cinzel face (accent colour).
-#[cfg(any(feature = "panels", feature = "freecam"))]
 pub(crate) fn panel_title(ui: &Ui, text: &str) {
     if let Some(tf) = TITLE_FONT.with(|c| c.get()) {
         let _t = ui.push_font(tf);
@@ -2553,7 +2546,6 @@ pub(crate) fn panel_title(ui: &Ui, text: &str) {
 }
 
 /// A rounded "pill" bar (track + filled portion), optionally with centred overlay text.
-#[cfg(any(feature = "panels", feature = "freecam"))]
 pub(crate) fn pbar(ui: &Ui, frac: f32, w: f32, h: f32, col: [f32; 4], overlay: &str) {
     let p = ui.cursor_screen_pos();
     {

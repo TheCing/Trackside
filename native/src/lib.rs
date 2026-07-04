@@ -23,6 +23,7 @@ mod clipboard;
 mod crashlog;
 mod data;
 mod diag;
+mod loadprof;
 mod hachimi_compat;
 #[cfg(feature = "freecam")]
 mod freecam;
@@ -42,11 +43,7 @@ mod menu_model;
 mod names;
 // Shared msgpack (rmpv) tree-walk helpers for the response-hook consumers.
 // Only compiled when an rmpv-pulling feature is on.
-#[cfg(any(feature = "racenet", feature = "oracle"))]
 mod msgpack;
-// Extra response consumers
-// modules; compiled only in the full build
-// public API stable for the rest of the app.
 mod overlay;
 mod padder;
 mod paths;
@@ -64,7 +61,6 @@ mod reset;
 mod umas;
 // The single Gallop.HttpHelper::DecompressResponse hook: player-id (race-result gate) + race
 // retries + companion-bridge fan-out + full-build extras.
-#[cfg(any(feature = "racenet", feature = "oracle"))]
 mod response_hook;
 mod selfupdate;
 mod settings;
@@ -77,9 +73,10 @@ mod ui_input;
 mod tt_il2cpp;
 #[cfg(feature = "banner")]
 mod startup_probe;
-// Extra info panels, compiled only in the full build.
 mod ui_tempo;
 mod uma_bridge;
+// Native, in-process stand-ins for the companion plugins (horseACT export, CarrotBlender feed).
+mod friendlyplugins;
 mod update;
 
 use hudhook::hooks::dx11::ImguiDx11Hooks;

@@ -121,10 +121,13 @@ pub fn spawn() {
         // runtime is ready, handing them a Heaven-backed compatible vtable. Self-contained mods
         // (no such export) are left untouched (already started by the early loader).
         log(&format!("plugins(sdk): {}", crate::hachimi_compat::init_plugins()));
+        // If an external SDK plugin (e.g. a companion feed) loaded from heaven_plugins/, it already
+        // owns the overlay UDP channel — stand our native feed down so the two don't double-send.
+        if crate::hachimi_compat::sdk_plugins_loaded() > 0 {
+            crate::uma_bridge::set_external_active(true);
+            log("companion feed: external SDK plugin present -> native feed deferred");
+        }
 
-        // 3) Install modules. Each is independent; one failing never blocks the
-        //    others (keeps the proven core alive even if an experimental part
-        //    can't resolve on a future game patch).
         let (tr_ok, ev_ok, snotes) = skip::install();
         log(&format!("superskip: training={tr_ok} events={ev_ok} [{}]", snotes.trim_end()));
         crate::diag::record_install("superskip", &format!("training={tr_ok} events={ev_ok} [{}]", snotes.trim_end()));
@@ -182,7 +185,6 @@ pub fn spawn() {
         // Network response hook: reads each msgpack API response to identify the player's horse
         // (Top-1 race-result skip gate), remaining race retries, feed the companion bridge, and —
         // full-build-only extras. One detour for all.
-        #[cfg(any(feature = "oracle", feature = "racenet"))]
         {
             crate::response_hook::install();
             log("response hook: armed");

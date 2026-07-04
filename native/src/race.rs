@@ -254,10 +254,13 @@ slot!(TR_IMPORT, D_IMPORT);
 slot!(TR_POST, D_POST);
 slot!(TR_PLAYER, D_PLAYER);
 slot!(TR_RTEXP, D_RTEXP);
+slot!(TR_SAD, D_SAD);
+slot!(TR_SETUP, D_SETUP);
 
 type VoidM = unsafe extern "C" fn(*mut c_void, *mut c_void);
 type FrameM = unsafe extern "C" fn(*mut c_void, i32, *mut c_void) -> *mut c_void;
 type IntM = unsafe extern "C" fn(*mut c_void, *mut c_void) -> i32;
+type VoidStrM = unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void);
 
 unsafe fn call_void(tr: &AtomicUsize, this: *mut c_void, m: *mut c_void) {
     let t = tr.load(Ordering::Relaxed);
@@ -407,6 +410,34 @@ unsafe extern "C" fn on_rt_export(this: *mut c_void, m: *mut c_void) -> i32 {
     }
 }
 
+// RaceInfo.SetAndDeserializeBase64(string) — fires whenever the race sim result is deserialized onto
+// a RaceInfo, for BOTH the 3D replay AND simulated/skipped races. `get_RaceTrackId` is only called
+// when the game builds the 3D header, so it missed simulated races (export "only worked on 3D").
+// Run the original first so <SimDataBase64> is populated, then dump. Mirrors horseACT's capture point.
+unsafe extern "C" fn on_set_deserialize(this: *mut c_void, s: *mut c_void, m: *mut c_void) {
+    let t = TR_SAD.load(Ordering::Relaxed);
+    if t != 0 {
+        let f: VoidStrM = std::mem::transmute(t);
+        f(this, s, m);
+    }
+    rlog("[race-export] via SetAndDeserializeBase64 (3D path)");
+    crate::race_export::maybe_dump(this);
+}
+
+// RaceInfo.SetupSimulateData(RaceSimulateData) — attaches an ALREADY-deserialized sim result to
+// the RaceInfo. This is the sink for SIMULATED / skipped career races (where the base64 string
+// path — SetAndDeserializeBase64 — and the 3D-only get_RaceTrackId are never called). Run the
+// original first so <SimData> is attached, then dump.
+unsafe extern "C" fn on_setup_sim(this: *mut c_void, sim: *mut c_void, m: *mut c_void) {
+    let t = TR_SETUP.load(Ordering::Relaxed);
+    if t != 0 {
+        let f: VoidStrM = std::mem::transmute(t);
+        f(this, sim, m);
+    }
+    rlog("[race-export] via SetupSimulateData (sim/skip path)");
+    crate::race_export::maybe_dump(this);
+}
+
 unsafe fn hook(
     klass: il2cpp::Class,
     name: &str,
@@ -495,6 +526,20 @@ pub fn install() -> String {
             && hook(ri, "get_RaceTrackId", 0, on_rt_export as *const (), &TR_RTEXP, &D_RTEXP)
         {
             got.push("export");
+        }
+        // Also capture SIMULATED / skipped races: get_RaceTrackId isn't called for them, but
+        // RaceInfo.SetAndDeserializeBase64 IS (it deserializes the sim result onto the RaceInfo).
+        if !ri.is_null()
+            && hook(ri, "SetAndDeserializeBase64", 1, on_set_deserialize as *const (), &TR_SAD, &D_SAD)
+        {
+            got.push("export-3d");
+        }
+        // The skip path: SetupSimulateData attaches the already-deserialized sim result to the
+        // RaceInfo (SetAndDeserializeBase64 / get_RaceTrackId don't fire on a simulated career race).
+        if !ri.is_null()
+            && hook(ri, "SetupSimulateData", 1, on_setup_sim as *const (), &TR_SETUP, &D_SETUP)
+        {
+            got.push("export-sim");
         }
     }
     format!("hooks=[{}]", got.join(","))

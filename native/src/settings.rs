@@ -141,6 +141,9 @@ pub struct Settings {
     // Export trained "veteran" umas to heaven_umas/veterans.json (Hakuraku format).
     #[serde(default)]
     pub umas_export: bool,
+    // CarrotBlender-style companion feed (uma_bridge → companion overlays). Default ON (passive).
+    #[serde(default = "default_true")]
+    pub companion_bridge: bool,
     // Freecam 3rd-person camera presets PER CIRCUIT (track id → named presets + which is default).
     // Captured/cycled in-race; renamed/managed in the overlay. Persisted forever.
     #[serde(default)]
@@ -244,6 +247,7 @@ impl Default for Settings {
             win: std::collections::HashMap::new(),
             race_export: false,
             umas_export: false,
+            companion_bridge: true,
             rd_keys: default_rd_keys(),
         }
     }
@@ -280,6 +284,7 @@ pub fn apply_on_boot() {
     crate::freecam::apply(&s);
     #[cfg(feature = "raceread")]
     crate::race_export::apply(&s);
+    crate::friendlyplugins::apply(&s);
     crate::umas::apply(&s);
     if let Ok(mut c) = cache().lock() {
         *c = s;
@@ -671,6 +676,7 @@ pub fn set_umas_export(on: bool) {
         write_file(&c);
     }
 }
+
 
 /// A circuit's camera presets (clone). Empty if none saved.
 pub fn cam_presets(track: i32) -> Vec<CamPreset> {

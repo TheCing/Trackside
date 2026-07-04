@@ -50,10 +50,7 @@ unsafe fn on_response(ret: *mut c_void) {
 
     let has_race = contains(slice, b"race_horse_data");
     let has_cont = contains(slice, b"available_continue_num");
-    // These payloads only matter to a full-build consumer, and only while it's on
-    // (the `is_enabled()` short-circuit avoids scanning every response when the overlay is off).
         && (contains(slice, b"choice_array") || contains(slice, b"choice_reward_array"));
-    #[cfg(not(feature = "oracle"))]
     let has_event = false;
 
     if !has_race && !has_cont && !has_event {
@@ -115,6 +112,7 @@ fn parse_continues(bytes: &[u8]) {
 }
 
 unsafe extern "C" fn hook_static(arg0: *mut c_void, m: *const c_void) -> *mut c_void {
+    let t0 = std::time::Instant::now();
     let ret = {
         let t = ORIG.load(Ordering::Relaxed);
         if t != 0 {
@@ -124,11 +122,12 @@ unsafe extern "C" fn hook_static(arg0: *mut c_void, m: *const c_void) -> *mut c_
             std::ptr::null_mut()
         }
     };
-    on_response(ret);
+    profile(ret, t0);
     ret
 }
 
 unsafe extern "C" fn hook_inst(this: *mut c_void, arg0: *mut c_void, m: *const c_void) -> *mut c_void {
+    let t0 = std::time::Instant::now();
     let ret = {
         let t = ORIG.load(Ordering::Relaxed);
         if t != 0 {
@@ -138,8 +137,19 @@ unsafe extern "C" fn hook_inst(this: *mut c_void, arg0: *mut c_void, m: *const c
             std::ptr::null_mut()
         }
     };
-    on_response(ret);
+    profile(ret, t0);
     ret
+}
+
+/// Time the game's decompress (`t0`→now) and Heaven's own scan of the result, then fan out. The
+/// diagnostic split lets us tell whether a slow response is the game's decrypt/lz4 or our parsing.
+unsafe fn profile(ret: *mut c_void, t0: std::time::Instant) {
+    let decomp_ms = t0.elapsed().as_secs_f64() * 1000.0;
+    let len = if ret.is_null() { 0 } else { h::array_len(ret as *mut h::RawObject) };
+    crate::loadprof::decompress(len, decomp_ms);
+    let p0 = std::time::Instant::now();
+    on_response(ret);
+    crate::loadprof::parse(p0.elapsed().as_secs_f64() * 1000.0, &format!("{}KB", len / 1024));
 }
 
 /// Install the DecompressResponse hook. Idempotent. Called once at boot.

@@ -58,6 +58,7 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     // trampolines and produced the intermittent AV/C++-exception crash stamped "after-tween". Now
     // consolidated here: one detour, every pump. All pumps are idempotent/guarded and safe on the main
     // thread (the only place RequestBase.Send / SoftwareReset may run).
+    let pump_t0 = std::time::Instant::now();
     crate::crashlog::step("tween:hunter-pump");
     crate::hunter::frame_pump(); // opponent-hunter jittered auto-roll
     crate::crashlog::step("tween:padder-pump");
@@ -66,6 +67,8 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     crate::reset::poll(); // soft-reset main-thread execution point (guarded, no-op if idle)
     crate::crashlog::step("tween:affinity-pump");
     crate::affinity::poll(); // affinity-badge "is a dialog open" gate sample
+    // Diagnostic: how long Heaven's own main-thread pumps take this frame (proves we're not the stall).
+    crate::loadprof::pump(pump_t0.elapsed().as_secs_f64() * 1000.0);
     crate::crashlog::step("tween:scale-orig");
     let s = tempo();
     if s != 1.0 {

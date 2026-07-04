@@ -19,8 +19,6 @@ use crate::http;
 /// This build's version (from Cargo.toml). Releases are tagged `v<this>`.
 const CURRENT: &str = env!("CARGO_PKG_VERSION");
 
-// The self-updater checks this build's own release repository for new versions.
-#[cfg(not(feature = "panels"))]
 const REPO: &str = "Nighty3333/Heaven-Internal-Public-Version-";
 
 /// The loose DLL asset the release must carry for one-click updates (uploaded alongside the zips

@@ -6,12 +6,21 @@
 use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, LoadLibraryW};
 
 use super::il2cpp_api::api;
 use super::vtable::VTABLE;
 use super::{plog, sym, HachimiInitFn, InitResult, SDK_VERSION};
+
+// How many external SDK plugins successfully initialised this run. Used by the native companion
+// feed to step aside (an external plugin like CarrotBlender feeds the same UDP channel; running
+// both would double-send and corrupt the stream).
+static SDK_LOADED: AtomicU32 = AtomicU32::new(0);
+pub fn sdk_plugins_loaded() -> u32 {
+    SDK_LOADED.load(Ordering::Relaxed)
+}
 
 fn wide(s: &OsStr) -> Vec<u16> {
     s.encode_wide().chain(std::iter::once(0)).collect()
@@ -68,6 +77,7 @@ pub fn init_plugins() -> String {
             notes.push_str(&format!(" [{name}: ERROR]"));
         }
     }
+    SDK_LOADED.store(inited, Ordering::Relaxed);
     if inited == 0 && notes.is_empty() {
         "no SDK plugins (none export hachimi_init)".into()
     } else {

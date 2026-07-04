@@ -167,8 +167,6 @@ unsafe extern "C" fn on_button_update(this: *mut c_void, m: *mut c_void) {
             }
         }
     }
-    // Main-thread per-frame tick: let full-build overlays recompute their geometry here
-    // (Unity UI calls are only safe on the game thread, not the render thread).
     if rr_should_advance() && WINDOW_OPEN.load(Ordering::Relaxed) && !in_heaven() {
         auto_press(this);
     }

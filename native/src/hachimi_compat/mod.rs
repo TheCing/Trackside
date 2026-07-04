@@ -39,7 +39,7 @@ mod services;
 mod vtable;
 
 // Public API the app calls.
-pub use init::init_plugins;
+pub use init::{init_plugins, sdk_plugins_loaded};
 
 // ── shared opaque pointer aliases ────────────────────────────────────────────
 // Every concrete il2cpp/host pointer is a machine pointer, so c_void pointers are
