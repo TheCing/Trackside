@@ -21,3 +21,7 @@ native/README.md
 
 # Local release bundles (zips + loose DLL assets for a GitHub release)
 release-v*/
+
+# Machine-local dev helpers (absolute paths) / stale archives
+deploy-on-exit.ps1
+*.rar
