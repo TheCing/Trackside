@@ -143,6 +143,11 @@ pub fn spawn() {
             }
         }
         {
+            let fnotes = crate::followers::install();
+            log(&format!("auto-unfollow (off by default): {fnotes}"));
+            crate::diag::record_install("auto-unfollow", &fnotes);
+        }
+        {
             let fps_status = fps::install();
             log(&format!("fps control: {fps_status}"));
             crate::diag::record_install("fps control", &fps_status);

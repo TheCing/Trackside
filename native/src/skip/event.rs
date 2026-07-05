@@ -27,10 +27,58 @@ crate::skip_hook_slot!(TR_TIMELINE, D_TIMELINE);
 crate::skip_hook_slot!(TR_TAGIN, D_TAGIN); // SingleModeMainViewTagTrainingCutInPlayer.PlayCutIn
 crate::skip_hook_slot!(TR_TAGOUT, D_TAGOUT); // .PlayCutInOut
 
+// ── Goal-Complete FREEZE guard ──────────────────────────────────────────────
+// SkipStory on the Goal-Complete ("All goals achieved") story pushes the ConfirmComplete + Result
+// dialogs into a circular stack → the game spins forever in DialogManager.GetParentType (z-order
+// resolution) and HANGS. Root-caused 2026-07-05 from a live crashtrace (last mod action before the
+// hang = SkipStory; matches the historical "Events OFF" workaround). We suppress the event skip for a
+// short window after SingleModeConfirmCompleteViewController.BeginView (Goal Complete opening). It is
+// TIME-BASED so it can NEVER stick (auto-expires), and Goal Complete → URA Finale races has no normal
+// events in that window, so there is zero collateral on other events / other skips / hyperskip.
+static GOAL_COMPLETE_UNTIL: AtomicU64 = AtomicU64::new(0);
+/// Arm the end-career suppression. CRITICAL: callers must arm this BEFORE running the original method,
+/// because the original ConfirmComplete flow is what HANGS (so a store placed after call_orig never
+/// runs). 120s window (covers the whole graduation flow) + cleared at Home; time-based so it can't stick.
+pub(crate) fn mark_goal_complete(src: &str) {
+    if GOAL_COMPLETE_UNTIL.load(Ordering::Relaxed) < now_ms() + 100_000 {
+        rr_log(&format!("[event] end-career detected ({src}) -> event-skip suppressed 120s (freeze guard)"));
+    }
+    GOAL_COMPLETE_UNTIL.store(now_ms() + 120_000, Ordering::Relaxed);
+}
+/// Cleared when the lobby (Home) is reached — a new career can skip events normally again.
+pub(crate) fn clear_goal_complete() {
+    if GOAL_COMPLETE_UNTIL.swap(0, Ordering::Relaxed) != 0 {
+        rr_log("[event] Home reached -> end-career event-skip suppression cleared");
+    }
+}
+// RegisterDownload = the EARLIEST safe touch (view asset preload, fires before the Goal-Complete story
+// plays). Arm the guard here, before call_orig, so the corrupting SkipStory is suppressed in time.
+type Void2 = unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void);
+crate::skip_hook_slot!(TR_GCREG, D_GCREG);
+pub(crate) unsafe extern "C" fn on_goal_complete_register(this: *mut c_void, reg: *mut c_void, m: *mut c_void) {
+    mark_goal_complete("RegisterDownload");
+    let t = TR_GCREG.load(Ordering::Relaxed);
+    if t != 0 {
+        let f: Void2 = std::mem::transmute(t);
+        f(this, reg, m);
+    }
+}
+// BeginView backup — arm BEFORE call_orig (the original hangs, so a post-call store never runs).
+crate::skip_hook_slot!(TR_GOALBEGIN, D_GOALBEGIN);
+pub(crate) unsafe extern "C" fn on_goal_complete_begin(this: *mut c_void, m: *mut c_void) {
+    mark_goal_complete("BeginView");
+    call_orig(&TR_GOALBEGIN, this, m);
+}
+
 // ── EVENTS: SkipStory on OnStartPlayingTimeline (guarded + debounced). ──────
 static LAST_EVENT_SKIP_MS: AtomicU64 = AtomicU64::new(0);
 fn try_event_skip(this: *mut c_void) {
     if !is_event_enabled() || in_heaven() || this.is_null() {
+        return;
+    }
+    // Never SkipStory during the Goal-Complete window (it hangs the game — see above).
+    if now_ms() < GOAL_COMPLETE_UNTIL.load(Ordering::Relaxed) {
+        rr_log("[event] SkipStory SUPPRESSED (Goal Complete freeze guard)");
         return;
     }
     let now = clock().elapsed().as_millis() as u64;

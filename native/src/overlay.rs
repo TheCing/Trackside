@@ -930,6 +930,7 @@ impl ImguiRenderLoop for HeavenOverlay {
         if !self.show && !crate::settings::seen_hint() {
             draw_first_launch_hint(ui);
         }
+        // With the menu closed there is nothing left to draw in this build, so bail early.
         if !self.show {
             return;
         }
@@ -991,11 +992,13 @@ impl ImguiRenderLoop for HeavenOverlay {
         let margin = 14.0;
         let x = |w: f32| if right { (dw - w - margin).max(0.0) } else { margin };
 
-        // The premium sidebar menu, or the classic "Controls" rail if the user picked it.
-        if crate::settings::classic_menu() {
-            self.draw_controls(ui, x(400.0), cond);
-        } else {
-            self.draw_menu(ui);
+        // The premium sidebar menu, or the classic "Controls" rail — ONLY when the menu is open.
+        if self.show {
+            if crate::settings::classic_menu() {
+                self.draw_controls(ui, x(400.0), cond);
+            } else {
+                self.draw_menu(ui);
+            }
         }
 
         if applied {

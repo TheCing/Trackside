@@ -26,6 +26,7 @@ mod diag;
 mod loadprof;
 mod hachimi_compat;
 #[cfg(feature = "freecam")]
+mod followers;
 mod freecam;
 #[cfg(feature = "freecam")]
 mod race_director;
