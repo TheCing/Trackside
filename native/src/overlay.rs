@@ -930,9 +930,10 @@ impl ImguiRenderLoop for HeavenOverlay {
         if !self.show && !crate::settings::seen_hint() {
             draw_first_launch_hint(ui);
         }
-        if !self.show {
-            return;
-        }
+        // NOTE: no early return on a closed menu. The standalone info panels below (career / race /
+        // energy) are their OWN overlay windows gated by their own toggles — they must show whether
+        // or not the Heaven menu is open. Only the menu itself is gated (`if self.show`, further
+        // down). Previously an early `if !self.show { return; }` here hid the panels with the menu.
 
         // Keep the FPS controls in sync with the ACTUAL cap state. new() runs
         // before the async boot thread applies persisted settings, so without
@@ -991,11 +992,13 @@ impl ImguiRenderLoop for HeavenOverlay {
         let margin = 14.0;
         let x = |w: f32| if right { (dw - w - margin).max(0.0) } else { margin };
 
-        // The premium sidebar menu, or the classic "Controls" rail if the user picked it.
-        if crate::settings::classic_menu() {
-            self.draw_controls(ui, x(400.0), cond);
-        } else {
-            self.draw_menu(ui);
+        // The premium sidebar menu, or the classic "Controls" rail — ONLY when the menu is open.
+        if self.show {
+            if crate::settings::classic_menu() {
+                self.draw_controls(ui, x(400.0), cond);
+            } else {
+                self.draw_menu(ui);
+            }
         }
 
         if applied {

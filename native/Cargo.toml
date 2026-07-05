@@ -1,7 +1,7 @@
 [package]
 name = "heaven_overlay"
 # Single source of truth for the version shown in the overlay footer.
-version = "3.5.10"
+version = "3.5.11"
 edition = "2021"
 authors = ["Night DC : nighty3333"]
 description = "Heaven — in-game overlay (D3D11 + imgui) for Umamusume Pretty Derby (Global). Made by Night DC : nighty3333"
