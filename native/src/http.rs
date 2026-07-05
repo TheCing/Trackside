@@ -15,7 +15,7 @@ use windows_sys::Win32::Networking::WinHttp::{
 };
 
 const HTTPS_PORT: u16 = 443;
-const UA: &str = "Heaven-Updater (github.com/Nighty3333)";
+const UA: &str = "Trackside-Updater (github.com/TheCing)";
 
 fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()

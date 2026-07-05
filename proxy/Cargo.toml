@@ -1,0 +1,30 @@
+[package]
+name = "version_proxy"
+# The proxy is version-stable: it only forwards version.dll APIs and boots the
+# overlay, so it rarely needs updating (the overlay hot-swaps itself instead).
+version = "1.0.0"
+edition = "2021"
+authors = ["TheCing"]
+description = "Trackside loader — version.dll proxy that forwards the real version APIs and loads trackside.dll into the game."
+license = "MIT"
+
+[lib]
+# Must be literally `version` → produces version.dll, the proxy the game's EXE
+# pulls in from its own folder ahead of C:\Windows\System32\version.dll.
+name = "version"
+crate-type = ["cdylib"]
+
+[dependencies]
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_System_LibraryLoader",
+  "Win32_System_SystemServices",
+  "Win32_System_SystemInformation",
+] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

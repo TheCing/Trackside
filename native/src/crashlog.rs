@@ -1,6 +1,6 @@
 //! Heaven — crash detector. Installs a last-chance unhandled-exception filter that, when the
-//! game crashes, writes `heaven-crash.log` with the exception code, the faulting address, WHICH
-//! module that address is in (ours = `heaven_overlay.dll`, the game = `GameAssembly.dll`, …) and
+//! game crashes, writes `trackside-crash.log` with the exception code, the faulting address, WHICH
+//! module that address is in (ours = `trackside.dll`, the game = `GameAssembly.dll`, …) and
 //! the last "breadcrumb" — the hook that was executing. That pinpoints which feature crashed.
 //!
 //! The breadcrumb is a single cheap atomic the risky hooks stamp on entry (no I/O on the hot
@@ -84,7 +84,7 @@ fn write_crash(msg: &str) {
     if let Ok(mut f) = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(crate::paths::log_file("heaven-crash.log"))
+        .open(crate::paths::log_file("trackside-crash.log"))
     {
         let _ = writeln!(f, "{msg}");
     }
@@ -158,7 +158,7 @@ pub fn install() {
     unsafe {
         SetUnhandledExceptionFilter(Some(handler));
     }
-    write_crash("--- heaven crash detector armed ---");
+    write_crash("--- trackside crash detector armed ---");
     std::thread::spawn(|| {
         for delay in [2u64, 6, 12] {
             std::thread::sleep(std::time::Duration::from_secs(delay));

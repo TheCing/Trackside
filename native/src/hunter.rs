@@ -109,7 +109,7 @@ fn set_status(s: String) {
 
 // ── persisted target (survives restarts) ──────────────────────────────────────
 fn target_path() -> std::path::PathBuf {
-    crate::paths::dll_dir().join("heaven_tt_hunter.json")
+    crate::paths::local_file_migrated("trackside_tt_hunter.json", "heaven_tt_hunter.json")
 }
 
 /// Persist the last-entered target name + viewer ID, so they're there after a restart.
@@ -387,7 +387,7 @@ fn alert(name: &str, vid: i64) {
     } else {
         format!("{name} ({vid}) — pick them now")
     };
-    notify("Heaven — Target found!", &body);
+    notify("Trackside — Target found!", &body);
 }
 
 /// AFK-proof desktop alert, shared by every hunter-style loop (opponent hunter, room finder):
@@ -415,7 +415,7 @@ pub(crate) fn notify(title: &str, body: &str) {
         nid.uFlags = NIF_ICON | NIF_INFO | NIF_TIP;
         nid.hIcon = LoadIconW(std::ptr::null_mut(), IDI_INFORMATION);
         nid.dwInfoFlags = NIIF_INFO;
-        wide_into(&mut nid.szTip, "Heaven");
+        wide_into(&mut nid.szTip, "Trackside");
         wide_into(&mut nid.szInfoTitle, title);
         wide_into(&mut nid.szInfo, body);
         Shell_NotifyIconW(NIM_ADD, &nid);

@@ -9,7 +9,7 @@
 //! From then on the game's own threads drive our hooks and the overlay renders
 //! the shared state. No Frida, no Python — this is the full-native runtime.
 //!
-//! A concise startup report is written to logs/heaven-native.log.
+//! A concise startup report is written to logs/trackside-native.log.
 
 use std::time::Duration;
 
@@ -40,8 +40,8 @@ pub fn spawn() {
         return; // already booted this process
     }
     std::thread::spawn(|| {
-        log("==== Heaven native engine starting ====");
-        log("Heaven MOD — made by Night DC : nighty3333");
+        log("==== Trackside native engine starting ====");
+        log("Trackside — a fork of Heaven (by Night DC)");
         ipc::set_status("waiting for GameAssembly…");
 
         // 1) Wait for GameAssembly.dll.
@@ -98,7 +98,7 @@ pub fn spawn() {
         log(&format!("step5: classes resolvable — runtime ready ({}ms total)", waited + rwait + cwait));
 
         // Arm the crash detector before installing our hooks, so a fault in any of them is
-        // logged with a breadcrumb to heaven-crash.log.
+        // logged with a breadcrumb to trackside-crash.log.
         crate::crashlog::install();
 
         // Active-scene probe (gates the intro player on the title screen) + intro-song
@@ -280,7 +280,7 @@ pub fn spawn() {
         // "collect from an unknown thread" when the game closes. Detaching
         // unregisters it from the GC so teardown is clean.
         il2cpp::detach_thread(heaven_thread);
-        ipc::set_status("Heaven native engine ready");
+        ipc::set_status("Trackside native engine ready");
         log("==== ready (boot thread detached) ====");
 
         // Auto-check for a new release in the background (spawns its own thread, no IL2CPP).

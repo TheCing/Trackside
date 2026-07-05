@@ -30,9 +30,9 @@ fn wide(s: &OsStr) -> Vec<u16> {
 /// compatible vtable so it installs its hooks. DLLs without that export are
 /// self-contained mods already started by the early loader — left alone.
 pub fn init_plugins() -> String {
-    let dir: PathBuf = crate::paths::dll_dir().join("heaven_plugins");
+    let dir: PathBuf = crate::paths::local_dir_migrated("trackside_plugins", "heaven_plugins");
     if !dir.is_dir() {
-        return "no heaven_plugins/ (skipped)".into();
+        return "no trackside_plugins/ (skipped)".into();
     }
     if api().is_none() {
         return "il2cpp api unavailable (skipped)".into();
@@ -46,7 +46,7 @@ pub fn init_plugins() -> String {
     };
     dlls.sort();
     if dlls.is_empty() {
-        return "heaven_plugins/ empty".into();
+        return "trackside_plugins/ empty".into();
     }
 
     let mut inited = 0u32;

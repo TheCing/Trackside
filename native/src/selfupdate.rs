@@ -1,9 +1,9 @@
 //! In-game self-updater. Checks the GitHub releases API for versions newer than this
 //! build, shows the COMBINED changelog of every missed version (newest-first), downloads
-//! the new `heaven_overlay.dll` to a staging file, and lets the version.dll proxy swap it
+//! the new `trackside.dll` to a staging file, and lets the version.dll proxy swap it
 //! in on the next launch — no external installer, no forced game exit.
 //!
-//! A loaded DLL can't replace itself, so we stage `heaven_overlay.dll.new` next to the
+//! A loaded DLL can't replace itself, so we stage `trackside.dll.new` next to the
 //! current one; the proxy (which runs first, before the overlay is loaded) applies it.
 
 #![allow(dead_code)]
@@ -19,15 +19,15 @@ use crate::http;
 /// This build's version (from Cargo.toml). Releases are tagged `v<this>`.
 const CURRENT: &str = env!("CARGO_PKG_VERSION");
 
-const REPO: &str = "Nighty3333/Heaven-Internal-Public-Version-";
+const REPO: &str = "TheCing/Trackside";
 
 /// The loose DLL asset the release must carry for one-click updates (uploaded alongside the zips
 /// by the release tool). Per-variant so a Heaven+Hachimi install pulls the H+H DLL, not the plain
 /// one. If the asset is absent, the prompt still shows but Download reports it.
 #[cfg(feature = "hachimi")]
-const DLL_ASSET: &str = "heaven_overlay_hh.dll";
+const DLL_ASSET: &str = "trackside_hh.dll";
 #[cfg(not(feature = "hachimi"))]
-const DLL_ASSET: &str = "heaven_overlay.dll";
+const DLL_ASSET: &str = "trackside.dll";
 
 /// A pending update the overlay draws as the "update available" dialog.
 #[derive(Clone, Default)]
@@ -138,9 +138,9 @@ fn fnv1a(bytes: &[u8]) -> u64 {
     h
 }
 
-/// Hash of our own on-disk DLL (`heaven_overlay.dll` in the game folder), hex. None if unreadable.
+/// Hash of our own on-disk DLL (`trackside.dll` in the game folder), hex. None if unreadable.
 fn local_dll_hash() -> Option<String> {
-    let path = crate::paths::dll_dir().join("heaven_overlay.dll");
+    let path = crate::paths::dll_dir().join("trackside.dll");
     let bytes = std::fs::read(path).ok()?;
     Some(format!("{:016x}", fnv1a(&bytes)))
 }
@@ -342,7 +342,7 @@ fn stage_and_restart(dll_url: &str, tag: &str) {
     if bytes.len() < 2 || &bytes[..2] != b"MZ" {
         return set_status("Download failed: not a valid DLL");
     }
-    let staging = crate::paths::dll_dir().join("heaven_overlay.dll.new");
+    let staging = crate::paths::dll_dir().join("trackside.dll.new");
     match std::fs::write(&staging, &bytes) {
         Ok(_) => {
             // Auto-apply: show the notice briefly, then close + relaunch the game. The proxy swaps

@@ -20,7 +20,7 @@ use std::os::windows::process::CommandExt;
 const NO_WINDOW: u32 = 0x0800_0000; // CREATE_NO_WINDOW — no console flash
 
 pub const RELEASES_URL: &str =
-    "https://github.com/Nighty3333/Heaven-Internal-Public-Version-/releases";
+    "https://github.com/TheCing/Trackside/releases";
 
 static STATUS: OnceLock<Mutex<String>> = OnceLock::new();
 fn status_slot() -> &'static Mutex<String> {

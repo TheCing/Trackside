@@ -1,0 +1,27 @@
+[package]
+name = "trackside-preview-host"
+version = "0.1.0"
+edition = "2021"
+description = "Tiny D3D11 host window for previewing the Trackside overlay without the game."
+publish = false
+
+[[bin]]
+name = "trackside-preview-host"
+path = "src/main.rs"
+
+[dependencies]
+# Pinned to the same windows-rs major as the overlay's intro player (0.54) so the
+# COM type layouts match the hudhook stack the DLL was built against.
+windows = { version = "0.54", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Direct3D",
+  "Win32_Graphics_Direct3D11",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
+  "Win32_Graphics_Gdi",
+  "Win32_System_LibraryLoader",
+  "Win32_UI_WindowsAndMessaging",
+] }
+
+[profile.release]
+opt-level = 2

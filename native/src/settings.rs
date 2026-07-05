@@ -24,7 +24,7 @@ use crate::{htt, skip};
 static APPLIED: AtomicBool = AtomicBool::new(false);
 
 fn settings_path() -> std::path::PathBuf {
-    crate::paths::local_file("heaven-settings.json")
+    crate::paths::local_file_migrated("trackside-settings.json", "heaven-settings.json")
 }
 
 fn slog(msg: &str) {

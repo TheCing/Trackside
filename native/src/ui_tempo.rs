@@ -114,7 +114,7 @@ pub fn install() -> Result<&'static str, String> {
         TRAMP.store(d.trampoline() as *const () as usize, Ordering::Relaxed);
         let _ = DETOUR.set(d);
         Ok(if chained {
-            "OK (chained on top — Heaven owns speed)"
+            "OK (chained on top — Trackside owns speed)"
         } else {
             "OK"
         })

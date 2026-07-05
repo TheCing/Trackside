@@ -87,7 +87,7 @@ fn save(arr_addr: usize, count: usize) {
         return;
     }
     MAX_COUNT.store(count, Ordering::Relaxed);
-    let dir = crate::paths::dll_dir().join("heaven_umas");
+    let dir = crate::paths::local_dir_migrated("trackside_umas", "heaven_umas");
     if std::fs::create_dir_all(&dir).is_err() {
         return;
     }

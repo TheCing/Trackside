@@ -1,4 +1,4 @@
-//! Heaven MOD — internal overlay DLL entry point.
+//! Trackside — internal overlay DLL entry point (a fork of Heaven by Night DC).
 //!
 //! Loaded into UmamusumePrettyDerby.exe (by the Frida core's `Module.load`).
 //! On attach we start the loopback IPC server and install the D3D11 + imgui

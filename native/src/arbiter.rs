@@ -1,7 +1,7 @@
 //! Feature arbiter — visibility + auto-disable over hook coexistence.
 //!
 //! `il2cpp::hook_method` REFUSES to double-hook a method another mod detoured first
-//! ("already detoured (skipped)") → Heaven yields, no crash, but the feature is lost.
+//! ("already detoured (skipped)") → Trackside yields, no crash, but the feature is lost.
 //! The arbiter records every hook outcome keyed by `Class.method`, so Heaven can:
 //!   - SHOW which features it ceded to a co-resident mod (boot log + overlay), and
 //!   - AUTO-DISABLE its own duplicate tweaks (`is_ceded`) so the menu is honest and
@@ -77,10 +77,10 @@ pub fn report() -> String {
         .map(|(k, _)| k.as_str())
         .collect();
     if ext.is_empty() {
-        format!("{owned} hook(s) owned by Heaven, none ceded")
+        format!("{owned} hook(s) owned by Trackside, none ceded")
     } else {
         format!(
-            "{owned} owned by Heaven, {} ceded to a co-resident mod: [{}]",
+            "{owned} owned by Trackside, {} ceded to a co-resident mod: [{}]",
             ext.len(),
             ext.join(", ")
         )

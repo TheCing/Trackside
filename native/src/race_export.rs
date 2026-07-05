@@ -141,7 +141,7 @@ unsafe fn dump_inner(ri: *mut c_void) {
 
     let mut visited: HashSet<usize> = HashSet::new();
     let val = crate::il2cpp_json::convert_object(ri, 0, &mut visited);
-    let base = crate::paths::dll_dir().join("heaven-races");
+    let base = crate::paths::local_dir_migrated("trackside-races", "heaven-races");
     // Hand off the (pure-Rust) serialize + disk write to a worker thread so the
     // game thread isn't blocked on I/O.
     std::thread::spawn(move || save(val, base));
@@ -261,7 +261,7 @@ pub fn dump_team_trials(response: *mut c_void) {
             return;
         }
         stamp_version(&mut val);
-        let dir = crate::paths::dll_dir().join("heaven-races").join("Team trials");
+        let dir = crate::paths::local_dir_migrated("trackside-races", "heaven-races").join("Team trials");
         let stamp = now_ms();
         std::thread::spawn(move || write_json(val, dir, format!("TT-{stamp}.json")));
     });

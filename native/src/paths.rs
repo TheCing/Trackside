@@ -1,7 +1,7 @@
 //! Portable path resolution — the DLL no longer hardcodes the developer's
 //! machine paths. Two kinds of paths:
 //!
-//!  - **MOD-local files** (settings, logs): live next to `heaven_overlay.dll`
+//!  - **MOD-local files** (settings, logs): live next to `trackside.dll`
 //!    (i.e. inside the game folder), found via `GetModuleFileNameW`. Always
 //!    correct on any machine, no config.
 //!
@@ -10,7 +10,12 @@
 //!    `%LOCALAPPDATA%\Heaven\datadir.txt`; we read that so captures land right
 //!    next to the user's existing history. If the dashboard has never run, we
 //!    fall back to `%LOCALAPPDATA%\Heaven\data` (the dashboard's importer also
-//!    checks that location).
+//!    checks that location). The dashboard is an external app with its own
+//!    branding, so this path intentionally keeps the Heaven name.
+//!
+//! FORK MIGRATION: installs upgrading from Heaven have their state under the
+//! old `heaven-*` names. `local_file_migrated` renames the old file to the new
+//! name once (first run), so settings/state survive the rebrand.
 
 #![allow(dead_code)]
 
@@ -22,11 +27,11 @@ fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
-/// Directory that contains `heaven_overlay.dll` (the game folder). Falls back to
+/// Directory that contains `trackside.dll` (the game folder). Falls back to
 /// the current dir if the module can't be located.
 pub fn dll_dir() -> PathBuf {
     unsafe {
-        let h = GetModuleHandleW(wide("heaven_overlay.dll").as_ptr());
+        let h = GetModuleHandleW(wide("trackside.dll").as_ptr());
         if h.is_null() {
             return PathBuf::from(".");
         }
@@ -45,9 +50,37 @@ pub fn local_file(name: &str) -> PathBuf {
     dll_dir().join(name)
 }
 
-/// A MOD log file under `<dll dir>/heaven-logs/`. Ensures the folder exists.
+/// A MOD-local file that MIGRATES from a pre-fork (Heaven) name: if the new
+/// file doesn't exist yet but the old one does, the old file is renamed to the
+/// new name (one-time, first run after the upgrade). Always returns the NEW path.
+pub fn local_file_migrated(name: &str, old_name: &str) -> PathBuf {
+    let new = dll_dir().join(name);
+    if !new.exists() {
+        let old = dll_dir().join(old_name);
+        if old.exists() {
+            let _ = std::fs::rename(&old, &new);
+        }
+    }
+    new
+}
+
+/// A MOD-local DIRECTORY that migrates from a pre-fork (Heaven) name, same rules
+/// as `local_file_migrated`. Returns the NEW path (not created if absent).
+pub fn local_dir_migrated(name: &str, old_name: &str) -> PathBuf {
+    let new = dll_dir().join(name);
+    if !new.exists() {
+        let old = dll_dir().join(old_name);
+        if old.is_dir() {
+            let _ = std::fs::rename(&old, &new);
+        }
+    }
+    new
+}
+
+/// A MOD log file under `<dll dir>/trackside-logs/`. Ensures the folder exists
+/// (migrating a pre-fork `heaven-logs/` folder in place if present).
 pub fn log_file(name: &str) -> PathBuf {
-    let dir = dll_dir().join("heaven-logs");
+    let dir = local_dir_migrated("trackside-logs", "heaven-logs");
     let _ = std::fs::create_dir_all(&dir);
     dir.join(name)
 }

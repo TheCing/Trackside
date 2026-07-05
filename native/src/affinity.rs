@@ -145,7 +145,7 @@ pub fn set_size(s: f32) {
 
 // ── persistence ─────────────────────────────────────────────────────────────────
 fn cfg_path() -> std::path::PathBuf {
-    crate::paths::dll_dir().join("heaven_tt_affinity.json")
+    crate::paths::local_file_migrated("trackside_tt_affinity.json", "heaven_tt_affinity.json")
 }
 fn save() {
     let v = serde_json::json!({

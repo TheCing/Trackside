@@ -125,7 +125,7 @@ pub fn pump() {
 }
 
 fn json_path() -> std::path::PathBuf {
-    crate::paths::dll_dir().join("heaven_tt_profiles.json")
+    crate::paths::local_file_migrated("trackside_tt_profiles.json", "heaven_tt_profiles.json")
 }
 
 fn load_from_disk() -> Store {

@@ -1,15 +1,14 @@
-# Heaven Internal — Public Version
+# Trackside
 
-In-game **QoL overlay** for **Umamusume Pretty Derby (Steam / Global)** — a single native
+In-game **QoL overlay** for **Umamusume Pretty Derby (Steam / Global)** - a single native
 DLL that loads with the game and renders inside it (D3D11 + imgui). No external window, no
 Python, no extra process. Open the game and press **Insert** for the menu.
 
-**Made by Night DC : nighty3333**
+**Trackside is a fork of [Heaven](https://github.com/Nighty3333/Heaven-Internal-Public-Version-)
+by Night DC (nighty3333)** - fully open source under MIT, with every feature in the open.
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nighty33) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/SpCGcXMeFt)
-
-> **Disclaimer.** Heaven is an unofficial third-party tool that runs inside the game. Like
-> any mod that touches the game — Hachimi included — using it is against the game's Terms of
+> **Disclaimer.** Trackside is an unofficial third-party tool that runs inside the game. Like
+> any mod that touches the game - Hachimi included - using it is against the game's Terms of
 > Service and carries a small but real risk of an account ban. Use it at your own risk; you
 > alone are responsible for how you use it.
 
@@ -19,25 +18,25 @@ Python, no extra process. Open the game and press **Insert** for the menu.
 
 1. Close the game.
 2. Copy these files into the game folder, next to `UmamusumePrettyDerby.exe`
-   (usually `…\steamapps\common\UmamusumePrettyDerby\`):
-   - `version.dll`
-   - `heaven_overlay.dll`
-3. Add **`heaven_version.dll`** — pick one of the two ways:
-   - **Default (our way):** just copy the included `heaven_version.dll` into the
-     same folder. Done — works out of the box.
-   - **Make it yourself (optional):** copy your own
-     `C:\Windows\System32\version.dll` into the game folder and **rename it to
-     `heaven_version.dll`**.
-4. Launch the game. Heaven loads itself — press **Insert** to show/hide the menu.
+   (usually `.\steamapps\common\UmamusumePrettyDerby\`):
+   - `version.dll`  (the Trackside loader proxy - source in [`proxy/`](proxy/))
+   - `trackside.dll`  (the overlay)
+3. **Running Hachimi too?** Keep (or add) `heaven_version.dll` as Hachimi's proxy in the
+   same folder - Trackside's loader detects it and chains to it automatically, so both
+   mods boot in the right order.
+4. Launch the game. Trackside loads itself - press **Insert** to show/hide the menu.
    Use **Windowed / Borderless** so the overlay is visible (not exclusive fullscreen).
+
+> **Upgrading from Heaven?** Drop in the two files above and delete the old
+> `heaven_overlay.dll`. Your settings, saved teams, pins and hunt targets are migrated
+> automatically to the new `trackside-*` file names on first launch.
 
 > **Antivirus note:** `version.dll` is a *proxy loader* (a normal technique for in-game
 > overlays). Windows Defender or some antivirus may flag it as a **false positive**
-> because it loads a DLL into the game. It is not malware — if your AV quarantines it,
-> allow-list the game folder. (This build deliberately does **not** use a commercial
-> packer like Themida/VMProtect — those trip both antivirus and anti-cheat.)
+> because it loads a DLL into the game. It is not malware - the loader's full source is
+> in this repository ([`proxy/`](proxy/)); build it yourself if you prefer.
 
-To uninstall: delete the 3 files.
+To uninstall: delete the files.
 
 ---
 
@@ -104,15 +103,14 @@ Full step-by-step guide (controls, presets, reading the HUD): **[race-director.m
 
 ### Team Trials capture  (`Capture` → ON)
 Captures your **Team Trials** results as you view them — it reads each trial's result and
-writes it to Heaven's data folder. This works together with the main **Heaven** app, which
-reads and analyzes the captured data.
+writes it to the Heaven dashboard's data folder, so it keeps working with the existing
+analysis app: **https://github.com/Nighty3333/Heaven**
 
 1. Enable **Team Trials** under `Capture` (it shows `N saved`).
 2. Open your Team Trials results in-game — each one you view is saved automatically.
-3. Browse/analyze them in the main Heaven app:
-   **https://github.com/Nighty3333/Heaven**
+3. Browse/analyze them in the dashboard app.
 
-This public build only does the *capture*; the analysis lives in Heaven.
+This overlay only does the *capture*; the analysis lives in the dashboard.
 
 ### Team Trials — deck profiles & opponent finder
 A dedicated **Team Trials** menu section with two tools for competitive play.
@@ -120,10 +118,10 @@ A dedicated **Team Trials** menu section with two tools for competitive play.
 **Deck profiles** — save your 15-Uma team as a profile and swap your whole lineup with one click.
 
 1. Open the Team Trials team-edit screen in-game.
-2. In Heaven's **Team Trials** section, type a name and press **Save current** to store your team (keep
-   up to 5 named profiles — e.g. a main team and a padding team).
-3. To switch later, open the team-edit screen and press **Apply** on a profile. Heaven fills the grid
-   for you; press the game's own **Confirm** to save.
+2. In Trackside's **Team Trials** section, type a name and press **Save current** to store your
+   team (keep up to 5 named profiles — e.g. a main team and a padding team).
+3. To switch later, open the team-edit screen and press **Apply** on a profile. Trackside fills
+   the grid for you; press the game's own **Confirm** to save.
 
 A profile pins each exact Uma, so it keeps working even after your inventory order changes. If an Uma
 in a profile no longer exists, **Apply** tells you instead of saving a broken team.
@@ -132,15 +130,29 @@ in a profile no longer exists, **Apply** tells you instead of saving a broken te
 
 1. Open the Team Trials **Select Opponent** screen.
 2. Under **Opponent hunter**, enter the trainer's **name and/or ID** and press **Start hunt**.
-3. Heaven refreshes for you at a relaxed, human pace. When the target appears it stops and alerts you
-   — an on-screen banner, a **Windows notification**, and a flashing taskbar — so you can leave it
-   running and come back. It stops on its own after a while if the target never shows.
+3. Trackside refreshes for you at a relaxed, human pace. When the target appears it stops and
+   alerts you — an on-screen banner, a **Windows notification**, and a flashing taskbar — so you
+   can leave it running and come back. It stops on its own after a while if the target never shows.
 
 The opponent pool is random, so a given trainer may take many refreshes — or not appear at all.
 
+### Room Match finder
+Auto-refresh the **Room Match** room list until a room matches your filters — track, distance,
+surface, season, weather, minimum open slots, career-rank restriction and Uma bans — then alert
+you or **auto-join**: Trackside opens the room, loads a **saved My Runners team** of your choice
+and can **auto-confirm** the entry, so you beat other players into contested rooms. Found under
+**Gameplay → Room finder**.
+
+### Follower pruner
+When you're near the **1000-follower cap**, prune the oldest-inactive followers (longest since
+last login) down to a target you set. Always shows a **dry-run preview** of the exact list first —
+nothing is removed until you press Start — and individual trainers can be **pinned** so they're
+never touched. Removals are paced like a human tapping the button. Found under
+**Gameplay → Followers**. (The upstream one-by-one *auto-unfollow* click tool is also included.)
+
 ### Affinity display
 On the **Legacy Select** screen — where you pick your inherited parents at the start of a career —
-Heaven shows the **exact succession affinity** the game itself uses: the pair total plus each
+Trackside shows the **exact succession affinity** the game itself uses: the pair total plus each
 parent's value. The numbers appear as on-screen badges you can **drag anywhere and resize**; your
 placement and size are remembered. Turn it on under **Interface → Affinity numbers**. It only shows
 on the Legacy Select screen.
@@ -149,23 +161,21 @@ on the Legacy Select screen.
 Built-in, native stand-ins for the popular companion tools — so you get their functionality
 without loading any external DLLs. All toggles live under **Gameplay → Companion plugins**.
 
-- **Export races (horseACT)** — save each race you run to a JSON file (under a `heaven-races`
+- **Export races (horseACT)** — save each race you run to a JSON file (under a `trackside-races`
   folder next to the game), grouped by race type, for web race viewers/analysis. Captures both
   the races you watch in 3D **and** the ones you simulate/skip.
 - **Export veterans (Hakuraku)** — export your trained Umamusume — your "veterans" — to a local
   file that the [Hakuraku](https://hakuraku.moe/veterans) site reads. The next time your
-  trained-uma roster loads in-game, Heaven writes `heaven_umas/veterans.json` next to the game;
-  upload that file to Hakuraku.
+  trained-uma roster loads in-game, Trackside writes `trackside_umas/veterans.json` next to the
+  game; upload that file to Hakuraku.
 - **Companion feed (CarrotBlender)** — serves the game's decrypted responses to companion
   overlays (such as UmaOverlay-lite) over a local connection, so those overlays work without a
   separate plugin.
 
 These replicate the race/veterans dump previously provided by the **horseACT** plugin and the
-response feed provided by **CarrotBlender**, natively inside Heaven. Doing it in-process avoids
-the compatibility issues that came from running several mods at once and keeps the features
-working after game updates that broke the standalone plugins. Included with the kind permission
-of **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT)) and **qwcan**
-([CarrotBlender](https://github.com/qwcan/CarrotBlender)) — thank you both.
+response feed provided by **CarrotBlender**, natively in-process. Included in the original
+project with the kind permission of **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT))
+and **qwcan** ([CarrotBlender](https://github.com/qwcan/CarrotBlender)) — thank you both.
 
 ---
 
@@ -181,7 +191,7 @@ Two files in the game folder drive it, read at runtime (no reinstall to change t
 | `intro_full.bin` | the video (a stream of frames + a small header) |
 | `intro_song.ogg` | the audio track |
 
-Both go next to `heaven_overlay.dll`. If either is missing, that part is simply skipped.
+Both go next to `trackside.dll`. If either is missing, that part is simply skipped.
 
 **Build them from any video** with the included `pack_intro.py` (needs Python 3.8+ and
 ffmpeg, on PATH or `pip install imageio-ffmpeg`):
@@ -190,7 +200,7 @@ ffmpeg, on PATH or `pip install imageio-ffmpeg`):
 python pack_intro.py my_video.mp4
 ```
 
-Copy the two output files next to `heaven_overlay.dll` and launch. Resolution and fps are
+Copy the two output files next to `trackside.dll` and launch. Resolution and fps are
 configurable:
 
 ```
@@ -200,7 +210,7 @@ python pack_intro.py my_video.mp4 --res 1920x1080 --fps 30
 Full guide: **[custom-intro.md](custom-intro.md)**. Delete the two files to restore the
 normal startup.
 
-> You supply your own video; nothing copyrighted is included with Heaven.
+> You supply your own video; nothing copyrighted is included with Trackside.
 
 ---
 
@@ -221,7 +231,7 @@ categories, just a plainer style.
 
 ## Compatibility
 
-Heaven runs alongside Hachimi — when both are installed, Heaven takes over the shared UI
+Trackside runs alongside Hachimi — when both are installed, Trackside takes over the shared UI
 tweaks (game speed, etc.) automatically, with no config changes needed. It is also compatible
 with [SparkCollectPlugin](https://github.com/xialight/SparkCollectPlugin), so you can run both
 at the same time.
@@ -230,50 +240,50 @@ at the same time.
 
 ## Updating
 
-Heaven updates itself from within the game. On startup it checks for the latest release, and
+Trackside updates itself from within the game. On startup it checks for the latest release, and
 if a newer version is out it shows a prompt with the full changelog of everything since your
-version. Click **Download** and Heaven fetches the new build and restarts the game for you —
+version. Click **Download** and Trackside fetches the new build and restarts the game for you —
 no manual file swapping.
 
 Don't want a particular version? Tick **don't ask again** and it won't nag you for that one;
 a newer release will still prompt. You can also check any time from the menu under **About**.
 
 Need a different build? Under **About** you can list every available version and switch to any
-of them — including rolling back to an earlier one — and Heaven downloads it and restarts.
+of them — including rolling back to an earlier one — and Trackside downloads it and restarts.
 
-Prefer to update by hand? The **Releases** page still has every version as a zip:
-**https://github.com/Nighty3333/Heaven-Internal-Public-Version-/releases**
-(download `Heaven.zip`, or `Heaven+Hachimi.zip` if you run Hachimi, then replace the DLLs).
+Prefer to update by hand? The **Releases** page has every version as a zip:
+**https://github.com/TheCing/Trackside/releases**
 
 ---
 
 ## Build from source
 
-The full source for the overlay DLL lives in [`native/`](native/). Build it with Rust
-(stable, MSVC toolchain) on Windows:
+The full source lives in this repository: the overlay in [`native/`](native/), the loader
+proxy in [`proxy/`](proxy/). Build with Rust (stable, MSVC toolchain) on Windows:
 
 ```
 cd native
-cargo build --release
+cargo build --release        # -> native/target/release/trackside.dll
+
+cd ../proxy
+cargo build --release        # -> proxy/target/release/version.dll
 ```
 
-The DLL is produced at `native/target/release/heaven_overlay.dll`. The custom-intro media
-(`intro_full.bin` / `intro_song.ogg`) is not part of the build — supply your own (see the
-Custom intro section above).
+The custom-intro media (`intro_full.bin` / `intro_song.ogg`) is not part of the build —
+supply your own (see the Custom intro section above).
 
 ---
 
-## Credits & support
+## Credits & license
 
-Made by **Night DC : nighty3333**.
+Trackside is maintained by **TheCing**.
 
-Thanks to **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT)) and **qwcan**
-([CarrotBlender](https://github.com/qwcan/CarrotBlender)) for kindly allowing their tools' race,
-veterans and companion-feed functionality to be included natively in Heaven, so users can keep
-using Hakuraku and their favourite overlays without conflicts.
+It is a fork of **Heaven** by **Night DC (nighty3333)**, who built the original overlay and
+the vast majority of what's documented above — full credit to him for that work.
 
-If Heaven saves you time, a coffee is appreciated:
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/nighty33) [![Discord](https://img.shields.io/badge/Discord-Join%20the%20server-5865F2?logo=discord&logoColor=white)](https://discord.com/invite/SpCGcXMeFt)
+Thanks also to **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT)) and **qwcan**
+([CarrotBlender](https://github.com/qwcan/CarrotBlender)) for kindly allowing their tools'
+race, veterans and companion-feed functionality to be included natively.
 
 Licensed under the **MIT License** — see [LICENSE](LICENSE). The full source is in this
 repository: you're free to read, build, and modify it.

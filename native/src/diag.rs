@@ -9,7 +9,7 @@
 //! via the menu's "Save diagnostic report" button — even with the verbose toggle off. The toggle
 //! just adds extra runtime logging for the harder cases and drops a fresh report when flipped on.
 //!
-//! `dump()` writes a self-contained `heaven-diag.txt` next to the other logs that the user can send.
+//! `dump()` writes a self-contained `trackside-diag.txt` next to the other logs that the user can send.
 
 #![allow(dead_code)]
 
@@ -75,8 +75,8 @@ fn yn(b: bool) -> &'static str {
 /// Build the full diagnostic report as text.
 pub fn report() -> String {
     let mut s = String::new();
-    s.push_str("===== HEAVEN DIAGNOSTIC REPORT =====\n");
-    s.push_str(&format!("Heaven version : {}\n", env!("CARGO_PKG_VERSION")));
+    s.push_str("===== TRACKSIDE DIAGNOSTIC REPORT =====\n");
+    s.push_str(&format!("Trackside version : {}\n", env!("CARGO_PKG_VERSION")));
     s.push_str(&format!("Build          : {}\n", build_kind()));
     // Compile-time feature fingerprint of the DLL. `#[cfg]` pushes (not an array of `cfg!()` bools)
     // so feature-name literals for absent features are NOT compiled in — the public leak guard
@@ -104,7 +104,7 @@ pub fn report() -> String {
     let known = [
         ("cri_mana_vpx.dll", "Hachimi (cri_mana_vpx loader)"),
         ("hachimi.dll", "Hachimi"),
-        ("version.dll", "version.dll proxy (Heaven or other)"),
+        ("version.dll", "version.dll proxy (Trackside or other)"),
         ("UnityPlayer.dll", "UnityPlayer (game / Hachimi proxy)"),
         ("winhttp.dll", "winhttp proxy"),
         ("dxgi.dll", "dxgi proxy"),
@@ -121,7 +121,7 @@ pub fn report() -> String {
         s.push_str("  (none of the known proxy/mod DLLs detected)\n");
     }
     s.push_str(
-        "NOTE: if another mod is present it may hook the same methods FIRST and Heaven yields —\n      such a hook shows as 'already detoured (skipped)' in the install results below.\n",
+        "NOTE: if another mod is present it may hook the same methods FIRST and Trackside yields —\n      such a hook shows as 'already detoured (skipped)' in the install results below.\n",
     );
 
     // Hook install results — the core of the report.
@@ -159,7 +159,7 @@ pub fn report() -> String {
 
 /// Write the report next to the logs. Returns the path on success.
 pub fn dump() -> Result<String, String> {
-    let path = crate::paths::log_file("heaven-diag.txt");
+    let path = crate::paths::log_file("trackside-diag.txt");
     std::fs::write(&path, report()).map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().to_string())
 }

@@ -589,7 +589,7 @@ impl ImguiRenderLoop for HeavenOverlay {
         // → maps stay empty → the HUD just shows text without icons.
         #[cfg(feature = "freecam")]
         {
-            let base = crate::paths::local_file("heaven-icons");
+            let base = crate::paths::local_dir_migrated("trackside-icons", "heaven-icons");
             let mut load_dir = |sub: &str| -> std::collections::HashMap<i32, imgui::TextureId> {
                 let mut out = std::collections::HashMap::new();
                 if let Ok(rd) = std::fs::read_dir(base.join(sub)) {
@@ -1094,7 +1094,7 @@ impl HeavenOverlay {
         #[cfg(feature = "banner")]
         let intro_force = &mut self.intro_force;
 
-        ui.window("Heaven")
+        ui.window("Trackside")
             .size([w, h], Condition::FirstUseEver) // initial size; user can drag-resize
             .position(pos, cond)
             .title_bar(false)
@@ -1164,7 +1164,7 @@ impl HeavenOverlay {
                 ui.columns(2, "##menu", false);
                 ui.set_column_width(0, sbw);
 
-                // ── sidebar: clean "Heaven" wordmark (replaces the crest + logo art) ──
+                // ── sidebar: clean "Trackside" wordmark (replaces the crest + logo art) ──
                 // The crest/orb/logo textures are still loaded but intentionally no longer drawn;
                 // we render a simple theme-font wordmark instead.
                 #[cfg(feature = "banner")]
@@ -1173,11 +1173,13 @@ impl HeavenOverlay {
                     let top = 18.0 * s;
                     // Scale the 18px title font up for a logo-sized wordmark (on top of the
                     // menu-wide display scale `s`, which we must restore afterwards).
-                    let scale = 1.95;
+                    // "Trackside" is longer than the old wordmark, so a smaller scale keeps
+                    // it inside the sidebar width.
+                    let scale = 1.45;
                     let line_h = 18.0 * scale * s;
                     let _t = TITLE_FONT.with(|c| c.get()).map(|f| ui.push_font(f));
                     ui.set_window_font_scale(scale * s);
-                    let label = "Heaven";
+                    let label = "Trackside";
                     let tw = ui.calc_text_size(label)[0];
                     ui.set_cursor_pos([((sbw - tw) * 0.5).max(10.0), top]);
                     ui.text_colored(TEXT, label);
@@ -1371,7 +1373,7 @@ impl HeavenOverlay {
 
                 // Discreet footer pinned to the very bottom of the sidebar.
                 {
-                    let ft = concat!("v", env!("CARGO_PKG_VERSION"), "   \u{00b7}   Night DC");
+                    let ft = concat!("v", env!("CARGO_PKG_VERSION"), "   \u{00b7}   TheCing");
                     let fw = ui.calc_text_size(ft)[0];
                     ui.get_window_draw_list().add_text(
                         [p0[0] + (sbw - fw) * 0.5, p0[1] + wsz[1] - 19.0],
@@ -1422,11 +1424,11 @@ impl HeavenOverlay {
                     let hy = sp[1] + bh * 0.5 - 9.0;
                     let hw = if let Some(f) = tf {
                         let _t = ui.push_font(f);
-                        ui.get_window_draw_list().add_text([hx, hy], TEXT, "HEAVEN");
-                        ui.calc_text_size("HEAVEN")[0]
+                        ui.get_window_draw_list().add_text([hx, hy], TEXT, "TRACKSIDE");
+                        ui.calc_text_size("TRACKSIDE")[0]
                     } else {
-                        ui.get_window_draw_list().add_text([hx, hy], TEXT, "HEAVEN");
-                        ui.calc_text_size("HEAVEN")[0]
+                        ui.get_window_draw_list().add_text([hx, hy], TEXT, "TRACKSIDE");
+                        ui.calc_text_size("TRACKSIDE")[0]
                     };
                     ui.get_window_draw_list().add_text(
                         [hx + hw + 8.0, sp[1] + bh * 0.5 - 7.0],
@@ -1696,7 +1698,7 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Custom(Custom::Updates) => {
                                             ui.text_colored(DIM, "Current version");
-                                            ui.text_colored(ACCENT, concat!("Heaven MOD  v", env!("CARGO_PKG_VERSION")));
+                                            ui.text_colored(ACCENT, concat!("Trackside  v", env!("CARGO_PKG_VERSION")));
                                             let ust = crate::selfupdate::status();
                                             ui.dummy([0.0, 4.0]);
                                             ui.text_colored(DIM, "Status:");
@@ -1752,12 +1754,8 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Custom(Custom::Credits) => {
                                             ui.dummy([0.0, 6.0]);
-                                            if btn_primary(ui, "##kofi", "Support me on Ko-fi") {
-                                                open_url("https://ko-fi.com/nighty33");
-                                            }
-                                            ui.dummy([0.0, 6.0]);
                                             if btn(ui, "##gh", "GitHub") {
-                                                open_url("https://github.com/Nighty3333/Heaven-Internal-Public-Version-");
+                                                open_url("https://github.com/TheCing/Trackside");
                                             }
                                             ui.same_line();
                                             if btn(ui, "##chl", "Changelog") {
@@ -1768,8 +1766,8 @@ impl HeavenOverlay {
                                             ui.dummy([0.0, 6.0]);
                                             reset_button(ui);
                                             ui.dummy([0.0, 8.0]);
-                                            ui.text_colored(ACCENT, concat!("Heaven  v", env!("CARGO_PKG_VERSION")));
-                                            ui.text_colored(DIM, "made by Night DC \u{00b7} nighty3333");
+                                            ui.text_colored(ACCENT, concat!("Trackside  v", env!("CARGO_PKG_VERSION")));
+                                            ui.text_colored(DIM, "by TheCing \u{00b7} a fork of Heaven by Night DC");
                                         }
                                         Ctrl::Custom(Custom::TeamTrials) => {
                                             ui.dummy([0.0, 6.0]);
@@ -1872,7 +1870,7 @@ impl HeavenOverlay {
         #[cfg(feature = "banner")]
         let intro_force = &mut self.intro_force;
 
-        ui.window("Heaven \u{00b7} Controls")
+        ui.window("Trackside \u{00b7} Controls")
             .size(win_size, Condition::FirstUseEver)
             .position(win_pos, cond)
             .title_bar(false)
@@ -2067,13 +2065,6 @@ impl HeavenOverlay {
                                         menu_key_button(ui, false);
                                     }
                                     Ctrl::Custom(Custom::Credits) => {
-                                        let _kc = ui.push_style_color(StyleColor::Button, [0.96, 0.33, 0.33, 0.90]);
-                                        let _kh = ui.push_style_color(StyleColor::ButtonHovered, [1.0, 0.45, 0.45, 1.0]);
-                                        let _ka = ui.push_style_color(StyleColor::ButtonActive, [0.85, 0.25, 0.25, 1.0]);
-                                        if ui.button("Support on Ko-fi##kofic") {
-                                            open_url("https://ko-fi.com/nighty33");
-                                        }
-                                        ui.separator();
                                         reset_button(ui);
                                     }
                                     Ctrl::Custom(Custom::TeamTrials) => {
@@ -2119,8 +2110,8 @@ impl HeavenOverlay {
 
                 ui.separator();
                 ui.text_colored(DIM, ipc::status());
-                ui.text_colored(ACCENT, concat!("Heaven v", env!("CARGO_PKG_VERSION")));
-                ui.text_colored(DIM, "made by Night DC : nighty3333");
+                ui.text_colored(ACCENT, concat!("Trackside v", env!("CARGO_PKG_VERSION")));
+                ui.text_colored(DIM, "by TheCing \u{00b7} a fork of Heaven by Night DC");
                 persist_window(ui, "controls"); // remember the classic menu's moved/resized geometry
             });
     }
@@ -2166,13 +2157,13 @@ fn cat_icon(name: &str) -> &'static str {
     }
 }
 
-/// First-launch hint pill (top-center): "Press <key> to open Heaven". Shown only until the
+/// First-launch hint pill (top-center): "Press <key> to open Trackside". Shown only until the
 /// user opens the menu once, so a closed menu with an unknown toggle key isn't a dead end.
 
 
 fn draw_first_launch_hint(ui: &Ui) {
     let key = MENU_KEYS[menu_key_idx()].0;
-    let label = format!("Press  {key}  to open Heaven");
+    let label = format!("Press  {key}  to open Trackside");
     let [dw, _dh] = ui.io().display_size;
     let tw = ui.calc_text_size(&label)[0];
     let (padx, pady) = (16.0_f32, 8.0_f32);
@@ -2933,7 +2924,7 @@ fn draw_room_finder(ui: &Ui, w: f32) {
             changed = true;
         }
         ui.same_line();
-        help_icon(ui, "When a matching room is found and Auto-open is on, Heaven jumps to the runner-entry screen and loads this saved My Runners team automatically. Pair with Auto-confirm to send the entry the instant the room opens. Requires you to have saved the team in-game.");
+        help_icon(ui, "When a matching room is found and Auto-open is on, Trackside jumps to the runner-entry screen and loads this saved My Runners team automatically. Pair with Auto-confirm to send the entry the instant the room opens. Requires you to have saved the team in-game.");
         if f.preset_slot > 0 && f.auto_join {
             let mut ac = f.auto_confirm;
             if ui.checkbox("Auto-confirm entry (join instantly)", &mut ac) {
@@ -3221,7 +3212,7 @@ fn draw_battle_callout(ui: &Ui) {
     let fr = sta(f.hp, f.max_hp);
     let rr = sta(rival.hp, rival.max_hp);
     let _style = panel_style(ui);
-    ui.window("Heaven \u{00b7} Battle")
+    ui.window("Trackside \u{00b7} Battle")
         .position([px, py], Condition::FirstUseEver)
         .size([sw, sh], Condition::FirstUseEver)
         .title_bar(false)
@@ -3302,7 +3293,7 @@ fn draw_timing_tower(ui: &Ui, x: f32, y: f32) {
         .map(|r| (r[2], r[3]))
         .unwrap_or((base_w * tele * dpi(ui), base_h * tele * dpi(ui)));
     let _style = panel_style(ui);
-    ui.window("Heaven \u{00b7} Timing Tower")
+    ui.window("Trackside \u{00b7} Timing Tower")
         .position([px, py], Condition::FirstUseEver)
         .size([sw, sh], Condition::FirstUseEver)
         .title_bar(false)
@@ -3517,7 +3508,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
         .map(|r| (r[2], r[3]))
         .unwrap_or((base_w * tele * dpi(ui), 440.0 * tele * dpi(ui)));
     let _style = panel_style(ui);
-    ui.window("Heaven \u{00b7} Freecam Telemetry")
+    ui.window("Trackside \u{00b7} Freecam Telemetry")
         .position([px, py], Condition::FirstUseEver)
         .size([sw, sh], Condition::FirstUseEver)
         .title_bar(false)

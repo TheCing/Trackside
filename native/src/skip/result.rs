@@ -194,7 +194,7 @@ unsafe extern "C" fn on_pointer_click(this: *mut c_void, evt: *mut c_void, m: *m
         return;
     }
     // Log EVERY RaceSkipButton click + the gate decision, so the arm/disarm behaviour can be
-    // verified from heaven-native.log without having to reproduce the rare menu-bug live.
+    // verified from trackside-native.log without having to reproduce the rare menu-bug live.
     let tt = IN_TEAM_TRIALS.load(Ordering::Relaxed);
     let cf = career_fresh();
     let already = WINDOW_OPEN.load(Ordering::Relaxed);

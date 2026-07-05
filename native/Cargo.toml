@@ -1,19 +1,16 @@
 [package]
-name = "heaven_overlay"
-# Single source of truth for the version shown in the overlay footer.
-# DEV NOTE: kept one ahead of the newest PUBLISHED release tag (v3.5.12) while iterating
-# locally — at the released version the self-updater's same-tag hotfix check hash-compares
-# our custom DLL against the official release asset and offers to "fix" it, which
-# overwrites the local build on restart. Updater stays stock for now; it gets repointed to
-# the fork's own repo during the rebrand.
-version = "3.5.13"
+name = "trackside"
+# Single source of truth for the version shown in the overlay footer. Fork restarts at 1.0.0;
+# the self-updater now tracks the Trackside repo, so the old "stay one ahead of upstream"
+# dance is gone.
+version = "1.0.0"
 edition = "2021"
-authors = ["Night DC : nighty3333"]
-description = "Heaven — in-game overlay (D3D11 + imgui) for Umamusume Pretty Derby (Global). Made by Night DC : nighty3333"
+authors = ["TheCing"]
+description = "Trackside — in-game overlay (D3D11 + imgui) for Umamusume Pretty Derby (Global). A fork of Heaven by Night DC."
 license = "MIT"
 
 [lib]
-# cdylib → produces heaven_overlay.dll, loaded into the game process.
+# cdylib → produces trackside.dll, loaded into the game process.
 crate-type = ["cdylib"]
 
 [features]

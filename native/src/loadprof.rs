@@ -4,15 +4,15 @@
 //! REAL vs perceived. Everything is measured in milliseconds under a stable category:
 //!   net.decompress — `Gallop.HttpHelper.DecompressResponse` (the game's own decrypt + lz4)
 //!   net.parse      — Heaven's msgpack scan of that response (uma_bridge / race / the full build)
-//!   heaven.render  — Heaven's per-frame imgui overlay build (are WE the cost?)
-//!   heaven.pump    — Heaven's per-frame main-thread pumps (hunter/padder/reset/affinity)
+//!   trackside.render  — Heaven's per-frame imgui overlay build (are WE the cost?)
+//!   trackside.pump    — Heaven's per-frame main-thread pumps (hunter/padder/reset/affinity)
 //!   stall          — main-thread frame gaps: ANY freeze the player actually perceives
 //!
 //! Cheap always-on aggregates (count/avg/max/last/#over). A CSV line is written only when a
 //! sample meets its warn threshold, and a full summary snapshot is flushed every ~10 s. Output
-//! lands next to the other Heaven logs, in `<dll dir>/heaven-logs/`:
-//!   heaven-loadprof.csv          — every notable (over-threshold) sample, with a T+seconds stamp
-//!   heaven-loadprof-summary.txt  — rolling aggregate table
+//! lands next to the other Heaven logs, in `<dll dir>/trackside-logs/`:
+//!   trackside-loadprof.csv          — every notable (over-threshold) sample, with a T+seconds stamp
+//!   trackside-loadprof-summary.txt  — rolling aggregate table
 //! Not an advantage feature — pure instrumentation, safe in every build.
 
 #![allow(dead_code)]
@@ -87,7 +87,7 @@ pub fn note(cat: &'static str, ms: f64, warn: f64, detail: &str) {
 }
 
 fn csv_line(at: f64, cat: &str, ms: f64, detail: &str) {
-    let path = crate::paths::log_file("heaven-loadprof.csv");
+    let path = crate::paths::log_file("trackside-loadprof.csv");
     let need_header = !path.exists();
     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(&path) {
         if need_header {
@@ -135,7 +135,7 @@ impl Drop for FrameScope {
     fn drop(&mut self) {
         if is_enabled() {
             let ms = self.t.elapsed().as_secs_f64() * 1000.0;
-            note("heaven.render", ms, WARN_RENDER, "overlay");
+            note("trackside.render", ms, WARN_RENDER, "overlay");
         }
     }
 }
@@ -148,12 +148,12 @@ pub fn parse(ms: f64, detail: &str) {
     note("net.parse", ms, WARN_PARSE, detail);
 }
 pub fn pump(ms: f64) {
-    note("heaven.pump", ms, WARN_PUMP, "tween-pumps");
+    note("trackside.pump", ms, WARN_PUMP, "tween-pumps");
 }
 
 /// A formatted aggregate table of everything measured so far (summary file + a menu panel).
 pub fn report() -> String {
-    let mut out = format!("Heaven load profiler @ T+{:.0}s\n", secs());
+    let mut out = format!("Trackside load profiler @ T+{:.0}s\n", secs());
     out.push_str(&format!(
         "{:<15}{:>7}{:>9}{:>9}{:>9}{:>7}   worst\n",
         "category", "n", "avg", "max", "last", "#warn"
@@ -183,7 +183,7 @@ pub fn snapshot() -> Vec<(String, u64, f64, f64, u64)> {
 }
 
 pub fn dump_summary() {
-    let path = crate::paths::log_file("heaven-loadprof-summary.txt");
+    let path = crate::paths::log_file("trackside-loadprof-summary.txt");
     if let Ok(mut f) = std::fs::File::create(&path) {
         let _ = f.write_all(report().as_bytes());
     }

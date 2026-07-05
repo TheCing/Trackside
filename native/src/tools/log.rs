@@ -3,9 +3,9 @@
 
 use std::io::Write;
 
-/// Append a line to the default Heaven log (`heaven-native.log`).
+/// Append a line to the default Heaven log (`trackside-native.log`).
 pub fn log(msg: &str) {
-    log_to("heaven-native.log", msg);
+    log_to("trackside-native.log", msg);
 }
 
 /// Append a line to the named log file under the Heaven logs directory. Silent on failure

@@ -17,7 +17,7 @@
 //! runtime (non-fatal when this game build renames them). Because the follower screen has
 //! not been RE'd yet (unlike TT), `bridge` tries an ordered list of candidate names and the
 //! panel exposes a **Scan** action that dumps every Friend/Follow class + its methods to
-//! `heaven-logs/heaven-follower-scan.txt` — one live run of that log pins the real names.
+//! `trackside-logs/trackside-follower-scan.txt` — one live run of that log pins the real names.
 
 #![allow(static_mut_refs)]
 #![allow(dead_code)]
@@ -151,7 +151,7 @@ fn next_delay_ms() -> u64 {
 // ── persistence ───────────────────────────────────────────────────────────────
 
 fn json_path() -> std::path::PathBuf {
-    crate::paths::dll_dir().join("heaven_follower_pruner.json")
+    crate::paths::local_file_migrated("trackside_follower_pruner.json", "heaven_follower_pruner.json")
 }
 fn load_from_disk() -> Store {
     match std::fs::read(json_path()) {
@@ -168,7 +168,7 @@ fn save_to_disk(s: &Store) {
 fn log(msg: &str) {
     use std::io::Write;
     if let Ok(mut f) =
-        std::fs::OpenOptions::new().create(true).append(true).open(crate::paths::log_file("heaven.log"))
+        std::fs::OpenOptions::new().create(true).append(true).open(crate::paths::log_file("trackside.log"))
     {
         let _ = writeln!(f, "[pruner] {msg}");
     }
@@ -396,7 +396,7 @@ pub(crate) mod bridge {
     //! STATUS: the follower screen has NOT been RE'd yet (no _research notes exist for it,
     //! unlike TT). Every entry point below walks an ordered candidate-name list and returns
     //! a precise error naming the first step that failed to resolve — run **Scan** on a
-    //! machine with the game loaded and `heaven-logs/heaven-follower-scan.txt` gives the
+    //! machine with the game loaded and `trackside-logs/trackside-follower-scan.txt` gives the
     //! real class/method names to promote into (or reorder within) these lists.
 
     use core::ffi::c_void;
@@ -404,7 +404,7 @@ pub(crate) mod bridge {
     use super::Follower;
     use crate::il2cpp;
 
-    // Names CONFIRMED from a live scan (heaven-follower-scan.txt, 2026-07-01):
+    // Names CONFIRMED from a live scan (trackside-follower-scan.txt, 2026-07-01):
     //  - WorkDataManager.get_FriendData() -> Gallop.WorkFriendData
     //  - WorkFriendData.GetFollowerList() -> List<WorkFriendData.FriendData>  (a METHOD, not a get_ property)
     //  - FriendData getters: get_ViewerId / get_Name / get_LastLoginUnixTime — all CodeStage
@@ -738,7 +738,7 @@ pub(crate) mod bridge {
     /// Dump every loaded class whose name contains "friend" or "follow" — methods, FIELDS
     /// (name/offset/type) and parent chains, plus a section for each distinct PARENT class
     /// (that's where inherited Send entry points live) — to
-    /// `heaven-logs/heaven-follower-scan.txt`. MAIN THREAD ONLY.
+    /// `trackside-logs/trackside-follower-scan.txt`. MAIN THREAD ONLY.
     pub fn scan_dump() -> String {
         if !il2cpp::ready() {
             let _ = il2cpp::init();
@@ -754,7 +754,7 @@ pub(crate) mod bridge {
             return "Scan found nothing (class enumeration unavailable in this runtime?)".into();
         }
         let mut out = String::new();
-        out.push_str("Heaven follower-pruner class scan (v2: + fields, parent chains, parent sections)\n");
+        out.push_str("Trackside follower-pruner class scan (v2: + fields, parent chains, parent sections)\n");
         out.push_str("(send this file to pin the follower list / remove-request names)\n\n");
         for (full, k) in &hits {
             dump_class(&mut out, full, *k);
@@ -786,7 +786,7 @@ pub(crate) mod bridge {
                 dump_class(&mut out, full, *k);
             }
         }
-        let path = crate::paths::log_file("heaven-follower-scan.txt");
+        let path = crate::paths::log_file("trackside-follower-scan.txt");
         let n_par = parents.len();
         match std::fs::write(&path, out) {
             Ok(_) => format!("Scan: {} classes + {n_par} parents -> {}", hits.len(), path.display()),

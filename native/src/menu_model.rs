@@ -351,7 +351,7 @@ pub fn model() -> Vec<Tab> {
         controls: vec![
             Ctrl::Toggle { id: "diag", label: "Verbose diagnostics", get: crate::diag::enabled, set: crate::diag::set_enabled },
             Ctrl::Button { id: "diagdump", label: "Save diagnostic report", action: crate::diag::dump_action },
-            Ctrl::Note("Writes heaven-logs/heaven-diag.txt next to the game — send that file."),
+            Ctrl::Note("Writes trackside-logs/trackside-diag.txt next to the game — send that file."),
         ],
     });
     // Dev-only capture toggles (net capture / geom capture) intentionally NOT here —

@@ -12,7 +12,7 @@
 //!     processes fresh lists at a human pace (2–5 s jitter + occasional longer rests),
 //!     capped at MAX_CHECKS.
 //!
-//! IL2CPP names in `bridge` were CONFIRMED from a live scan (heaven-roommatch-scan.txt,
+//! IL2CPP names in `bridge` were CONFIRMED from a live scan (trackside-roommatch-scan.txt,
 //! 2026-07-02) — see the notes on each constant. NOT auto-sent: a real room ENTRY
 //! (RoomMatchEntryRoomRequest) requires an entry_chara_array (which trained Uma races), so a
 //! blind fire-and-forget join could be rejected or corrupt entry state. "Auto-open" instead
@@ -386,7 +386,7 @@ fn next_delay_ms() -> u64 {
 // ── persistence ───────────────────────────────────────────────────────────────
 
 fn json_path() -> std::path::PathBuf {
-    crate::paths::dll_dir().join("heaven_room_finder.json")
+    crate::paths::local_file_migrated("trackside_room_finder.json", "heaven_room_finder.json")
 }
 fn load_from_disk() -> Filters {
     match std::fs::read(json_path()) {
@@ -403,7 +403,7 @@ fn save_to_disk(f: &Filters) {
 fn log(msg: &str) {
     use std::io::Write;
     if let Ok(mut f) =
-        std::fs::OpenOptions::new().create(true).append(true).open(crate::paths::log_file("heaven.log"))
+        std::fs::OpenOptions::new().create(true).append(true).open(crate::paths::log_file("trackside.log"))
     {
         let _ = writeln!(f, "[roomfinder] {msg}");
     }
@@ -802,20 +802,20 @@ fn process_list() {
                         AJ_STATE.store(AJ_AWAIT_ENTRY, Ordering::Relaxed);
                         let verb = if f.auto_confirm { "auto-joining" } else { "loading Team" };
                         set_status(format!("FOUND: {desc} — {verb} {}\u{2026}", f.preset_slot));
-                        crate::hunter::notify("Heaven — Room found (auto-joining)!", &desc);
+                        crate::hunter::notify("Trackside — Room found (auto-joining)!", &desc);
                     } else {
                         set_status(format!("FOUND: {desc} — entry opened, pick your runners!"));
-                        crate::hunter::notify("Heaven — Room found (entry open)!", &desc);
+                        crate::hunter::notify("Trackside — Room found (entry open)!", &desc);
                     }
                 }
                 Err(e) => {
                     set_status(format!("FOUND: {desc} — couldn't auto-open ({e}), pick it in the list"));
-                    crate::hunter::notify("Heaven — Room found!", &desc);
+                    crate::hunter::notify("Trackside — Room found!", &desc);
                 }
             }
         } else {
             set_status(format!("FOUND: {desc} (after {n} checks) — join it!"));
-            crate::hunter::notify("Heaven — Room found!", &desc);
+            crate::hunter::notify("Trackside — Room found!", &desc);
         }
         return;
     }
@@ -870,7 +870,7 @@ pub fn install() -> String {
 mod bridge {
     //! Runtime-resolved access to the Room Match guest room list.
     //!
-    //! Names CONFIRMED from a live scan (heaven-roommatch-scan.txt, 2026-07-02):
+    //! Names CONFIRMED from a live scan (trackside-roommatch-scan.txt, 2026-07-02):
     //!  - WorkDataManager.get_RoomMatchData() -> Gallop.WorkRoomMatchData
     //!  - WorkRoomMatchData.get_GuestEntryRoomList() -> List<WorkRoomMatchData.RoomData>
     //!  - RoomData (nested; parent ExhibitionRaceDataBase): get_RoomId (plain Int32),
@@ -1472,7 +1472,7 @@ mod bridge {
     ];
 
     /// Dump every loaded class matching SCAN_NEEDLES — plus their nested types and parent
-    /// chains — with methods and fields, to `heaven-logs/heaven-roommatch-scan.txt`.
+    /// chains — with methods and fields, to `trackside-logs/trackside-roommatch-scan.txt`.
     /// MAIN THREAD ONLY.
     pub fn scan_dump() -> String {
         if !il2cpp::ready() {
@@ -1500,7 +1500,7 @@ mod bridge {
             return "Scan found nothing (class enumeration unavailable in this runtime?)".into();
         }
         let mut out = String::new();
-        out.push_str("Heaven room-finder class scan (methods, fields, parent chains)\n\n");
+        out.push_str("Trackside room-finder class scan (methods, fields, parent chains)\n\n");
         for (full, k) in &hits {
             crate::pruner::bridge::dump_class(&mut out, full, *k);
         }
@@ -1529,7 +1529,7 @@ mod bridge {
                 crate::pruner::bridge::dump_class(&mut out, full, *k);
             }
         }
-        let path = crate::paths::log_file("heaven-roommatch-scan.txt");
+        let path = crate::paths::log_file("trackside-roommatch-scan.txt");
         let n_par = parents.len();
         match std::fs::write(&path, out) {
             Ok(_) => format!("Scan: {} classes + {n_par} parents -> {}", hits.len(), path.display()),

@@ -89,7 +89,7 @@ pub(crate) use need;
 
 // ── plugin log ───────────────────────────────────────────────────────────────
 pub(crate) fn plog(msg: &str) {
-    crate::tools::log_to("heaven-plugins.log", msg);
+    crate::tools::log_to("trackside-plugins.log", msg);
 }
 
 // Opaque host/interceptor tokens (a plugin only passes them back to us).
