@@ -81,6 +81,10 @@ pub fn set_rival_enabled(on: bool) {
 pub fn is_rival_enabled() -> bool {
     RIVAL_ENABLED.load(Ordering::Relaxed)
 }
+pub fn set_scene_enabled(_on: bool) {}
+pub fn is_scene_enabled() -> bool {
+    false
+}
 
 /// Apply persisted settings to the skip subsystem at boot.
 pub fn apply(s: &crate::settings::Settings) {
@@ -88,28 +92,31 @@ pub fn apply(s: &crate::settings::Settings) {
     set_event_enabled(s.skip_events);
     set_shop_enabled(s.skip_shop);
     set_rival_enabled(s.skip_rival);
+    set_scene_enabled(s.skip_scene_cutt);
     set_race_result_enabled(s.race_result);
 }
 
-/// One-line snapshot of the skip subsystem for the diagnostics report — enable flags, the live gate
-/// flags, and the run counters. If a skip "doesn't work", this shows whether it's disabled, gated
-/// (stuck in team-trials / window state), or never firing (counter at 0 ⇒ the hook isn't being hit,
-/// usually because another mod detoured the method first — see the install results in the report).
+fn scene_driving() -> bool {
+    false
+}
+
 pub fn diag() -> String {
     use std::sync::atomic::Ordering::Relaxed;
     format!(
-        "enabled: train={} event={} shop={} rival={} race_result={}\n  \
-         gates: in_team_trials={} window_open={} busy={} driving={}\n  \
+        "enabled: train={} event={} shop={} rival={} scene={} race_result={}\n  \
+         gates: in_team_trials={} window_open={} busy={} driving={} scene_driving={}\n  \
          counts: train_skips={} event_skips={} rr_presses={}",
         SKIP_ENABLED.load(Relaxed),
         EVENT_ENABLED.load(Relaxed),
         SHOP_ENABLED.load(Relaxed),
         RIVAL_ENABLED.load(Relaxed),
+        is_scene_enabled(),
         result::RACE_RESULT_ENABLED.load(Relaxed),
         result::IN_TEAM_TRIALS.load(Relaxed),
         result::WINDOW_OPEN.load(Relaxed),
         crate::ui_input::BUSY.load(Relaxed),
         shop::DRIVING.load(Relaxed),
+        scene_driving(),
         TRAIN_SKIPS.load(Relaxed),
         EVENT_SKIPS.load(Relaxed),
         result::RR_PRESSES.load(Relaxed),
@@ -468,6 +475,11 @@ pub fn install() -> (bool, bool, String) {
             "Gallop.PartsRivalEntryAnimation",
             "<PlayRivalEntryCoroutine>d__11",
         );
+        // The skip is now context-gated in rival::on_rival_movenext: it is SUPPRESSED when the
+        // coroutine's endAction targets a paddock view controller (the URA/scenario-finals rival
+        // intro is embedded in the paddock as the "VsUniqueNpcEntry" step, and firing that
+        // continuation early corrupted the paddock — default 9999 stats). Normal rival races (entry
+        // card outside the paddock) still skip. (Root-caused 2026-07-05 from a live field dump.)
         if rcoro.is_null() {
             notes.push_str("rival coro miss; ");
         } else {
@@ -478,6 +490,7 @@ pub fn install() -> (bool, bool, String) {
             }
         }
     }
+
 
     // ── EVENTS ──
     let view = il2cpp::class("Gallop.StoryViewController");
@@ -499,6 +512,28 @@ pub fn install() -> (bool, bool, String) {
                                   event::on_start_timeline as *const (), &event::TR_TIMELINE, &event::D_TIMELINE) {
                     Ok(()) => events_ok = true,
                     Err(e) => notes.push_str(&format!("{e}; ")),
+                }
+            }
+        }
+    }
+
+    // ── Goal-Complete FREEZE guard ── suppress the event skip while the "All goals achieved" screen is
+    // up (SkipStory there hangs the game in a DialogManager z-order loop). Hook the SAFE (void) BeginView.
+    {
+        let ccc = il2cpp::class("Gallop.SingleModeConfirmCompleteViewController");
+        if ccc.is_null() {
+            notes.push_str("goal-complete vc miss; ");
+        } else {
+            unsafe {
+                // RegisterDownload fires EARLIEST (asset preload, before the corrupting story) — primary arm.
+                if let Err(e) = install_one(ccc, "RegisterDownload", 1, event::on_goal_complete_register as *const (),
+                                            &event::TR_GCREG, &event::D_GCREG) {
+                    notes.push_str(&format!("goal-complete reg: {e}; "));
+                }
+                // BeginView backup.
+                if let Err(e) = install_one(ccc, "BeginView", 0, event::on_goal_complete_begin as *const (),
+                                            &event::TR_GOALBEGIN, &event::D_GOALBEGIN) {
+                    notes.push_str(&format!("goal-complete begin: {e}; "));
                 }
             }
         }

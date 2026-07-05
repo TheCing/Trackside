@@ -244,7 +244,13 @@ pub fn class(full_name: &str) -> Class {
 /// Look up a NESTED class by its outer class full name + the nested simple name.
 /// `class_from_name` can't see nested types, so we enumerate the outer's nested types.
 pub fn nested_class(outer_full: &str, nested_name: &str) -> Class {
-    let outer = class(outer_full);
+    nested_in(class(outer_full), nested_name)
+}
+
+/// Find a nested type by simple name inside an already-resolved outer Class. Use this to walk
+/// DOUBLE-nested types (a coroutine state machine inside a nested controller): resolve each level
+/// with nested_in. Null-safe.
+pub fn nested_in(outer: Class, nested_name: &str) -> Class {
     if outer.is_null() {
         return std::ptr::null_mut();
     }

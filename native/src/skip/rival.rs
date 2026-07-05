@@ -20,7 +20,7 @@ type BoolMethodFn = unsafe extern "C" fn(*mut c_void, *mut c_void) -> bool;
 // (Driving the coroutine to completion does NOT work here — its first step yields on the
 // rival model/asset load, never advancing the on-screen card; this early-skip does.)
 crate::skip_hook_slot!(TR_RIVALMN, D_RIVALMN);
-pub(crate) static DESTROY_RIVAL_ENTRY: OnceLock<Invokable> = OnceLock::new(); // PartsRivalEntryAnimation.DestroyRivalEntryWithUnload
+pub(crate) static DESTROY_RIVAL_ENTRY: OnceLock<Invokable> = OnceLock::new(); // PartsRivalEntryAnimation.DestroyRivalEntryAnimationObj (visual-only; NOT WithUnload — its zekken unload corrupts the URA-Finale paddock)
 const O_RIVAL_STATE: usize = 0x10; // <>1__state
 const O_RIVAL_ENDACTION: usize = 0x20; // endAction (System.Action)
 // 2026-07-01 update: coroutine moved to Gallop.PartsRivalEntryAnimation.d__11; a new
@@ -42,6 +42,17 @@ pub(crate) unsafe extern "C" fn on_rival_movenext(this: *mut c_void, m: *mut c_v
     }
     let ctrl = *((this as usize + O_RIVAL_THIS) as *const *mut c_void);
     let end_action = *((this as usize + O_RIVAL_ENDACTION) as *const usize);
+    // Context gate: the URA/scenario-finals rival intro is EMBEDDED in the paddock — the coroutine's
+    // endAction is a paddock view controller's own continuation (paddock step "VsUniqueNpcEntry"). If
+    // we skip there (force state=-1 + fire endAction), that continuation runs before the paddock binds
+    // its horse data → entries render with default 9999 stats until you navigate. So when the endAction
+    // targets a paddock controller, DON'T skip — let the intro play (it's part of the paddock's own
+    // sequence). A normal rival race's entry card targets SingleModeRaceEntryViewController (no paddock)
+    // and skips fine. (Root-caused 2026-07-05 from a live field dump: m_target._paddockStepValue.)
+    if end_action_targets_paddock(end_action as *mut c_void) {
+        rr_log("[rival] not skipping — paddock-embedded entry (URA/scenario finals)");
+        return f(this, m);
+    }
     *((this as usize + O_RIVAL_STATE) as *mut i32) = -1; // body -> default -> returns false, no visuals
     let _ = f(this, m);
     if !ctrl.is_null() {
@@ -55,4 +66,35 @@ pub(crate) unsafe extern "C" fn on_rival_movenext(this: *mut c_void, m: *mut c_v
     fire_action(end_action); // proceed to the race
     rr_log("[rival] skipped entry cut-in");
     false
+}
+
+/// True when the coroutine's endAction (a System.Action) is bound to a PADDOCK view controller,
+/// i.e. the rival intro is embedded in the paddock's own step sequence (URA/scenario finals). We
+/// detect it structurally — the target object carries a `_paddockStepValue` field — rather than by a
+/// hardcoded race id, so it survives game updates. Runs on the game (IL2CPP-attached) thread.
+unsafe fn end_action_targets_paddock(action: *mut c_void) -> bool {
+    use crate::htt_il2cpp as h;
+    if action.is_null() {
+        return false;
+    }
+    // System.Action.m_target — the object whose method the delegate invokes (offset resolved by name,
+    // walking Delegate's parents, so we don't hardcode a layout).
+    let aklass = h::obj_class(action as *mut h::RawObject);
+    if aklass.is_null() {
+        return false;
+    }
+    let Some(off) = h::field_offset(aklass, "m_target") else {
+        return false;
+    };
+    let target = *((action as usize + off) as *const *mut c_void);
+    if target.is_null() {
+        return false;
+    }
+    let tklass = h::obj_class(target as *mut h::RawObject);
+    if tklass.is_null() {
+        return false;
+    }
+    // A paddock view controller (SingleModePaddock…) has `_paddockStepValue`; a normal rival race's
+    // entry controller does not. Fall back to a class-name check too, for robustness.
+    h::field_offset(tklass, "_paddockStepValue").is_some() || h::class_name(tklass).contains("Paddock")
 }

@@ -25,10 +25,20 @@ static PHOTO_CUT_ACTIVE: AtomicBool = AtomicBool::new(false);
 
 // ── TRAINING: run SkipRuntime after a cut-in start. ─────────────────────────
 fn do_training_skip(this: *mut c_void) {
-    if !is_enabled() || in_heaven() || this.is_null() {
+    if !is_enabled() {
+        return;
+    }
+    // DIAGNOSTIC: log the bail reason. If the rainbow "stops skipping" mid-run, this shows whether it is
+    // a stuck re-entry guard (in_heaven) — the prime suspect for the "worked then nothing skips" bug.
+    if in_heaven() {
+        rr_log("[train] BAILED: in_heaven guard held (stuck? watchdog clears it next frame)");
+        return;
+    }
+    if this.is_null() {
         return;
     }
     if PHOTO_CUT_ACTIVE.load(Ordering::Relaxed) {
+        rr_log("[train] bailed: photo-studio cut active");
         return; // Photo Studio cut recreation — must play normally, never skip it
     }
     if let Some(sr) = SKIP_RUNTIME.get() {
@@ -36,6 +46,7 @@ fn do_training_skip(this: *mut c_void) {
             let _g = ReentryGuard::enter();
             unsafe { sr.call_void(this) };
             TRAIN_SKIPS.fetch_add(1, Ordering::Relaxed);
+            rr_log("[train] SkipRuntime() fired");
         }
     }
 }

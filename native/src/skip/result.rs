@@ -154,7 +154,16 @@ crate::skip_hook_slot!(TR_PUSH2, D_PUSH2);
 
 unsafe extern "C" fn on_button_update(this: *mut c_void, m: *mut c_void) {
     call_orig(&TR_UPDATE, this, m);
+    // WATCHDOG: this pump runs on the game thread OUTSIDE any Heaven-initiated call, so the re-entry
+    // guard (in_heaven) and the scene DRIVING flag must be false here. If either is stuck true (a hook
+    // leaked it), EVERY skip that gates on them silently dies until a game restart — the "worked, then
+    // suddenly nothing skips" bug. Detect + clear it so the skips self-recover within a frame.
+    if in_heaven() {
+        crate::hooks::clear_in_heaven();
+        rr_log("[watchdog] cleared a stuck in_heaven guard -> skips recovered");
+    }
     crate::skip::event::pump_pending_tag_cb(); // fire deferred friendship-splash onDone on a clean frame
+    crate::followers::pump(this); // auto-unfollow: drive one step of the bulk-remove flow (default off)
     // After a buy auto-closes its dialog, auto-press the shop "BackButton" so the player lands
     // where their manual Back would (this Update fires per ButtonCommon, so we catch BackButton
     // when it's this one). Frame-windowed + shop-gated so it never fires elsewhere.
@@ -227,7 +236,7 @@ unsafe extern "C" fn on_home_in(this: *mut c_void, m: *mut c_void) -> *mut c_voi
         std::ptr::null_mut()
     };
     LAST_CAREER_MS.store(0, Ordering::Relaxed); // career heartbeat → stale immediately
-    crate::skip::event::CAREER_END.store(false, Ordering::Relaxed); // left the Goal Complete flow
+    crate::skip::event::clear_goal_complete(); // re-enable event skip for the next career
     let was_open = WINDOW_OPEN.swap(false, Ordering::Relaxed);
     if was_open {
         clear_rr_caches();
@@ -332,14 +341,6 @@ pub(crate) fn install_race_result() -> Result<String, String> {
             note.push_str("home view miss (heartbeat-only gate); ");
         } else if install_one(home, "PlayInView", 0, on_home_in as *const (), &TR_HOME, &D_HOME).is_err() {
             note.push_str("home hook miss; ");
-        }
-        // "Goal Complete" event guard: while that screen is up, the event-skip stands down (its
-        // SkipStory on that story deadlocks the game). See skip::event::CAREER_END.
-        let ccc = il2cpp::class("Gallop.SingleModeConfirmCompleteViewController");
-        if ccc.is_null() {
-            note.push_str("goal-complete miss; ");
-        } else if install_one(ccc, "PlayInView", 0, crate::skip::event::on_confirm_complete_in as *const (), &crate::skip::event::TR_CONFIRM, &crate::skip::event::D_CONFIRM).is_err() {
-            note.push_str("goal-complete hook miss; ");
         }
         if dm.is_null() {
             note.push_str("dialog-mgr miss (no auto-close); ");

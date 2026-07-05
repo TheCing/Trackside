@@ -40,6 +40,8 @@ pub struct Settings {
     pub skip_shop: bool,
     #[serde(default = "default_true")]
     pub skip_rival: bool,
+    #[serde(default = "default_true")]
+    pub skip_scene_cutt: bool,
     pub race_result: bool,
     pub fps: i32,
     #[serde(default = "default_ui_tempo")]
@@ -205,6 +207,7 @@ impl Default for Settings {
             skip_events: true,
             skip_shop: true,
             skip_rival: true,
+            skip_scene_cutt: true,
             // Track the compile-time default: builds with `races_on` (public) default
             // race-result skip ON; otherwise persisted state would force it OFF on a
             // fresh install. Private has no `races_on`, so this stays false there.
@@ -346,6 +349,7 @@ pub fn save_current() {
         c.skip_events = skip::is_event_enabled();
         c.skip_shop = skip::is_shop_enabled();
         c.skip_rival = skip::is_rival_enabled();
+        c.skip_scene_cutt = skip::is_scene_enabled();
         c.race_result = skip::is_race_result_enabled();
         c.fps = fps::current();
         c.ui_tempo = crate::ui_tempo::tempo();

@@ -130,6 +130,12 @@ pub fn model() -> Vec<Tab> {
             }],
         },
     ];
+    gameplay.push(Section {
+        title: "Tools",
+        icon: '\u{E713}',
+        blurb: "Auto-remove followers (open Friends -> Followers, then toggle on). Human-paced.",
+        controls: vec![Ctrl::Toggle { id: "unf", label: "Auto-unfollow followers", get: crate::followers::is_enabled, set: crate::followers::set_enabled }],
+    });
     tabs.push(Tab { name: "Gameplay", icon: '\u{E768}', sections: gameplay });
 
     // ── 1b) TEAM TRIALS ──────────────────────────────────────────────────────
