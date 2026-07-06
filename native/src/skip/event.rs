@@ -34,7 +34,7 @@ crate::skip_hook_slot!(TR_TAGOUT, D_TAGOUT); // .PlayCutInOut
 // hang = SkipStory; matches the historical "Events OFF" workaround). We suppress the event skip for a
 // short window after SingleModeConfirmCompleteViewController.BeginView (Goal Complete opening). It is
 // TIME-BASED so it can NEVER stick (auto-expires), and Goal Complete → URA Finale races has no normal
-// events in that window, so there is zero collateral on other events / other skips / hyperskip.
+// events in that window, so there is zero collateral on other events / other skips.
 static GOAL_COMPLETE_UNTIL: AtomicU64 = AtomicU64::new(0);
 /// Arm the end-career suppression. CRITICAL: callers must arm this BEFORE running the original method,
 /// because the original ConfirmComplete flow is what HANGS (so a store placed after call_orig never
