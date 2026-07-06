@@ -696,7 +696,7 @@ mod il2cpp_bridge {
 /// each Uma by its stable trained_chara_id, so they survive inventory reordering.
 pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
     use hudhook::imgui::Ui;
-    use crate::overlay::{btn_primary, help_icon, icon_btn, status_dot, ACCENT, DIM, GOOD, TEXT, WARN};
+    use crate::overlay::{accent, btn_primary, help_icon, icon_btn, status_dot, DIM, GOOD, TEXT, WARN};
     use std::cell::{Cell, RefCell};
     thread_local! {
         static NEWBUF: RefCell<String> = RefCell::new(String::new());
@@ -751,7 +751,7 @@ pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
                 RIDX.with(|r| r.set(-1));
             }
         } else if CONFIRM.with(|c| c.get()) == idx {
-            ui.text_colored(ACCENT, &format!("Apply \"{name}\"?"));
+            ui.text_colored(accent(), &format!("Apply \"{name}\"?"));
             align_icons(ui, 2.0);
             if icon_btn(ui, &format!("##yes{i}"), "\u{E73E}", "Confirm apply", false) {
                 if let Err(e) = crate::padder::apply(i) {

@@ -19,37 +19,42 @@ use crate::ipc;
 
 // ── Heaven palette (RGBA 0..1) — muted slate-violet, softened from the original neon theme ──
 // Content palette — pub(crate) so feature panels moved out of overlay can theme with it.
-pub(crate) const ACCENT: [f32; 4] = [0.64, 0.60, 0.90, 1.0]; // soft periwinkle (section titles, checks)
-pub(crate) const ACCENT_HI: [f32; 4] = [0.78, 0.74, 0.97, 1.0];
+// ── Accent family — resolved through the active silk theme (see theme.rs) ──
+// These are functions (not consts) so switching a theme recolours the whole UI at once.
+// The neutral graphite base below stays fixed for readability across all themes.
+pub(crate) fn accent() -> [f32; 4] { crate::theme::accent() }
+pub(crate) fn accent_hi() -> [f32; 4] { crate::theme::accent_hi() }
+fn border() -> [f32; 4] { crate::theme::accent_a(0.30) }
+fn amber_soft() -> [f32; 4] { crate::theme::accent_a(0.18) } // accent soft (name kept for reuse)
+fn amber_med() -> [f32; 4] { crate::theme::accent_a(0.34) }
+fn card_border() -> [f32; 4] { crate::theme::accent_a(0.20) } // subtle card outline
+fn badge_bg() -> [f32; 4] { crate::theme::accent_a(0.16) } // rounded square behind a section icon
+fn sel_bg() -> [f32; 4] { crate::theme::accent_a(0.30) } // selected sidebar pill
+fn grad_l() -> [f32; 4] { crate::theme::grad_l() } // slider fill left (theme primary)
+fn grad_r() -> [f32; 4] { crate::theme::grad_r() } // slider fill right (theme secondary)
+
+// Fixed content palette — pub(crate) so feature panels moved out of overlay can theme with it.
 pub(crate) const PINK: [f32; 4] = [0.86, 0.52, 0.70, 1.0]; // muted rose — race FIGHT/SPURT tags only
-pub(crate) const TEXT: [f32; 4] = [0.90, 0.89, 0.94, 1.0];
-pub(crate) const DIM: [f32; 4] = [0.58, 0.56, 0.66, 1.0]; // neutral gray
-pub(crate) const GOLD: [f32; 4] = [0.80, 0.70, 0.52, 1.0]; // softened, art-only warmth
+pub(crate) const TEXT: [f32; 4] = [0.90, 0.93, 0.93, 1.0];
+pub(crate) const DIM: [f32; 4] = [0.55, 0.60, 0.60, 1.0]; // cool neutral gray
+pub(crate) const GOLD: [f32; 4] = [0.80, 0.70, 0.52, 1.0]; // race HUD only (leader / highlights)
 pub(crate) const GOOD: [f32; 4] = [0.55, 0.82, 0.66, 1.0];
 pub(crate) const WARN: [f32; 4] = [0.95, 0.74, 0.48, 1.0];
 pub(crate) const BAD: [f32; 4] = [0.92, 0.50, 0.60, 1.0];
 pub(crate) const BLUE: [f32; 4] = [0.58, 0.72, 1.0, 1.0];
 
-const PANEL_BG: [f32; 4] = [0.082, 0.078, 0.110, 0.985]; // page behind the cards (cool slate)
-const TITLE_BG: [f32; 4] = [0.105, 0.100, 0.140, 1.0];
-const TITLE_BG_ON: [f32; 4] = [0.165, 0.150, 0.225, 1.0];
-const BORDER: [f32; 4] = [0.46, 0.44, 0.58, 0.30];
-const FRAME_BG: [f32; 4] = [0.165, 0.155, 0.225, 1.0];
-const FRAME_HI: [f32; 4] = [0.215, 0.200, 0.285, 1.0];
-pub(crate) const BTN_BG: [f32; 4] = [0.190, 0.175, 0.255, 1.0];
-pub(crate) const BTN_HI: [f32; 4] = [0.255, 0.235, 0.330, 1.0];
-const AMBER_SOFT: [f32; 4] = [0.64, 0.60, 0.90, 0.18]; // accent soft (name kept for reuse)
-const AMBER_MED: [f32; 4] = [0.64, 0.60, 0.90, 0.34];
+const PANEL_BG: [f32; 4] = [0.066, 0.076, 0.078, 0.985]; // page behind the cards (graphite)
+const TITLE_BG: [f32; 4] = [0.090, 0.104, 0.106, 1.0];
+const TITLE_BG_ON: [f32; 4] = [0.120, 0.150, 0.150, 1.0];
+const FRAME_BG: [f32; 4] = [0.140, 0.160, 0.162, 1.0];
+const FRAME_HI: [f32; 4] = [0.185, 0.212, 0.214, 1.0];
+pub(crate) const BTN_BG: [f32; 4] = [0.150, 0.178, 0.180, 1.0];
+pub(crate) const BTN_HI: [f32; 4] = [0.200, 0.238, 0.240, 1.0];
 
 // Menu chrome.
-const SIDEBAR_BG: [f32; 4] = [0.052, 0.048, 0.072, 1.0]; // sidebar column (near-neutral dark)
-const CARD_BG: [f32; 4] = [0.150, 0.140, 0.200, 0.97]; // section card (lighter, floats on page)
-const CARD_BORDER: [f32; 4] = [0.56, 0.52, 0.70, 0.20]; // subtle card outline
-const BADGE_BG: [f32; 4] = [0.64, 0.60, 0.90, 0.16]; // rounded square behind a section icon
-const SEL_BG: [f32; 4] = [0.52, 0.48, 0.80, 0.30]; // selected sidebar pill (soft lavender)
-const TRACK_BG: [f32; 4] = [0.215, 0.200, 0.285, 1.0]; // slider track
-const GRAD_L: [f32; 4] = [0.58, 0.55, 0.90, 1.0]; // slider fill left (soft accent)
-const GRAD_R: [f32; 4] = [0.72, 0.62, 0.94, 1.0]; // slider fill right (soft lilac)
+const SIDEBAR_BG: [f32; 4] = [0.044, 0.052, 0.053, 1.0]; // sidebar column (near-neutral dark)
+const CARD_BG: [f32; 4] = [0.115, 0.132, 0.134, 0.97]; // section card (lighter, floats on page)
+const TRACK_BG: [f32; 4] = [0.180, 0.208, 0.210, 1.0]; // slider track
 const SIDEBAR_W: f32 = 176.0;
 const MENU_W: f32 = 720.0;
 const MENU_H: f32 = 720.0;
@@ -493,6 +498,8 @@ const PETAL_SZ: u32 = 96;
 
 impl HeavenOverlay {
     pub fn new() -> Self {
+        // Activate the persisted silk theme (or roll a random one) before the first frame.
+        crate::theme::apply_from_settings();
         let cur = crate::performance::fps::current();
         let (ex, ey) = crate::settings::energy_pos();
         Self {
@@ -875,6 +882,10 @@ impl ImguiRenderLoop for HeavenOverlay {
             }
         } else if key_down && !self.toggle_was_down {
             self.show = !self.show;
+            if self.show {
+                // Re-roll the silk theme on open when "randomize on open" is set.
+                crate::theme::on_menu_opened();
+            }
             // Opening the menu once dismisses the first-launch hint forever.
             if self.show && !crate::settings::seen_hint() {
                 crate::settings::set_seen_hint(true);
@@ -955,7 +966,7 @@ impl ImguiRenderLoop for HeavenOverlay {
         // ── push the Heaven telemetry style for every window this frame ──
         let _c0 = ui.push_style_color(StyleColor::WindowBg, PANEL_BG);
         let _c1 = ui.push_style_color(StyleColor::ChildBg, [0.0, 0.0, 0.0, 0.0]);
-        let _c2 = ui.push_style_color(StyleColor::Border, BORDER);
+        let _c2 = ui.push_style_color(StyleColor::Border, border());
         let _c3 = ui.push_style_color(StyleColor::TitleBg, TITLE_BG);
         let _c4 = ui.push_style_color(StyleColor::TitleBgActive, TITLE_BG_ON);
         let _c5 = ui.push_style_color(StyleColor::TitleBgCollapsed, TITLE_BG);
@@ -963,21 +974,21 @@ impl ImguiRenderLoop for HeavenOverlay {
         let _c7 = ui.push_style_color(StyleColor::TextDisabled, DIM);
         let _c8 = ui.push_style_color(StyleColor::Button, BTN_BG);
         let _c9 = ui.push_style_color(StyleColor::ButtonHovered, BTN_HI);
-        let _c10 = ui.push_style_color(StyleColor::ButtonActive, AMBER_MED);
+        let _c10 = ui.push_style_color(StyleColor::ButtonActive, amber_med());
         let _c11 = ui.push_style_color(StyleColor::FrameBg, FRAME_BG);
         let _c12 = ui.push_style_color(StyleColor::FrameBgHovered, FRAME_HI);
         let _c13 = ui.push_style_color(StyleColor::FrameBgActive, FRAME_HI);
-        let _c14 = ui.push_style_color(StyleColor::CheckMark, ACCENT);
-        let _c15 = ui.push_style_color(StyleColor::SliderGrab, ACCENT);
-        let _c16 = ui.push_style_color(StyleColor::SliderGrabActive, ACCENT_HI);
-        let _c17 = ui.push_style_color(StyleColor::Header, AMBER_SOFT);
-        let _c18 = ui.push_style_color(StyleColor::HeaderHovered, AMBER_MED);
-        let _c19 = ui.push_style_color(StyleColor::HeaderActive, AMBER_MED);
-        let _c20 = ui.push_style_color(StyleColor::Separator, BORDER);
-        let _c21 = ui.push_style_color(StyleColor::PlotHistogram, ACCENT);
+        let _c14 = ui.push_style_color(StyleColor::CheckMark, accent());
+        let _c15 = ui.push_style_color(StyleColor::SliderGrab, accent());
+        let _c16 = ui.push_style_color(StyleColor::SliderGrabActive, accent_hi());
+        let _c17 = ui.push_style_color(StyleColor::Header, amber_soft());
+        let _c18 = ui.push_style_color(StyleColor::HeaderHovered, amber_med());
+        let _c19 = ui.push_style_color(StyleColor::HeaderActive, amber_med());
+        let _c20 = ui.push_style_color(StyleColor::Separator, border());
+        let _c21 = ui.push_style_color(StyleColor::PlotHistogram, accent());
         let _c22 = ui.push_style_color(StyleColor::ResizeGrip, [0.4, 0.4, 0.45, 0.25]);
-        let _c23 = ui.push_style_color(StyleColor::ResizeGripHovered, AMBER_MED);
-        let _c24 = ui.push_style_color(StyleColor::ResizeGripActive, ACCENT);
+        let _c23 = ui.push_style_color(StyleColor::ResizeGripHovered, amber_med());
+        let _c24 = ui.push_style_color(StyleColor::ResizeGripActive, accent());
 
         let _v0 = ui.push_style_var(StyleVar::WindowRounding(10.0));
         let _v1 = ui.push_style_var(StyleVar::ChildRounding(8.0));
@@ -1078,7 +1089,6 @@ impl HeavenOverlay {
             self.prev_tab = self.tab;
         }
         let tab = &mut self.tab;
-        let anim_t = self.anim_t;
         FRAME_DT.with(|c| c.set(self.frame_dt));
         let icon_font = ICON_FONT.with(|c| c.get());
         #[cfg(feature = "banner")]
@@ -1111,9 +1121,6 @@ impl HeavenOverlay {
                 let sbw = SIDEBAR_W * s; // scaled sidebar width (all sidebar layout keys off this)
                 let _sp_is = ui.push_style_var(StyleVar::ItemSpacing([8.0 * s, 7.0 * s]));
                 let _sp_fp = ui.push_style_var(StyleVar::FramePadding([9.0 * s, 5.0 * s]));
-                // Below this height the silhouette/sparkles are hidden so the nav rows never
-                // overlap them; the nav reclaims that reserved bottom space (see bottom_limit).
-                let show_decor = wsz[1] >= 520.0;
                 let pmax = [p0[0] + wsz[0], p0[1] + wsz[1]];
                 // Tileable background texture over the whole window, dimmed with a scrim so the
                 // content cards stay readable. Shows through the page margins between cards.
@@ -1131,44 +1138,14 @@ impl HeavenOverlay {
                     .round_top_right(false)
                     .round_bot_right(false)
                     .build();
-                // Falling sakura petals drifting down the sidebar (subtle animated accent).
-                #[cfg(feature = "banner")]
-                {
-                    let petals = PETAL_TEX.with(|c| c.get());
-                    if petals.iter().any(|p| p.is_some()) {
-                        let dl = ui.get_window_draw_list();
-                        // (x-fraction across sidebar, fall speed px/s, phase, size, tex idx)
-                        let defs: [(f32, f32, f32, f32, usize); 7] = [
-                            (0.18, 26.0, 0.0, 17.0, 0),
-                            (0.42, 19.0, 40.0, 22.0, 1),
-                            (0.66, 31.0, 80.0, 15.0, 2),
-                            (0.84, 22.0, 120.0, 19.0, 0),
-                            (0.30, 34.0, 170.0, 14.0, 1),
-                            (0.56, 17.0, 210.0, 21.0, 2),
-                            (0.74, 28.0, 260.0, 16.0, 0),
-                        ];
-                        let span = wsz[1] + 80.0;
-                        for (xf, sp, ph, sz, ti) in defs {
-                            if let Some(t) = petals[ti] {
-                                let yy = p0[1] - 40.0 + ((anim_t * sp + ph) % span);
-                                let sway = (anim_t * 0.7 + ph).sin() * 9.0;
-                                let cx = p0[0] + 10.0 + xf * (sbw - 30.0) + sway;
-                                dl.add_image(t, [cx, yy], [cx + sz, yy + sz])
-                                    .col([1.0, 1.0, 1.0, 0.22])
-                                    .build();
-                            }
-                        }
-                    }
-                }
-
                 ui.columns(2, "##menu", false);
                 ui.set_column_width(0, sbw);
 
                 // ── sidebar: clean "Trackside" wordmark (replaces the crest + logo art) ──
-                // The crest/orb/logo textures are still loaded but intentionally no longer drawn;
-                // we render a simple theme-font wordmark instead.
+                // The crest/orb/logo/silhouette textures are still loaded but intentionally no
+                // longer drawn (flat rebrand); we render a simple theme-font wordmark instead.
                 #[cfg(feature = "banner")]
-                let _ = (crest_tex, logo_tex);
+                let _ = (crest_tex, logo_tex, sil_tex);
                 {
                     let top = 18.0 * s;
                     // Scale the 18px title font up for a logo-sized wordmark (on top of the
@@ -1189,7 +1166,7 @@ impl HeavenOverlay {
                     let ux = p0[0] + (sbw - uw) * 0.5;
                     let uy = p0[1] + top + line_h + 5.0;
                     ui.get_window_draw_list()
-                        .add_line([ux, uy], [ux + uw, uy], [ACCENT[0], ACCENT[1], ACCENT[2], 0.55])
+                        .add_line([ux, uy], [ux + uw, uy], crate::theme::accent_a(0.55))
                         .thickness(1.5)
                         .build();
                     ui.set_cursor_pos([10.0, top + line_h + 16.0 * s]);
@@ -1206,7 +1183,7 @@ impl HeavenOverlay {
                     // so the column looks ordered, with larger icons and clear separation —
                     // instead of small icons bunched at the top with empty bar below.
                     let n_items = tabs.len() as f32;
-                    let bottom_limit = wsz[1] - if show_decor { 200.0 } else { 36.0 };
+                    let bottom_limit = wsz[1] - 34.0; // reserve only the footer line
                     let nav_avail = (bottom_limit - nav_y0).max(n_items * 46.0);
                     let nav_pitch = (nav_avail / n_items).clamp(46.0 * s, 56.0 * s);
                     let nav_half = nav_pitch * 0.5;
@@ -1219,7 +1196,7 @@ impl HeavenOverlay {
                         dl.add_rect(
                             [p0[0] + 8.0, p0[1] + active_y + 3.0],
                             [p0[0] + sbw - 8.0, p0[1] + active_y + nav_pitch - 3.0],
-                            SEL_BG,
+                            sel_bg(),
                         )
                         .filled(true)
                         .rounding(10.0)
@@ -1227,10 +1204,10 @@ impl HeavenOverlay {
                         dl.add_rect_filled_multicolor(
                             [p0[0] + 4.0, p0[1] + active_y + nav_half - 14.0],
                             [p0[0] + 8.5, p0[1] + active_y + nav_half + 14.0],
-                            ACCENT_HI,
-                            ACCENT_HI,
-                            ACCENT,
-                            ACCENT,
+                            accent_hi(),
+                            accent_hi(),
+                            accent(),
+                            accent(),
                         );
                     }
                     for (i, name) in tabs.iter().enumerate() {
@@ -1255,40 +1232,26 @@ impl HeavenOverlay {
                                 .add_rect(
                                     [p0[0] + 8.0, p0[1] + cy + 3.0],
                                     [p0[0] + sbw - 8.0, p0[1] + cy + nav_pitch - 3.0],
-                                    [0.64, 0.60, 0.92, 0.11 * hv],
+                                    crate::theme::accent_a(0.10 * hv),
                                 )
                                 .filled(true)
                                 .rounding(9.0)
                                 .build();
                         }
                         // States: NORMAL · HOVER (+brightness) · ACTIVE (accent). Label eases
-                        // dim → accent on hover. Glows kept faint for a flatter, modern look.
-                        let nav_dim = [0.70, 0.68, 0.80, 1.0];
-                        let col = if sel { TEXT } else { lerp_col(nav_dim, ACCENT_HI, hv) };
+                        // dim → accent on hover. Flat: a solid badge plate, no glow halo.
+                        let nav_dim = [0.66, 0.72, 0.72, 1.0];
+                        let col = if sel { TEXT } else { lerp_col(nav_dim, accent_hi(), hv) };
                         let icc = [p0[0] + 35.0, p0[1] + cy + nav_half]; // icon centre
-                        // Clean monochrome glyph icons (Segoe MDL2), tinted purple — replaces the
-                        // baked crystal textures that carried gold accents. The glow / ring / badge
-                        // plate are all accent-purple, so the whole icon reads as one flat theme.
+                        // Clean monochrome glyph icons (Segoe MDL2) on a flat teal badge plate —
+                        // bright teal when selected (dark glyph on top), faint otherwise. No glow.
                         {
                             let dl = ui.get_window_draw_list();
-                            // Soft accent glow: +on hover, +on active.
-                            let gf = 1.0 + 0.12 * hv + if sel { 0.20 } else { 0.0 };
-                            for (r, a) in [
-                                (icon_sz * 0.60, 0.035_f32),
-                                (icon_sz * 0.44, 0.055),
-                                (icon_sz * 0.32, 0.085),
-                            ] {
-                                dl.add_circle(icc, r, [0.64, 0.60, 0.92, (a * gf).min(0.30)])
-                                    .filled(true)
-                                    .build();
-                            }
-                            // Rounded badge plate: bright accent when selected (dark glyph on top),
-                            // faint purple otherwise (brightening slightly on hover).
                             let bh = icon_sz * 0.5 + 2.0;
                             let badge = if sel {
-                                [0.66, 0.62, 0.94, 0.90]
+                                crate::theme::accent_a(0.92)
                             } else {
-                                [0.62, 0.58, 0.92, 0.09 + 0.09 * hv]
+                                crate::theme::accent_a(0.08 + 0.08 * hv)
                             };
                             dl.add_rect([icc[0] - bh, icc[1] - bh], [icc[0] + bh, icc[1] + bh], badge)
                                 .filled(true)
@@ -1303,9 +1266,9 @@ impl HeavenOverlay {
                             let glyph = cat_icon(name);
                             let gs = ui.calc_text_size(glyph);
                             let gcol = if sel {
-                                [0.12, 0.09, 0.18, 1.0] // dark, reads on the bright plate
+                                crate::theme::on_accent() // dark, reads on the bright accent plate
                             } else {
-                                lerp_col([0.72, 0.68, 0.88, 1.0], ACCENT_HI, hv)
+                                lerp_col([0.62, 0.72, 0.72, 1.0], accent_hi(), hv)
                             };
                             ui.get_window_draw_list()
                                 .add_text([icc[0] - gs[0] * 0.5, icc[1] - gs[1] * 0.5], gcol, glyph);
@@ -1322,55 +1285,6 @@ impl HeavenOverlay {
                     }
                 }
 
-                // Translucent character silhouette near the bottom of the sidebar.
-                #[cfg(feature = "banner")]
-                if let Some(t) = sil_tex.filter(|_| show_decor) {
-                    let sw = 150.0;
-                    let sh = sw * (SIL_H / SIL_W);
-                    let sx = p0[0] + (sbw - sw) * 0.5;
-                    let sy = p0[1] + wsz[1] - sh - 14.0;
-                    ui.get_window_draw_list()
-                        .add_image(t, [sx, sy], [sx + sw, sy + sh])
-                        .col([1.0, 1.0, 1.0, 0.30])
-                        .build();
-                }
-
-                // Sparkle particles scattered in the lower sidebar (cosmetic). Uses the baked
-                // spark textures when available, falling back to simple drawn 4-point stars.
-                if show_decor {
-                    let dl = ui.get_window_draw_list();
-                    let base_y = p0[1] + wsz[1] - 175.0;
-                    let stars: [(f32, f32, f32, [f32; 4]); 8] = [
-                        (30.0, 0.0, 5.0, [0.84, 0.56, 0.96, 0.50]),
-                        (100.0, 22.0, 3.4, [0.93, 0.52, 0.78, 0.46]),
-                        (56.0, 52.0, 4.6, [0.80, 0.56, 1.0, 0.50]),
-                        (130.0, 68.0, 3.0, [0.93, 0.52, 0.78, 0.42]),
-                        (36.0, 94.0, 4.0, [0.82, 0.56, 0.98, 0.46]),
-                        (92.0, 118.0, 5.2, [0.90, 0.53, 0.82, 0.50]),
-                        (148.0, 106.0, 2.6, [0.80, 0.56, 1.0, 0.40]),
-                        (66.0, 144.0, 3.4, [0.88, 0.52, 0.80, 0.46]),
-                    ];
-                    let spark_tex = SPARK_TEX.with(|c| c.get());
-                    let has_img = spark_tex.iter().any(|s| s.is_some());
-                    for (k, (sx, sy, r, c)) in stars.iter().enumerate() {
-                        let cx = p0[0] + sx;
-                        let cyy = base_y + sy;
-                        if has_img {
-                            if let Some(t) = spark_tex[k % 3] {
-                                let s = r * 3.2;
-                                let a = (c[3] * 0.45).min(0.85);
-                                dl.add_image(t, [cx - s, cyy - s], [cx + s, cyy + s])
-                                    .col([1.0, 1.0, 1.0, a])
-                                    .build();
-                                continue;
-                            }
-                        }
-                        dl.add_line([cx - r, cyy], [cx + r, cyy], *c).thickness(1.4).build();
-                        dl.add_line([cx, cyy - r], [cx, cyy + r], *c).thickness(1.4).build();
-                        dl.add_circle([cx, cyy], 1.3, *c).filled(true).build();
-                    }
-                }
-
                 // Discreet footer pinned to the very bottom of the sidebar.
                 {
                     let ft = concat!("v", env!("CARGO_PKG_VERSION"), "   \u{00b7}   TheCing");
@@ -1382,15 +1296,13 @@ impl HeavenOverlay {
                     );
                 }
 
-                // Thin luminous divider between the sidebar and the content column.
+                // Thin flat divider between the sidebar and the content column.
                 {
                     let lx = p0[0] + sbw;
-                    let midy = p0[1] + wsz[1] * 0.5;
-                    let solid = [0.86, 0.55, 1.0, 0.42];
-                    let trans = [0.86, 0.55, 1.0, 0.0];
                     let dl = ui.get_window_draw_list();
-                    dl.add_rect_filled_multicolor([lx - 1.0, p0[1] + 16.0], [lx + 1.0, midy], trans, trans, solid, solid);
-                    dl.add_rect_filled_multicolor([lx - 1.0, midy], [lx + 1.0, p0[1] + wsz[1] - 16.0], solid, solid, trans, trans);
+                    dl.add_line([lx, p0[1] + 16.0], [lx, p0[1] + wsz[1] - 16.0], crate::theme::accent_a(0.22))
+                        .thickness(1.0)
+                        .build();
                 }
 
                 ui.next_column();
@@ -1398,7 +1310,7 @@ impl HeavenOverlay {
                 // ── content column ──
                 let content_w = wsz[0] - sbw - 24.0;
 
-                // Header: a glass strip (gradient sheen + gold border) with the wordmark on the
+                // Header: a flat strip (matte fill + thin teal border) with the wordmark on the
                 // left and live FPS / speed / skip metrics on the right (numbers in Orbitron).
                 {
                     let sp = ui.cursor_screen_pos();
@@ -1406,16 +1318,8 @@ impl HeavenOverlay {
                     let mx = [sp[0] + content_w, sp[1] + bh];
                     {
                         let dl = ui.get_window_draw_list();
-                        dl.add_rect(sp, mx, [0.115, 0.110, 0.150, 0.94]).filled(true).rounding(9.0).build();
-                        dl.add_rect_filled_multicolor(
-                            [sp[0] + 2.0, sp[1] + 2.0],
-                            [mx[0] - 2.0, mx[1] - 2.0],
-                            [0.22, 0.21, 0.30, 0.45],
-                            [0.16, 0.15, 0.22, 0.10],
-                            [0.16, 0.15, 0.22, 0.10],
-                            [0.22, 0.21, 0.30, 0.45],
-                        );
-                        dl.add_rect(sp, mx, [0.60, 0.56, 0.82, 0.30]).rounding(9.0).thickness(1.2).build();
+                        dl.add_rect(sp, mx, [0.100, 0.116, 0.118, 0.94]).filled(true).rounding(9.0).build();
+                        dl.add_rect(sp, mx, crate::theme::accent_a(0.28)).rounding(9.0).thickness(1.2).build();
                         dl.add_circle([sp[0] + 17.0, sp[1] + bh * 0.5], 4.0, GOOD).filled(true).build();
                     }
                     // Wordmark (Cinzel) + version.
@@ -1651,7 +1555,7 @@ impl HeavenOverlay {
                                             if fc {
                                                 ui.dummy([0.0, 4.0]);
                                                 if crate::freecam::is_follow() {
-                                                    ui.text_colored(ACCENT, format!("follow gate {}/{}", crate::freecam::target_gate(), crate::freecam::max_gate()));
+                                                    ui.text_colored(accent(), format!("follow gate {}/{}", crate::freecam::target_gate(), crate::freecam::max_gate()));
                                                     if btn(ui, "##prevuma", "< prev Uma") {
                                                         crate::freecam::cycle_target(-1);
                                                     }
@@ -1698,7 +1602,7 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Custom(Custom::Updates) => {
                                             ui.text_colored(DIM, "Current version");
-                                            ui.text_colored(ACCENT, concat!("Trackside  v", env!("CARGO_PKG_VERSION")));
+                                            ui.text_colored(accent(), concat!("Trackside  v", env!("CARGO_PKG_VERSION")));
                                             let ust = crate::selfupdate::status();
                                             ui.dummy([0.0, 4.0]);
                                             ui.text_colored(DIM, "Status:");
@@ -1766,7 +1670,7 @@ impl HeavenOverlay {
                                             ui.dummy([0.0, 6.0]);
                                             reset_button(ui);
                                             ui.dummy([0.0, 8.0]);
-                                            ui.text_colored(ACCENT, concat!("Trackside  v", env!("CARGO_PKG_VERSION")));
+                                            ui.text_colored(accent(), concat!("Trackside  v", env!("CARGO_PKG_VERSION")));
                                             ui.text_colored(DIM, "by TheCing \u{00b7} a fork of Heaven by Night DC");
                                         }
                                         Ctrl::Custom(Custom::TeamTrials) => {
@@ -1995,7 +1899,7 @@ impl HeavenOverlay {
                                         ui.text_colored(if fc { GOOD } else { DIM }, if fc { "ON" } else { "off" });
                                         if fc {
                                             if crate::freecam::is_follow() {
-                                                ui.text_colored(ACCENT, format!("follow gate {}/{}", crate::freecam::target_gate(), crate::freecam::max_gate()));
+                                                ui.text_colored(accent(), format!("follow gate {}/{}", crate::freecam::target_gate(), crate::freecam::max_gate()));
                                                 if ui.button("< prev Uma##pvc") {
                                                     crate::freecam::cycle_target(-1);
                                                 }
@@ -2040,7 +1944,7 @@ impl HeavenOverlay {
                                         }
                                         let ust = crate::selfupdate::status();
                                         if !ust.is_empty() {
-                                            ui.text_colored(ACCENT, ust);
+                                            ui.text_colored(accent(), ust);
                                         }
                                         ui.separator();
                                         version_switch_ui(ui, ui.content_region_avail()[0].max(180.0));
@@ -2110,7 +2014,7 @@ impl HeavenOverlay {
 
                 ui.separator();
                 ui.text_colored(DIM, ipc::status());
-                ui.text_colored(ACCENT, concat!("Trackside v", env!("CARGO_PKG_VERSION")));
+                ui.text_colored(accent(), concat!("Trackside v", env!("CARGO_PKG_VERSION")));
                 ui.text_colored(DIM, "by TheCing \u{00b7} a fork of Heaven by Night DC");
                 persist_window(ui, "controls"); // remember the classic menu's moved/resized geometry
             });
@@ -2148,6 +2052,7 @@ fn cat_icon(name: &str) -> &'static str {
         "Gameplay" => "\u{E768}",    // Play
         "Plugins" => "\u{E71D}",     // AllApps (companion plugins)
         "Team Trials" => "\u{E716}", // People (team)
+        "Automation" => "\u{E895}",  // Sync (auto-refresh loops)
         "Race Director" => "\u{E722}", // Camera (was "Camera")
         "Visuals" => "\u{E790}",     // Brightness/visuals
         "Performance" => "\u{E9D9}", // Speed
@@ -2172,11 +2077,11 @@ fn draw_first_launch_hint(ui: &Ui) {
     let x = ((dw - w) * 0.5).max(0.0);
     let y = 16.0;
     let dl = ui.get_background_draw_list();
-    dl.add_rect([x, y], [x + w, y + h], [0.082, 0.047, 0.157, 0.92])
+    dl.add_rect([x, y], [x + w, y + h], [0.055, 0.070, 0.072, 0.92])
         .filled(true)
         .rounding(8.0)
         .build();
-    dl.add_rect([x, y], [x + w, y + h], [0.843, 0.694, 0.365, 0.5])
+    dl.add_rect([x, y], [x + w, y + h], crate::theme::accent_a(0.5))
         .rounding(8.0)
         .thickness(1.0)
         .build();
@@ -2325,74 +2230,60 @@ fn section(ui: &Ui, icon_font: Option<imgui::FontId>, glyph: &str, title: &str) 
         let p = ui.cursor_screen_pos();
         let b = 26.0; // badge size
         ui.get_window_draw_list()
-            .add_rect([p[0], p[1] - 2.0], [p[0] + b, p[1] - 2.0 + b], BADGE_BG)
+            .add_rect([p[0], p[1] - 2.0], [p[0] + b, p[1] - 2.0 + b], badge_bg())
             .filled(true)
             .rounding(7.0)
             .build();
         ui.set_cursor_screen_pos([p[0] + 5.0, p[1] + 3.0]);
         {
             let _t = ui.push_font(f);
-            ui.text_colored(ACCENT, glyph);
+            ui.text_colored(accent(), glyph);
         }
         ui.set_cursor_screen_pos([p[0] + b + 9.0, p[1] + 4.0]);
     }
     if let Some(tf) = TITLE_FONT.with(|c| c.get()) {
         let _t = ui.push_font(tf);
-        ui.text_colored(ACCENT, title);
+        ui.text_colored(accent(), title);
     } else {
-        ui.text_colored(ACCENT, title);
+        ui.text_colored(accent(), title);
     }
     // Clean 1px accent hairline under the title.
     ui.new_line();
     let aw = ui.content_region_avail()[0];
     let p = ui.cursor_screen_pos();
     ui.get_window_draw_list()
-        .add_line([p[0], p[1] + 2.0], [p[0] + aw, p[1] + 2.0], [0.64, 0.60, 0.90, 0.22])
+        .add_line([p[0], p[1] + 2.0], [p[0] + aw, p[1] + 2.0], crate::theme::accent_a(0.22))
         .thickness(1.0)
         .build();
     ui.dummy([0.0, 9.0]);
 }
 
-/// Heaven pill toggle. ON = pink track with a magenta glow + gold-ringed knob; OFF = a purple
-/// "crystal" track. Returns true on the frame it was clicked.
+/// Trackside pill toggle. Flat: dark slate track (OFF) cross-fading to teal (ON), white knob
+/// with a teal ring. No glow halo. Returns true on the frame it was clicked.
 fn pill_toggle(ui: &Ui, id: &str, on: bool) -> bool {
     let (w, h, rad) = (54.0, 26.0, 13.0);
     let p = ui.cursor_screen_pos();
     let clicked = ui.invisible_button(id, [w, h]);
     let hov = ui.is_item_hovered();
-    // Eased ON amount + hover amount → knob glide (~130 ms ease-out), colour/glow cross-fade.
+    // Eased ON amount + hover amount → knob glide (~130 ms ease-out), colour cross-fade.
     let t = anim_step(&format!("tg{id}"), if on { 1.0 } else { 0.0 }, 19.0);
     let hv = anim_step(&format!("tgh{id}"), if hov { 1.0 } else { 0.0 }, 16.0);
     let dl = ui.get_window_draw_list();
     let cy = p[1] + h * 0.5;
 
-    // ── 1. Faint accent glow (ON), a touch larger on hover ──
-    if t > 0.01 {
-        let gboost = 1.0 + 0.35 * hv;
-        for k in 0..3 {
-            let e = 1.5 + k as f32 * 2.8;
-            let a = ((0.09 - k as f32 * 0.03) * t * gboost).max(0.0);
-            dl.add_rect([p[0] - e, p[1] - e], [p[0] + w + e, p[1] + h + e], [0.62, 0.58, 0.92, a])
-                .filled(true)
-                .rounding(rad + e)
-                .build();
-        }
-    }
-
-    // ── 2. Flat body: dark slate (OFF) cross-fading to soft periwinkle (ON) ──
-    // (No sheen or gradient streak — kept matte/flat, not glassy.)
-    let body = lerp_col([0.185, 0.175, 0.255, 1.0], [0.56, 0.52, 0.86, 1.0], t);
+    // ── 1. Flat body: dark slate (OFF) cross-fading to the theme accent (ON) ──
+    let body = lerp_col([0.150, 0.170, 0.172, 1.0], accent(), t);
     dl.add_rect(p, [p[0] + w, p[1] + h], body).filled(true).rounding(rad).build();
 
-    // ── 3. Border: subtle violet (OFF) → soft accent (ON), brighter on hover ──
+    // ── 2. Border: subtle slate (OFF) → teal (ON), brighter on hover ──
     let border = lerp_col(
-        [0.56, 0.53, 0.72, 0.36 + 0.24 * hv],
-        [0.74, 0.70, 0.96, 0.85],
+        [0.42, 0.48, 0.48, 0.36 + 0.24 * hv],
+        crate::theme::accent_hi_a(0.85),
         t,
     );
     dl.add_rect(p, [p[0] + w, p[1] + h], border).rounding(rad).thickness(1.4).build();
 
-    // ── 4. Knob: slides L↔R, white core, soft accent ring (on / hover) ──
+    // ── 3. Knob: slides L↔R, white core, teal ring (on / hover) ──
     let r = 11.0;
     let travel = w - 2.0 * (r + 3.0);
     let kx = p[0] + (r + 3.0) + t * travel;
@@ -2402,7 +2293,7 @@ fn pill_toggle(ui: &Ui, id: &str, on: bool) -> bool {
     dl.add_circle([kx, cy], r, [1.0, 0.99, 1.0, 1.0]).filled(true).build();
     dl.add_circle([kx - 1.6, cy - 1.6], r * 0.45, [1.0, 1.0, 1.0, 0.9]).filled(true).build();
     // ring
-    let ring = lerp_col([0.70, 0.66, 0.92, 0.30 + 0.45 * hv], [0.74, 0.70, 0.96, 1.0], t);
+    let ring = lerp_col([0.46, 0.50, 0.50, 0.30 + 0.45 * hv], accent_hi(), t);
     dl.add_circle([kx, cy], r, ring).thickness(2.0).build();
     clicked
 }
@@ -2433,7 +2324,7 @@ fn pink_slider_f32(ui: &Ui, id: &str, min: f32, max: f32, val: &mut f32, w: f32)
             changed = true;
         }
     }
-    // Eased handle highlight (hover or drag) → small gold/magenta glow.
+    // Eased handle highlight (hover or drag) → slight knob grow.
     let hv = anim_step(&format!("slh{id}"), if ui.is_item_hovered() || active { 1.0 } else { 0.0 }, 16.0);
     let t_real = ((*val - min) / (max - min)).clamp(0.0, 1.0);
     // Smooth the drawn position toward the real value so the fill/knob glide.
@@ -2445,15 +2336,10 @@ fn pink_slider_f32(ui: &Ui, id: &str, min: f32, max: f32, val: &mut f32, w: f32)
         .filled(true)
         .rounding(3.0)
         .build();
-    dl.add_rect_filled_multicolor([p[0], cy - 3.0], [fx, cy + 3.0], GRAD_L, GRAD_R, GRAD_R, GRAD_L);
-    // Handle glow (fades in on hover/drag).
-    if hv > 0.01 {
-        dl.add_circle([fx, cy], 8.0 + 6.0 * hv, [0.62, 0.58, 0.92, 0.14 * hv]).filled(true).build();
-        dl.add_circle([fx, cy], 8.0 + 3.0 * hv, [0.78, 0.74, 0.97, 0.16 * hv]).filled(true).build();
-    }
+    dl.add_rect_filled_multicolor([p[0], cy - 3.0], [fx, cy + 3.0], grad_l(), grad_r(), grad_r(), grad_l());
     let kr = 8.0 + 1.0 * hv;
     dl.add_circle([fx, cy], kr, [1.0, 1.0, 1.0, 1.0]).filled(true).build();
-    dl.add_circle([fx, cy], kr, [0.74, 0.70, 0.96, 1.0]).thickness(2.0).build();
+    dl.add_circle([fx, cy], kr, accent_hi()).thickness(2.0).build();
     changed
 }
 
@@ -2472,7 +2358,7 @@ pub(crate) fn btn(ui: &Ui, id: &str, label: &str) -> bool {
         .filled(true)
         .rounding(9.0)
         .build();
-    dl.add_rect(p, [p[0] + w, p[1] + h], [0.60, 0.46, 0.90, if hov { 0.65 } else { 0.32 }])
+    dl.add_rect(p, [p[0] + w, p[1] + h], crate::theme::accent_a(if hov { 0.65 } else { 0.32 }))
         .rounding(9.0)
         .thickness(1.2)
         .build();
@@ -2480,7 +2366,7 @@ pub(crate) fn btn(ui: &Ui, id: &str, label: &str) -> bool {
     clicked
 }
 
-/// Primary (filled pink) button, auto-sized. For the Ko-fi support button.
+/// Primary (filled teal) button, auto-sized. For a highlighted primary action.
 pub(crate) fn btn_primary(ui: &Ui, id: &str, label: &str) -> bool {
     let (pad, h) = (16.0, 34.0);
     let ts = ui.calc_text_size(label);
@@ -2488,10 +2374,10 @@ pub(crate) fn btn_primary(ui: &Ui, id: &str, label: &str) -> bool {
     let p = ui.cursor_screen_pos();
     let clicked = ui.invisible_button(id, [w, h]);
     let hov = ui.is_item_hovered();
-    let fill = if hov { [0.96, 0.50, 0.74, 1.0] } else { PINK };
+    let fill = if hov { accent_hi() } else { accent() };
     let dl = ui.get_window_draw_list();
     dl.add_rect(p, [p[0] + w, p[1] + h], fill).filled(true).rounding(9.0).build();
-    dl.add_text([p[0] + pad, p[1] + (h - ts[1]) * 0.5], [1.0, 1.0, 1.0, 1.0], label);
+    dl.add_text([p[0] + pad, p[1] + (h - ts[1]) * 0.5], crate::theme::on_accent(), label);
     clicked
 }
 
@@ -2512,8 +2398,8 @@ fn pink_slider_i32(ui: &Ui, id: &str, min: i32, max: i32, val: &mut i32, w: f32)
 /// Push the glass-window style used by the info panels. Tokens must outlive the window.
 pub(crate) fn panel_style(ui: &Ui) -> impl Sized + '_ {
     (
-        ui.push_style_color(StyleColor::WindowBg, [0.082, 0.047, 0.157, 0.97]),
-        ui.push_style_color(StyleColor::Border, CARD_BORDER),
+        ui.push_style_color(StyleColor::WindowBg, [0.055, 0.070, 0.072, 0.97]),
+        ui.push_style_color(StyleColor::Border, card_border()),
         ui.push_style_var(StyleVar::WindowRounding(14.0)),
         ui.push_style_var(StyleVar::WindowBorderSize(1.5)),
         ui.push_style_var(StyleVar::WindowPadding([14.0, 12.0])),
@@ -2524,9 +2410,9 @@ pub(crate) fn panel_style(ui: &Ui) -> impl Sized + '_ {
 pub(crate) fn panel_title(ui: &Ui, text: &str) {
     if let Some(tf) = TITLE_FONT.with(|c| c.get()) {
         let _t = ui.push_font(tf);
-        ui.text_colored(ACCENT, text);
+        ui.text_colored(accent(), text);
     } else {
-        ui.text_colored(ACCENT, text);
+        ui.text_colored(accent(), text);
     }
 }
 
@@ -2572,7 +2458,7 @@ pub(crate) fn icon_btn(ui: &Ui, id: &str, glyph: &str, tip: &str, danger: bool) 
         let bcol = if danger && hov {
             [0.95, 0.42, 0.50, 0.85]
         } else {
-            [0.60, 0.46, 0.90, if hov { 0.6 } else { 0.30 }]
+            crate::theme::accent_a(if hov { 0.6 } else { 0.30 })
         };
         dl.add_rect(p, [p[0] + sz, p[1] + sz], bcol).rounding(8.0).thickness(1.2).build();
     }
@@ -2677,7 +2563,7 @@ fn draw_followers(ui: &Ui, w: f32) {
             }
         }
         Phase::Reading => {
-            ui.text_colored(ACCENT, "Reading follower list…");
+            ui.text_colored(accent(), "Reading follower list…");
             ui.same_line();
             if btn(ui, "##prcancelread", "Cancel") {
                 pruner::stop();
@@ -2693,7 +2579,7 @@ fn draw_followers(ui: &Ui, w: f32) {
             }
         }
         Phase::Pruning => {
-            ui.text_colored(ACCENT, "Pruning…");
+            ui.text_colored(accent(), "Pruning…");
             ui.same_line();
             if btn(ui, "##prstop", "Stop") {
                 pruner::stop();
@@ -2801,7 +2687,7 @@ fn draw_room_finder(ui: &Ui, w: f32) {
         thread_local! {
             static SLOT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
         }
-        ui.text_colored(ACCENT, "Load a saved team (My Runners)");
+        ui.text_colored(accent(), "Load a saved team (My Runners)");
         ui.same_line();
         help_icon(ui, "Loads one of your five saved My Runners teams straight into this entry, the same as opening My Runners and pressing Load List. Then just press Confirm. Empty slots are skipped.");
         ui.dummy([0.0, 4.0]);
@@ -2958,7 +2844,7 @@ fn draw_room_finder(ui: &Ui, w: f32) {
             }
         });
     } else {
-        ui.text_colored(ACCENT, "Hunting\u{2026}");
+        ui.text_colored(accent(), "Hunting\u{2026}");
         ui.same_line();
         if btn(ui, "##rfstop", "Stop") {
             rf::stop();
@@ -3348,7 +3234,7 @@ fn draw_timing_tower(ui: &Ui, x: f32, y: f32) {
                 let dl = ui.get_window_draw_list();
                 dl.add_rect([gp[0], by], [gp[0] + row_w, by + 3.0 * scale], TRACK_BG).filled(true).rounding(2.0).build();
                 if progress > 0.0 {
-                    dl.add_rect([gp[0], by], [gp[0] + row_w * progress, by + 3.0 * scale], GRAD_R).filled(true).rounding(2.0).build();
+                    dl.add_rect([gp[0], by], [gp[0] + row_w * progress, by + 3.0 * scale], grad_r()).filled(true).rounding(2.0).build();
                 }
             }
             ui.dummy([row_w, 7.0 * scale]); // progress-bar gap + pins window width so columns never reflow
@@ -3369,7 +3255,7 @@ fn draw_timing_tower(ui: &Ui, x: f32, y: f32) {
                 ui.set_cursor_screen_pos(p);
                 // row background: followed = accent strip, hovered = faint highlight
                 if r.followed || hovered {
-                    let bg = if r.followed { BADGE_BG } else { [1.0, 1.0, 1.0, 0.06] };
+                    let bg = if r.followed { badge_bg() } else { [1.0, 1.0, 1.0, 0.06] };
                     ui.get_window_draw_list()
                         .add_rect([p[0] - 4.0, p[1]], [p[0] + row_w, p[1] + rowh], bg)
                         .filled(true)
@@ -3554,7 +3440,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
             }
             ui.text_colored(GOLD, &tv.followed_name);
             ui.same_line();
-            val(ui, ACCENT, &format!("P{}/{}", f.order.max(1), tv.field_size));
+            val(ui, accent(), &format!("P{}/{}", f.order.max(1), tv.field_size));
             // Position trend since last frame (order falls as you move up). No glyphs (body font
             // lacks ▲/▼) — colored "+n / -n" of places gained/lost.
             if f.prev_order > 0 {
@@ -3615,7 +3501,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
             if let Some(k) = keep_label(fs.keep_mode) {
                 ui.same_line();
                 // PaseDown = conserving stamina (good); the rest are neutral tactical states.
-                val(ui, if fs.keep_mode == 4 { GOOD } else { ACCENT }, k);
+                val(ui, if fs.keep_mode == 4 { GOOD } else { accent() }, k);
             }
             let fr = sta(f.hp, f.max_hp);
             row(ui, "Stamina", fr, f.speed);
@@ -3727,10 +3613,10 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
                             ui.same_line();
                             let cp = ui.cursor_screen_pos();
                             ui.set_cursor_screen_pos([cp[0], cp[1] + 2.0 * scale]);
-                            ui.text_colored(ACCENT, name);
+                            ui.text_colored(accent(), name);
                         } else {
                             // No icon → keep the dotted text line (default font has "·").
-                            ui.text_colored(ACCENT, &format!("\u{00b7} {name}"));
+                            ui.text_colored(accent(), &format!("\u{00b7} {name}"));
                         }
                         if !eff.is_empty() {
                             ui.same_line();
@@ -3786,7 +3672,7 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
                     ui.text_colored(if r.followed { GOLD } else { [0.9, 0.9, 0.94, 1.0] }, &nm);
                     // probability bar
                     ui.set_cursor_screen_pos([p[0] + c_winbar, p[1] + (wrowh - wbh) * 0.5]);
-                    let col = if r.followed { GOLD } else { ACCENT };
+                    let col = if r.followed { GOLD } else { accent() };
                     pbar(ui, r.win, winbar_w, wbh, col, &format!("{:.0}%", r.win * 100.0));
                     ui.set_cursor_screen_pos([p[0], p[1] + wrowh]);
                 }

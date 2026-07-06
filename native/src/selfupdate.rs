@@ -523,17 +523,18 @@ pub(crate) fn draw_dialog(ui: &hudhook::imgui::Ui) {
     static REMEMBER: AtomicBool = AtomicBool::new(false);
 
     // Muted, opaque, easy-on-the-eyes palette (darker + more solid than the menu; no bright white).
-    const DLG_BG: [f32; 4] = [0.071, 0.047, 0.133, 0.99]; // solid dark purple, near-opaque
-    const DLG_CHILD: [f32; 4] = [0.047, 0.031, 0.094, 1.0]; // changelog block, a touch darker
-    const DLG_BORDER: [f32; 4] = [0.45, 0.36, 0.62, 0.26];
-    const DLG_TITLE: [f32; 4] = [0.702, 0.604, 0.847, 1.0]; // soft lavender (not the bright accent)
-    const DLG_SUB: [f32; 4] = [0.447, 0.408, 0.537, 1.0]; // muted grey-lavender
-    const DLG_BODY: [f32; 4] = [0.720, 0.685, 0.790, 1.0]; // changelog bullets — readable, still soft
-    const DLG_VER: [f32; 4] = [0.741, 0.616, 0.906, 1.0]; // version tag headers
-    const DLG_SECTION: [f32; 4] = [0.560, 0.510, 0.660, 1.0]; // section headers (New / Fixes)
-    const DLG_BTN: [f32; 4] = [0.16, 0.13, 0.24, 1.0];
-    const DLG_BTN_HI: [f32; 4] = [0.24, 0.19, 0.35, 1.0];
-    const DLG_BTN_ACT: [f32; 4] = [0.30, 0.24, 0.42, 1.0];
+    // Teal-on-graphite, matching the menu rebrand.
+    const DLG_BG: [f32; 4] = [0.045, 0.058, 0.060, 0.99]; // solid dark graphite, near-opaque
+    const DLG_CHILD: [f32; 4] = [0.030, 0.040, 0.042, 1.0]; // changelog block, a touch darker
+    const DLG_BORDER: [f32; 4] = [0.30, 0.60, 0.58, 0.26];
+    const DLG_TITLE: [f32; 4] = [0.44, 0.86, 0.80, 1.0]; // teal (the dialog's headline accent)
+    const DLG_SUB: [f32; 4] = [0.44, 0.52, 0.52, 1.0]; // muted cool grey
+    const DLG_BODY: [f32; 4] = [0.72, 0.80, 0.79, 1.0]; // changelog bullets — readable, still soft
+    const DLG_VER: [f32; 4] = [0.36, 0.82, 0.76, 1.0]; // version tag headers
+    const DLG_SECTION: [f32; 4] = [0.46, 0.62, 0.61, 1.0]; // section headers (New / Fixes)
+    const DLG_BTN: [f32; 4] = [0.11, 0.16, 0.16, 1.0];
+    const DLG_BTN_HI: [f32; 4] = [0.16, 0.23, 0.23, 1.0];
+    const DLG_BTN_ACT: [f32; 4] = [0.20, 0.30, 0.30, 1.0];
 
     // Keep the style tokens alive for the whole window scope (tuple = dropped together at fn end).
     let _sc = (

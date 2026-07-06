@@ -2025,7 +2025,7 @@ pub(crate) fn draw_keybinds_panel(ui: &hudhook::imgui::Ui, w: f32) {
 /// Per-circuit camera preset manager — a custom animated dropdown listing this circuit's presets,
 /// with rename of the selected one + Default / Delete / Add. Keys: O cycles presets, P saves. Width `w`.
 pub(crate) fn draw_preset_panel(ui: &hudhook::imgui::Ui, w: f32) {
-    use crate::overlay::{anim_step, btn, BTN_BG, BTN_HI, ACCENT, DIM, GOLD, TEXT};
+    use crate::overlay::{accent, anim_step, btn, BTN_BG, BTN_HI, DIM, GOLD, TEXT};
     use std::cell::{Cell, RefCell};
     thread_local! {
         static OPEN: Cell<bool> = const { Cell::new(false) };
@@ -2086,7 +2086,7 @@ pub(crate) fn draw_preset_panel(ui: &hudhook::imgui::Ui, w: f32) {
                 if i == def {
                     let t = "default";
                     let ts = ui.calc_text_size(t);
-                    dl.add_text([rp[0] + w - ts[0] - 12.0, rp[1] + (rh - 14.0) * 0.5], ACCENT, t);
+                    dl.add_text([rp[0] + w - ts[0] - 12.0, rp[1] + (rh - 14.0) * 0.5], accent(), t);
                 }
             }
             if rc {

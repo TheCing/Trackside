@@ -524,7 +524,7 @@ pub fn install() -> String {
 
 // ── UI panel (Team Trials → Opponent Hunter), rendered by the overlay ──────────
 pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
-    use crate::overlay::{btn, btn_primary, help_icon, status_dot, ACCENT, DIM, GOOD, TEXT, WARN};
+    use crate::overlay::{accent, btn, btn_primary, help_icon, status_dot, DIM, GOOD, TEXT, WARN};
     use std::cell::{Cell, RefCell};
     thread_local! {
         static NAMEBUF: RefCell<String> = RefCell::new(String::new());
@@ -586,7 +586,7 @@ pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
             }
         });
     } else {
-        ui.text_colored(ACCENT, "Hunting…");
+        ui.text_colored(accent(), "Hunting…");
         ui.same_line();
         if btn(ui, "##huntstop", "Stop") {
             crate::hunter::stop();

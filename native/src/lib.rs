@@ -68,6 +68,7 @@ mod response_hook;
 mod selfupdate;
 mod settings;
 mod skip;
+mod theme;
 // Shared cross-cutting utilities (logging, process clock). See tools/mod.rs.
 mod tools;
 // Generic UI click/dialog engine used by the SuperSkip legs (result + shop).

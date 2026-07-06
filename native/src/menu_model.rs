@@ -101,6 +101,19 @@ fn display_mode_label() -> &'static str {
     }
 }
 
+// Silk colour theme: cycling picks a fixed silk (and turns off randomize); the label
+// shows whichever silk is live right now, so a random roll is visible too.
+fn theme_label() -> &'static str {
+    crate::theme::active_name()
+}
+fn cycle_theme() {
+    let next = (crate::theme::active_index() + 1) % crate::theme::count();
+    if crate::settings::theme_random() {
+        crate::settings::set_theme_random(false);
+    }
+    crate::settings::set_theme_index(next);
+}
+
 /// Build the whole menu. Order = display order. cfg-gated controls simply aren't pushed
 /// in builds that lack the feature, so both renderers stay correct per build.
 pub fn model() -> Vec<Tab> {
@@ -160,22 +173,31 @@ pub fn model() -> Vec<Tab> {
             Section {
                 title: "TT Capture",
                 icon: '\u{E74E}',
-                blurb: "Saved results are read by the Heaven dashboard.",
+                blurb: "Saved results are read by the Trackside dashboard.",
                 controls: vec![Ctrl::Custom(Custom::TeamTrials)],
+            },
+        ],
+    });
+
+    // ── 1c) AUTOMATION ────────────────────────────────────────────────────────
+    // Fork-exclusive "set it and let it run" tools. Neither fits Team Trials (a
+    // different game mode) — grouped here by function: each repeats a paced action
+    // until a target/condition is met, then stops and alerts.
+    tabs.push(Tab {
+        name: "Automation",
+        icon: '\u{E895}',
+        sections: vec![
+            Section {
+                title: "Room finder",
+                icon: '\u{E774}',
+                blurb: "Auto-refresh the Room Match list until a room matches your filters.",
+                controls: vec![Ctrl::Custom(Custom::RoomFinder)],
             },
             Section {
                 title: "Follower pruner",
                 icon: '\u{E8FA}',
                 blurb: "Trim the oldest-inactive followers when you're near the 1000 cap.",
                 controls: vec![Ctrl::Custom(Custom::Followers)],
-            },
-            // Room Match is its own game mode, but this is the hunter-loop toolbox tab —
-            // keeping all the "repeat until target" tools together beats a one-section tab.
-            Section {
-                title: "Room finder",
-                icon: '\u{E774}',
-                blurb: "Auto-refresh the Room Match list until a room matches your filters.",
-                controls: vec![Ctrl::Custom(Custom::RoomFinder)],
             },
         ],
     });
@@ -239,6 +261,15 @@ pub fn model() -> Vec<Tab> {
                     Ctrl::Toggle { id: "gq", label: "Max 3D quality", get: crate::settings::gfx_quality, set: crate::settings::set_gfx_quality },
                     Ctrl::Toggle { id: "ge", label: "Enhanced textures & shadows", get: crate::settings::gfx_extras, set: crate::settings::set_gfx_extras },
                     Ctrl::Note("Applies on the next scene / character load."),
+                ],
+            },
+            Section {
+                title: "Colour theme",
+                icon: '\u{E790}',
+                blurb: "Accent colours from the racing silks of keiba legends.",
+                controls: vec![
+                    Ctrl::Cycle { id: "silk", label: "Silk", label_of: theme_label, next: cycle_theme },
+                    Ctrl::Toggle { id: "silkrnd", label: "Random silk on open", get: crate::settings::theme_random, set: crate::settings::set_theme_random },
                 ],
             },
             Section {

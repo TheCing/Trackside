@@ -99,6 +99,12 @@ pub struct Settings {
     // Low-resources "potato" master mode: minimum everything for very weak PCs.
     #[serde(default)]
     pub low_spec: bool,
+    // Silk-based colour theme: index into theme::THEMES (used when theme_random is off).
+    #[serde(default)]
+    pub theme_index: usize,
+    // Roll a random silk theme each time the overlay is opened.
+    #[serde(default)]
+    pub theme_random: bool,
     // Use the classic "Controls" rail menu instead of the premium sidebar menu.
     #[serde(default)]
     pub classic_menu: bool,
@@ -236,6 +242,8 @@ impl Default for Settings {
             render_scale: 1.0,
             ui_scale: 1.0,
             low_spec: false,
+            theme_index: 0,
+            theme_random: false,
             classic_menu: false,
             oracle: false,
             freecam: false,
@@ -534,6 +542,30 @@ pub fn set_low_spec(on: bool) {
         c.low_spec = on;
         write_file(&c);
     }
+}
+
+/// Silk colour theme index (into `theme::THEMES`). Used when `theme_random` is off.
+pub fn theme_index() -> usize {
+    cache().lock().map(|c| c.theme_index).unwrap_or(0)
+}
+pub fn set_theme_index(i: usize) {
+    if let Ok(mut c) = cache().lock() {
+        c.theme_index = i;
+        write_file(&c);
+    }
+    crate::theme::set_active_index(i);
+}
+/// Roll a random silk theme each time the overlay opens.
+pub fn theme_random() -> bool {
+    cache().lock().map(|c| c.theme_random).unwrap_or(false)
+}
+pub fn set_theme_random(on: bool) {
+    if let Ok(mut c) = cache().lock() {
+        c.theme_random = on;
+        write_file(&c);
+    }
+    // Re-apply immediately: on → roll now; off → snap to the saved fixed theme.
+    crate::theme::apply_from_settings();
 }
 
 /// Use the classic "Controls" rail menu instead of the premium sidebar menu.
