@@ -1,0 +1,46 @@
+; Trackside version.dll proxy — static export forwarders.
+;
+; Every version.dll API is forwarded, at the LOADER level, to the genuine
+; version.dll shipped alongside us under the name `trackside_version.dll`
+; (the deploy step copies C:\Windows\System32\version.dll to that name). The
+; loader resolves these without ever running our code, which is the whole point:
+; UnityPlayer.dll calls these functions extremely early (under the loader lock),
+; and running our own Rust on that path is what faulted GameAssembly.dll on boot.
+;
+; NOTE: the right-hand side `module.Export` (a name with a dot) makes the linker
+; emit a true forwarder, not a local alias. The module name has no extension —
+; the loader appends `.dll` and resolves it via the normal search order (app dir
+; first), so `trackside_version` → game-folder `trackside_version.dll`.
+;
+; This matches Night's original proxy export set exactly (17 version funcs — note
+; NO GetFileVersionInfoByHandle, which UnityPlayer doesn't import and which
+; link.exe won't accept as a forwarder here anyway). UnityMain / UnityMain2 are
+; NOT here: they're exported as tiny runtime-forwarders in lib.rs instead (the
+; .def-forwarder form to UnityPlayer fails to link, and they're not on the early
+; version-API path, so a runtime forward is safe).
+
+; Standalone chain: forward to trackside_version.dll (a renamed copy of the
+; genuine System32 version.dll). For the with-Hachimi variant the user simply
+; makes trackside_version.dll BE Hachimi's proxy (+hachimi/) — same proxy binary.
+EXPORTS
+    GetFileVersionInfoA       = trackside_version.GetFileVersionInfoA
+    GetFileVersionInfoExA     = trackside_version.GetFileVersionInfoExA
+    GetFileVersionInfoExW     = trackside_version.GetFileVersionInfoExW
+    GetFileVersionInfoSizeA   = trackside_version.GetFileVersionInfoSizeA
+    GetFileVersionInfoSizeExA = trackside_version.GetFileVersionInfoSizeExA
+    GetFileVersionInfoSizeExW = trackside_version.GetFileVersionInfoSizeExW
+    GetFileVersionInfoSizeW   = trackside_version.GetFileVersionInfoSizeW
+    GetFileVersionInfoW       = trackside_version.GetFileVersionInfoW
+    VerFindFileA              = trackside_version.VerFindFileA
+    VerFindFileW              = trackside_version.VerFindFileW
+    VerInstallFileA           = trackside_version.VerInstallFileA
+    VerInstallFileW           = trackside_version.VerInstallFileW
+    VerLanguageNameA          = trackside_version.VerLanguageNameA
+    VerLanguageNameW          = trackside_version.VerLanguageNameW
+    VerQueryValueA            = trackside_version.VerQueryValueA
+    VerQueryValueW            = trackside_version.VerQueryValueW
+    ; Local exports (our own Rust fns in lib.rs). A .def EXPORTS section is the
+    ; authoritative export list, so these must be named here or they won't be
+    ; exported at all.
+    UnityMain
+    UnityMain2

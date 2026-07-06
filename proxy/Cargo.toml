@@ -18,8 +18,6 @@ crate-type = ["cdylib"]
 windows-sys = { version = "0.59", features = [
   "Win32_Foundation",
   "Win32_System_LibraryLoader",
-  "Win32_System_SystemServices",
-  "Win32_System_SystemInformation",
 ] }
 
 [profile.release]

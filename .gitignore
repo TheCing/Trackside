@@ -25,3 +25,6 @@ release-v*/
 # Machine-local dev helpers (absolute paths) / stale archives
 deploy-on-exit.ps1
 *.rar
+
+# Throwaway reverse-engineering scratch scripts (proxy debugging)
+proxy/_*.py

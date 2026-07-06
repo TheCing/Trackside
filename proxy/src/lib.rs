@@ -1,119 +1,103 @@
 //! Trackside loader — a `version.dll` proxy.
 //!
-//! Dropped into the game folder, the EXE's import of `version.dll` resolves to
-//! this DLL instead of `C:\Windows\System32\version.dll`. We do three things in
-//! `DllMain` (mirroring the behavior of the loader this fork replaces, so the
-//! boot order the overlay expects is preserved):
+//! `UnityPlayer.dll` imports several functions from `version.dll`
+//! (`VerQueryValueA`, `GetFileVersionInfoSizeA`, `GetFileVersionInfoA`, …), so
+//! dropping this DLL in the game folder makes the loader resolve *us* ahead of
+//! `C:\Windows\System32\version.dll`. Once we're in the process we load the
+//! overlay.
 //!
-//!   1. apply a staged self-update: `trackside.dll.new` → `trackside.dll`
-//!      (the overlay downloads updates but can't replace itself while loaded);
-//!   2. early-load every DLL in `trackside_plugins/` (self-contained proxy-style
-//!      mods need to install their hooks before IL2CPP boots; SDK-style plugins
-//!      get their `hachimi_init` called later by the overlay itself);
-//!   3. load `trackside.dll` (the overlay).
+//! ## Two responsibilities, kept strictly separate
 //!
-//! Every real `version.dll` export is forwarded to the genuine DLL in
-//! System32, resolved lazily on first call.
+//! 1. **Forward the version APIs** — done entirely by STATIC linker forwarders in
+//!    `version.def` (`GetFileVersionInfoA = trackside_version.GetFileVersionInfoA`,
+//!    …). The Windows loader resolves those to the genuine version.dll (shipped
+//!    beside us as `trackside_version.dll`) WITHOUT running any of our code. This
+//!    is deliberate and load-bearing: `UnityPlayer.dll` calls these functions
+//!    extremely early, under the loader lock, before IL2CPP init — running our own
+//!    Rust on that path is what faulted `GameAssembly.dll` on boot in the earlier
+//!    runtime-forwarding design. None of our code is on the version-API path now.
+//!
+//! 2. **Load the overlay** — the only thing our code does. `trackside.dll` isn't
+//!    imported by anyone, so we `LoadLibrary` it ourselves. We do it from a worker
+//!    thread spawned in `DllMain` (never directly in `DllMain`, which runs under
+//!    the loader lock). Before loading we (a) apply a staged self-update
+//!    `trackside.dll.new` → `trackside.dll`, and (b) early-load any DLLs in
+//!    `trackside_plugins/` so proxy-style mods get their hooks in before IL2CPP.
+//!
+//! See `CRASH-NOTES.md` for the full investigation.
 
 #![allow(non_snake_case, clippy::missing_safety_doc)]
 
 use std::ffi::c_void;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 
-use windows_sys::Win32::Foundation::HMODULE;
+use windows_sys::Win32::Foundation::{CloseHandle, HMODULE};
 use windows_sys::Win32::System::LibraryLoader::{
-    DisableThreadLibraryCalls, GetModuleFileNameW, GetProcAddress, LoadLibraryW,
+    DisableThreadLibraryCalls, GetModuleFileNameW, GetModuleHandleW, GetProcAddress, LoadLibraryW,
 };
-use windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW;
 
-// ── forward target ────────────────────────────────────────────────────────────
+// CreateThread — declared directly (windows-sys gates it behind extra type
+// features we don't otherwise need).
+type ThreadStart = unsafe extern "system" fn(*mut c_void) -> u32;
+extern "system" {
+    fn CreateThread(
+        attrs: *const c_void,
+        stack: usize,
+        start: Option<ThreadStart>,
+        param: *mut c_void,
+        flags: u32,
+        thread_id: *mut u32,
+    ) -> HMODULE;
+}
+
+type BOOL = i32;
+type HINSTANCE = *mut c_void;
 
 /// Our own directory (the game folder), captured in DllMain.
 static OWN_DIR: OnceLock<PathBuf> = OnceLock::new();
 
-/// The DLL we forward the version APIs to. CHAIN-COMPATIBLE: if the game folder
-/// has a `heaven_version.dll` (the next proxy in a stacked install — e.g. Hachimi's
-/// own version-proxy, renamed so it can sit behind the master loader), we forward
-/// to it so its DllMain boots its mod and the chain stays intact. Otherwise we
-/// forward straight to the genuine `C:\Windows\System32\version.dll` (loaded by
-/// FULL path — a bare "version.dll" would resolve back to us).
-static REAL: OnceLock<usize> = OnceLock::new();
+// ── UnityMain / UnityMain2 passthroughs ─────────────────────────────────────────
+// These can't be `.def` forwarders (link.exe rejects forwarding to UnityPlayer
+// here), so we export tiny runtime-forwarders that resolve UnityPlayer.dll and
+// jump to the genuine symbol. This is safe: nothing normally imports these from
+// version.dll (UnityPlayer exports its own, bound directly), and they're NOT on
+// the early version-API path that must stay code-free. They exist only so a
+// stacked/renamed install forwarding through us still reaches the engine entry.
+static REAL_UP: OnceLock<usize> = OnceLock::new();
 
-fn real_dll() -> HMODULE {
-    let h = *REAL.get_or_init(|| unsafe {
-        if let Some(dir) = OWN_DIR.get() {
-            let chained = dir.join("heaven_version.dll");
-            if chained.exists() {
-                let mut w: Vec<u16> = chained.as_os_str().to_string_lossy().encode_utf16().collect();
-                w.push(0);
-                let h = LoadLibraryW(w.as_ptr());
-                if !h.is_null() {
-                    return h as usize;
-                }
-            }
-        }
-        let mut buf = [0u16; 512];
-        let n = GetSystemDirectoryW(buf.as_mut_ptr(), buf.len() as u32) as usize;
-        let mut path: Vec<u16> = buf[..n].to_vec();
-        path.extend("\\version.dll".encode_utf16());
-        path.push(0);
-        LoadLibraryW(path.as_ptr()) as usize
-    });
-    h as HMODULE
-}
-
-/// Resolve an export from the real DLL. Panics never — a missing export returns
-/// a null fn and the forward simply fails the call (matches a broken system DLL).
-unsafe fn real_fn(name: &[u8]) -> *const c_void {
-    let h = real_dll();
+unsafe fn unity_fn(name: &[u8]) -> *const c_void {
+    let h = *REAL_UP.get_or_init(|| {
+        let mut w: Vec<u16> = "UnityPlayer.dll".encode_utf16().collect();
+        w.push(0);
+        LoadLibraryW(w.as_ptr()) as usize
+    }) as HMODULE;
     if h.is_null() {
         return std::ptr::null();
     }
     GetProcAddress(h, name.as_ptr()).map(|f| f as *const c_void).unwrap_or(std::ptr::null())
 }
 
-/// Define a forwarding export: same name, `extern "system"`, lazy-resolved.
-macro_rules! forward {
-    ($name:ident ( $($arg:ident : $ty:ty),* ) -> $ret:ty) => {
-        #[no_mangle]
-        pub unsafe extern "system" fn $name($($arg: $ty),*) -> $ret {
-            static SLOT: OnceLock<usize> = OnceLock::new();
-            let p = *SLOT.get_or_init(|| real_fn(concat!(stringify!($name), "\0").as_bytes()) as usize);
-            if p == 0 {
-                return std::mem::zeroed();
-            }
-            let f: unsafe extern "system" fn($($ty),*) -> $ret = std::mem::transmute(p);
-            f($($arg),*)
-        }
-    };
+#[no_mangle]
+pub unsafe extern "system" fn UnityMain(inst: HINSTANCE, prev: HINSTANCE, cmd: *mut u8, show: i32) -> i32 {
+    let p = unity_fn(b"UnityMain\0");
+    if p.is_null() {
+        return 0;
+    }
+    let f: unsafe extern "system" fn(HINSTANCE, HINSTANCE, *mut u8, i32) -> i32 = std::mem::transmute(p);
+    f(inst, prev, cmd, show)
 }
 
-type BOOL = i32;
-type DWORD = u32;
-type PCSTR = *const u8;
-type PCWSTR = *const u16;
-type PSTR = *mut u8;
-type PWSTR = *mut u16;
-
-forward!(GetFileVersionInfoA(f: PCSTR, h: DWORD, len: DWORD, data: *mut c_void) -> BOOL);
-forward!(GetFileVersionInfoW(f: PCWSTR, h: DWORD, len: DWORD, data: *mut c_void) -> BOOL);
-forward!(GetFileVersionInfoExA(fl: DWORD, f: PCSTR, h: DWORD, len: DWORD, data: *mut c_void) -> BOOL);
-forward!(GetFileVersionInfoExW(fl: DWORD, f: PCWSTR, h: DWORD, len: DWORD, data: *mut c_void) -> BOOL);
-forward!(GetFileVersionInfoSizeA(f: PCSTR, out: *mut DWORD) -> DWORD);
-forward!(GetFileVersionInfoSizeW(f: PCWSTR, out: *mut DWORD) -> DWORD);
-forward!(GetFileVersionInfoSizeExA(fl: DWORD, f: PCSTR, out: *mut DWORD) -> DWORD);
-forward!(GetFileVersionInfoSizeExW(fl: DWORD, f: PCWSTR, out: *mut DWORD) -> DWORD);
-forward!(VerFindFileA(fl: DWORD, file: PCSTR, win: PCSTR, app: PCSTR, cur: PSTR, curlen: *mut u32, dest: PSTR, destlen: *mut u32) -> DWORD);
-forward!(VerFindFileW(fl: DWORD, file: PCWSTR, win: PCWSTR, app: PCWSTR, cur: PWSTR, curlen: *mut u32, dest: PWSTR, destlen: *mut u32) -> DWORD);
-forward!(VerInstallFileA(fl: DWORD, src: PCSTR, dst: PCSTR, srcdir: PCSTR, dstdir: PCSTR, curdir: PCSTR, tmp: PSTR, tmplen: *mut u32) -> DWORD);
-forward!(VerInstallFileW(fl: DWORD, src: PCWSTR, dst: PCWSTR, srcdir: PCWSTR, dstdir: PCWSTR, curdir: PCWSTR, tmp: PWSTR, tmplen: *mut u32) -> DWORD);
-forward!(VerLanguageNameA(lang: DWORD, name: PSTR, cch: DWORD) -> DWORD);
-forward!(VerLanguageNameW(lang: DWORD, name: PWSTR, cch: DWORD) -> DWORD);
-forward!(VerQueryValueA(block: *const c_void, sub: PCSTR, buf: *mut *mut c_void, len: *mut u32) -> BOOL);
-forward!(VerQueryValueW(block: *const c_void, sub: PCWSTR, buf: *mut *mut c_void, len: *mut u32) -> BOOL);
-
-// ── boot ──────────────────────────────────────────────────────────────────────
+#[no_mangle]
+pub unsafe extern "system" fn UnityMain2(inst: HINSTANCE, prev: HINSTANCE, cmd: *mut u8, show: i32) -> i32 {
+    let p = unity_fn(b"UnityMain2\0");
+    if p.is_null() {
+        return 0;
+    }
+    let f: unsafe extern "system" fn(HINSTANCE, HINSTANCE, *mut u8, i32) -> i32 = std::mem::transmute(p);
+    f(inst, prev, cmd, show)
+}
 
 /// The folder this proxy lives in (= the game folder).
 fn own_dir(hinst: HMODULE) -> PathBuf {
@@ -160,12 +144,13 @@ fn load_plugins_early(dir: &PathBuf) {
     }
 }
 
-fn boot(hinst: HMODULE) {
-    let dir = own_dir(hinst);
-    let _ = OWN_DIR.set(dir.clone());
-    // Wake the next proxy in the chain NOW (not lazily on the first version-API
-    // call) so a stacked mod (e.g. Hachimi) boots at the same point it used to.
-    let _ = real_dll();
+/// Apply a staged update, early-load plugins, load the overlay. Idempotent.
+fn load_once() {
+    static DONE: AtomicBool = AtomicBool::new(false);
+    if DONE.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    let dir = OWN_DIR.get().cloned().unwrap_or_else(|| PathBuf::from("."));
     apply_staged_update(&dir);
     load_plugins_early(&dir);
     let overlay = dir.join("trackside.dll");
@@ -176,15 +161,53 @@ fn boot(hinst: HMODULE) {
     }
 }
 
+/// Worker thread that replicates the overlay's original **late-injection** path:
+/// wait until `GameAssembly.dll` is present (the game's IL2CPP runtime is up),
+/// give it a settle window, THEN load the overlay. Loading the overlay's D3D/
+/// hudhook vtable hook too early (in DllMain, or right after the loader lock
+/// releases) trips an integrity check → int3 in GameAssembly.dll on boot. The
+/// overlay was designed to be injected after the game is running; this restores
+/// that. See CRASH-NOTES.md.
+unsafe extern "system" fn loader_thread(_p: *mut c_void) -> u32 {
+    let ga: Vec<u16> = "GameAssembly.dll\0".encode_utf16().collect();
+    // Wait for GameAssembly.dll to be loaded (bounded ~120 s).
+    let mut waited = 0u32;
+    while GetModuleHandleW(ga.as_ptr()).is_null() {
+        std::thread::sleep(std::time::Duration::from_millis(250));
+        waited += 250;
+        if waited > 120_000 {
+            break;
+        }
+    }
+    // Settle window so the runtime/anti-tamper finishes its own init before our
+    // hooks land — mirrors the overlay's known-good post-injection settle.
+    std::thread::sleep(std::time::Duration::from_secs(3));
+    load_once();
+    0
+}
+
 const DLL_PROCESS_ATTACH: u32 = 1;
 
 #[no_mangle]
 pub unsafe extern "system" fn DllMain(hinst: HMODULE, reason: u32, _reserved: *mut c_void) -> BOOL {
     if reason == DLL_PROCESS_ATTACH {
         DisableThreadLibraryCalls(hinst);
-        // Synchronous on purpose: the loader we replace also boots in DllMain, and
-        // the plugin early-load must beat the game's IL2CPP init on the main thread.
-        boot(hinst);
+        let _ = OWN_DIR.set(own_dir(hinst));
+        // Defer overlay loading to a worker thread that waits for GameAssembly +
+        // a settle window (late-injection). Loading too early trips a GameAssembly
+        // integrity check (int3 on boot). We CreateThread and never wait on it, so
+        // no loader-lock deadlock. Version APIs are static forwarders (version.def).
+        let h = CreateThread(
+            std::ptr::null(),
+            0,
+            Some(loader_thread),
+            std::ptr::null_mut(),
+            0,
+            std::ptr::null_mut(),
+        );
+        if !h.is_null() {
+            CloseHandle(h);
+        }
     }
     1
 }

@@ -27,11 +27,16 @@ fn wide(s: &str) -> Vec<u16> {
     s.encode_utf16().chain(std::iter::once(0)).collect()
 }
 
-/// Directory that contains `trackside.dll` (the game folder). Falls back to
-/// the current dir if the module can't be located.
+/// Directory that contains our overlay DLL (the game folder). Falls back to the
+/// current dir if the module can't be located. We look up BOTH `trackside.dll`
+/// (normal) and `heaven_overlay.dll` (when loaded by a Heaven-style proxy that
+/// loads the overlay under the old name) so paths resolve either way.
 pub fn dll_dir() -> PathBuf {
     unsafe {
-        let h = GetModuleHandleW(wide("trackside.dll").as_ptr());
+        let mut h = GetModuleHandleW(wide("trackside.dll").as_ptr());
+        if h.is_null() {
+            h = GetModuleHandleW(wide("heaven_overlay.dll").as_ptr());
+        }
         if h.is_null() {
             return PathBuf::from(".");
         }
