@@ -44,8 +44,11 @@ pub fn found_name() -> String {
     found_name_buf().lock().map(|s| s.clone()).unwrap_or_default()
 }
 static ROLLS: AtomicUsize = AtomicUsize::new(0);
-static MAX_ROLLS: AtomicUsize = AtomicUsize::new(40);
 static LAST_TICK_MS: AtomicU64 = AtomicU64::new(0);
+// Hard safety floor: never fire two reloads closer than MIN_ROLL_GAP_MS apart, even if scheduling
+// ever misfires. The game's own load cycle already paces us; this is belt-and-suspenders.
+static LAST_ROLL_MS: AtomicU64 = AtomicU64::new(0);
+const MIN_ROLL_GAP_MS: u64 = 200;
 // When the next auto-roll is allowed (ms on our clock). u64::MAX = nothing scheduled. The per-frame
 // pump fires SendApi only once this time arrives → human-like jittered cadence, not machine-gun.
 static NEXT_ROLL_MS: AtomicU64 = AtomicU64::new(u64::MAX);
@@ -58,8 +61,9 @@ static PLAYOUT_ORIG: AtomicUsize = AtomicUsize::new(0);
 static DETOUR: OnceLock<RawDetour> = OnceLock::new();
 static PLAYOUT_DETOUR: OnceLock<RawDetour> = OnceLock::new();
 
-/// Human-like delay before the next auto-roll: 1.8–4.8 s, with an occasional longer "rest" (~1/8 of
-/// the time, +3–7 s) so the cadence isn't a constant drum-beat. Uses a tiny xorshift seeded once.
+/// Delay before the next auto-roll: 0.25–0.7 s, with a rare small extra pause so the cadence isn't a
+/// perfectly regular drum-beat. The game's OWN load cycle (reload → new batch arrives) is the real
+/// pace-gate — we only ever roll after a batch finished loading — so this is just light jitter on top.
 fn next_delay_ms() -> u64 {
     static SEED: AtomicU64 = AtomicU64::new(0);
     let mut s = SEED.load(Ordering::Relaxed);
@@ -70,9 +74,9 @@ fn next_delay_ms() -> u64 {
     s ^= s >> 7;
     s ^= s << 17;
     SEED.store(s, Ordering::Relaxed);
-    let mut d = 1800 + (s % 3000); // 1.8–4.8 s
-    if (s >> 33) % 8 == 0 {
-        d += 3000 + ((s >> 5) % 4000); // ~1/8: an extra 3–7 s pause
+    let mut d = 250 + (s % 450); // 0.25–0.7 s
+    if (s >> 33) % 12 == 0 {
+        d += 400 + ((s >> 5) % 500); // ~1/12: a small extra pause so the cadence isn't perfectly regular
     }
     d
 }
@@ -180,9 +184,6 @@ pub fn found() -> bool {
 pub fn rolls() -> usize {
     ROLLS.load(Ordering::Relaxed)
 }
-pub fn max_rolls() -> usize {
-    MAX_ROLLS.load(Ordering::Relaxed)
-}
 pub fn status() -> String {
     status_buf().lock().map(|s| s.clone()).unwrap_or_default()
 }
@@ -249,16 +250,10 @@ unsafe fn process_batch() {
         return;
     }
     let names: Vec<&str> = opps.iter().map(|(_, n)| n.as_str()).collect();
-    if rolls() >= max_rolls() {
-        HUNTING.store(false, Ordering::Relaxed);
-        NEXT_ROLL_MS.store(u64::MAX, Ordering::Relaxed);
-        set_status(format!("Not found after {} rolls (stopped). Pool is random — try again.", rolls()));
-        return;
-    }
-    // schedule the next roll with a human-like delay (fired by frame_pump)
+    // No cap: keep rolling until the target is found or the user presses Stop.
     let delay = next_delay_ms();
     NEXT_ROLL_MS.store(now_ms() + delay, Ordering::Relaxed);
-    set_status(format!("Rolling… {}/{} · next in {:.1}s · last: {}", rolls(), max_rolls(), delay as f32 / 1000.0, names.join(", ")));
+    set_status(format!("Rolling… {} · next in {:.1}s · last: {}", rolls(), delay as f32 / 1000.0, names.join(", ")));
 }
 
 /// Per-frame, main thread (driven by TweenManager.Update): fire the scheduled roll when its time
@@ -281,7 +276,13 @@ pub fn frame_pump() {
     if vc.is_null() {
         return;
     }
+    // Hard floor: never fire two reloads closer than MIN_ROLL_GAP_MS. If it's too soon, leave
+    // NEXT_ROLL_MS set and retry next frame (never drop the roll). next_delay_ms normally exceeds this.
+    if now_ms().saturating_sub(LAST_ROLL_MS.load(Ordering::Relaxed)) < MIN_ROLL_GAP_MS {
+        return;
+    }
     NEXT_ROLL_MS.store(u64::MAX, Ordering::Relaxed); // consume; OnOpponentInEnd reschedules next
+    LAST_ROLL_MS.store(now_ms(), Ordering::Relaxed);
     ROLLS.fetch_add(1, Ordering::Relaxed);
     unsafe { send_api(vc) };
 }
