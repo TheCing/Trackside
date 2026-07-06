@@ -30,7 +30,7 @@ use crate::htt_il2cpp as h;
 // unless the file declares this version key. We emit it so the viewer treats our
 // output as current and never points the user elsewhere. Bump to match the viewer's
 // expected current release.
-const VIEWER_VERSION: &str = "1.1.2";
+const VIEWER_VERSION: &str = "1.1.4";
 
 /// Walk an arbitrary managed object to a JSON string (for one-shot RE/census of
 /// unknown object layouts, e.g. the career acquired-skill list). Safe to call from
