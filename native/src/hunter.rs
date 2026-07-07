@@ -44,7 +44,12 @@ pub fn found_name() -> String {
     found_name_buf().lock().map(|s| s.clone()).unwrap_or_default()
 }
 static ROLLS: AtomicUsize = AtomicUsize::new(0);
-static LAST_TICK_MS: AtomicU64 = AtomicU64::new(0);
+// Trailing-debounce clock: OnOpponentInEnd fires once per card (3×/batch) as each finishes loading.
+// Reading on the FIRST fire caught a stale/half-loaded batch → the target could be on screen yet
+// skipped, and the loop rolled straight past it. Instead each fire pushes PROCESS_DUE_MS forward; the
+// frame pump reads only once it's been quiet for READ_SETTLE_MS, i.e. AFTER all 3 new cards settled.
+static PROCESS_DUE_MS: AtomicU64 = AtomicU64::new(u64::MAX);
+const READ_SETTLE_MS: u64 = 300;
 // Hard safety floor: never fire two reloads closer than MIN_ROLL_GAP_MS apart, even if scheduling
 // ever misfires. The game's own load cycle already paces us; this is belt-and-suspenders.
 static LAST_ROLL_MS: AtomicU64 = AtomicU64::new(0);
@@ -165,6 +170,7 @@ pub fn start(name: &str, vid: &str) -> Result<(), String> {
     // First the frame pump checks the 3 already on screen; if no match it schedules the first roll.
     CHECK_NOW.store(true, Ordering::Relaxed);
     NEXT_ROLL_MS.store(u64::MAX, Ordering::Relaxed);
+    PROCESS_DUE_MS.store(u64::MAX, Ordering::Relaxed);
     set_status("Hunting…".into());
     Ok(())
 }
@@ -172,6 +178,7 @@ pub fn start(name: &str, vid: &str) -> Result<(), String> {
 pub fn stop() {
     HUNTING.store(false, Ordering::Relaxed);
     NEXT_ROLL_MS.store(u64::MAX, Ordering::Relaxed);
+    PROCESS_DUE_MS.store(u64::MAX, Ordering::Relaxed);
     set_status("Stopped.".into());
 }
 
@@ -210,24 +217,22 @@ unsafe extern "C" fn onend_hook(this: *mut c_void, index: i32, mi: *const c_void
     if !HUNTING.load(Ordering::Relaxed) {
         return;
     }
-    // OnOpponentInEnd fires once per opponent card (3×/batch). Debounce so we process a batch once.
-    let now = now_ms();
-    if now.saturating_sub(LAST_TICK_MS.load(Ordering::Relaxed)) < 700 {
-        return;
-    }
-    LAST_TICK_MS.store(now, Ordering::Relaxed);
-    process_batch();
+    // Don't read here — this may be the 1st of 3 cards, the batch is still loading. Arm a trailing
+    // read: each card fire pushes it back, so the frame pump reads only after the LAST card has
+    // settled → the 3 NEW opponents are complete before we check + decide whether to roll again.
+    PROCESS_DUE_MS.store(now_ms() + READ_SETTLE_MS, Ordering::Relaxed);
 }
 
 /// A fresh batch of 3 opponents finished loading: read them, check vs the target, and either stop
-/// (found / cap) or SCHEDULE the next roll after a human-like delay (the per-frame pump fires it).
-unsafe fn process_batch() {
+/// (found) or SCHEDULE the next roll after a human-like delay (the per-frame pump fires it).
+/// Returns false if the opponents aren't readable yet (caller should retry shortly), true otherwise.
+unsafe fn process_batch() -> bool {
     let opps = read_opponents();
+    if opps.is_empty() {
+        return false; // data not committed yet; caller retries
+    }
     if let Ok(mut g) = last_three_buf().lock() {
         *g = opps.clone();
-    }
-    if opps.is_empty() {
-        return; // nothing loaded yet; wait for the next batch
     }
     // match: exact viewer_id OR name substring (case-insensitive)
     let tvid = *target_vid().lock().unwrap();
@@ -247,13 +252,14 @@ unsafe fn process_batch() {
         set_status(format!("FOUND: {name} ({vid}) after {} rolls — pick them!", rolls()));
         log(&format!("found target {name} ({vid}) after {} rolls", rolls()));
         alert(name, *vid);
-        return;
+        return true;
     }
     let names: Vec<&str> = opps.iter().map(|(_, n)| n.as_str()).collect();
-    // No cap: keep rolling until the target is found or the user presses Stop.
+    // No match in these 3 → schedule the next roll (the frame pump fires it after the delay).
     let delay = next_delay_ms();
     NEXT_ROLL_MS.store(now_ms() + delay, Ordering::Relaxed);
     set_status(format!("Rolling… {} · next in {:.1}s · last: {}", rolls(), delay as f32 / 1000.0, names.join(", ")));
+    true
 }
 
 /// Per-frame, main thread (driven by TweenManager.Update): fire the scheduled roll when its time
@@ -267,6 +273,18 @@ pub fn frame_pump() {
     if CHECK_NOW.swap(false, Ordering::Relaxed) {
         unsafe { process_batch() };
         return;
+    }
+    // Trailing-debounced batch read: once a refresh has settled (no more card fires for READ_SETTLE_MS)
+    // read the 3 NEW opponents, check them, and only THEN (if no match) schedule the next roll. Reading
+    // here — never inside OnOpponentInEnd — is what stops us rolling past a target we just loaded.
+    let pd = PROCESS_DUE_MS.load(Ordering::Relaxed);
+    if pd != u64::MAX && now_ms() >= pd {
+        PROCESS_DUE_MS.store(u64::MAX, Ordering::Relaxed);
+        // if the opponents aren't readable yet, retry shortly instead of rolling on stale/empty data
+        if !unsafe { process_batch() } {
+            PROCESS_DUE_MS.store(now_ms() + 120, Ordering::Relaxed);
+        }
+        return; // never roll in the same frame we read a fresh batch
     }
     let due = NEXT_ROLL_MS.load(Ordering::Relaxed);
     if due == u64::MAX || now_ms() < due {
