@@ -2,7 +2,7 @@
 name = "trackside"
 # Single source of truth for the version shown in the overlay footer. Fork restarts at 1.0.0;
 # the self-updater now tracks the Trackside repo, so the old "stay one ahead of upstream"
-# dance is gone. (Upstream Heaven is at 3.5.14 as of the last merge.)
+# dance is gone. (Upstream Heaven is at 3.5.15 as of the last merge.)
 version = "1.0.0"
 edition = "2021"
 authors = ["TheCing"]
