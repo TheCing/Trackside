@@ -272,6 +272,11 @@ thread_local! {
     static SKILL_ICON_MAP: std::cell::RefCell<std::collections::HashMap<i32, i32>> = std::cell::RefCell::new(std::collections::HashMap::new());
     // skill_id → localized description (for the hover tooltip).
     static SKILL_DESC: std::cell::RefCell<std::collections::HashMap<i32, String>> = std::cell::RefCell::new(std::collections::HashMap::new());
+    // Skill-optimizer art (128×128): rating-rank emblems keyed by single_mode_rank id, and
+    // chara portraits keyed by chara_id. Populated by the runtime icon dumper; empty until then
+    // (the optimizer window falls back to styled text chips / roundels).
+    static RANK_TEX: std::cell::RefCell<std::collections::HashMap<i32, imgui::TextureId>> = std::cell::RefCell::new(std::collections::HashMap::new());
+    static CHARA_TEX: std::cell::RefCell<std::collections::HashMap<i32, imgui::TextureId>> = std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
 thread_local! {
@@ -327,6 +332,22 @@ pub(crate) fn anim_step(key: &str, target: f32, speed: f32) -> f32 {
         m.insert(key.to_string(), nv);
         nv
     })
+}
+
+/// Read a stored animation value without changing it (0.0 if unset).
+fn anim_get(key: &str) -> f32 {
+    ANIM.with(|m| *m.borrow().get(key).unwrap_or(&0.0))
+}
+
+/// Advance a free-running phase (seconds, wrapped to [0,1)) for flowing-gradient effects.
+/// Read it with `anim_get(key)`.
+fn advance_flow_phase(key: &str) {
+    let dt = FRAME_DT.with(|c| c.get());
+    ANIM.with(|m| {
+        let mut m = m.borrow_mut();
+        let cur = *m.get(key).unwrap_or(&0.0);
+        m.insert(key.to_string(), (cur + dt * 0.6).fract());
+    });
 }
 
 /// Force an animation value (e.g. reset a fade to 0 on a tab switch).
@@ -597,7 +618,7 @@ impl ImguiRenderLoop for HeavenOverlay {
         #[cfg(feature = "freecam")]
         {
             let base = crate::paths::local_dir_migrated("trackside-icons", "heaven-icons");
-            let mut load_dir = |sub: &str| -> std::collections::HashMap<i32, imgui::TextureId> {
+            let mut load_dir = |sub: &str, px: usize| -> std::collections::HashMap<i32, imgui::TextureId> {
                 let mut out = std::collections::HashMap::new();
                 if let Ok(rd) = std::fs::read_dir(base.join(sub)) {
                     for e in rd.flatten() {
@@ -610,11 +631,11 @@ impl ImguiRenderLoop for HeavenOverlay {
                             None => continue,
                         };
                         if let Ok(bytes) = std::fs::read(&p) {
-                            if bytes.len() == 64 * 64 * 4 {
+                            if bytes.len() == px * px * 4 {
                                 // The loader ties the data to its lifetime, so leak the bytes
-                                // (one-time, ~16KB each) to get a 'static slice.
+                                // (one-time, ~16-64KB each) to get a 'static slice.
                                 let leaked: &'static [u8] = Box::leak(bytes.into_boxed_slice());
-                                if let Ok(t) = _loader(leaked, 64, 64) {
+                                if let Ok(t) = _loader(leaked, px as u32, px as u32) {
                                     out.insert(id, t);
                                 }
                             }
@@ -623,8 +644,11 @@ impl ImguiRenderLoop for HeavenOverlay {
                 }
                 out
             };
-            SKILL_TEX.with(|m| *m.borrow_mut() = load_dir("skill"));
-            UMA_TEX.with(|m| *m.borrow_mut() = load_dir("uma"));
+            SKILL_TEX.with(|m| *m.borrow_mut() = load_dir("skill", 64));
+            UMA_TEX.with(|m| *m.borrow_mut() = load_dir("uma", 64));
+            // Optimizer-window art (produced by the runtime icon dumper; absent = fallbacks).
+            RANK_TEX.with(|m| *m.borrow_mut() = load_dir("rank", 128));
+            CHARA_TEX.with(|m| *m.borrow_mut() = load_dir("chara", 128));
             if let Ok(txt) = std::fs::read_to_string(base.join("skill_icon_map.csv")) {
                 let mut map = std::collections::HashMap::new();
                 for line in txt.lines() {
@@ -679,6 +703,20 @@ impl ImguiRenderLoop for HeavenOverlay {
                     ..FontConfig::default()
                 }),
             });
+            // japanese() covers kana/kanji but NOT arrows or the geometric shapes the game's
+            // skill names use (→ U+2192, ○ U+25CB, ◎ U+25CE, ☆ U+2606) — without this extra
+            // merge they rasterize as "?" in the advisor/optimizer lists.
+            static SYM_RANGE: [u32; 9] = [0x2000, 0x206F, 0x2190, 0x21FF, 0x25A0, 0x25FF, 0x2600, 0x26FF, 0];
+            body_sources.push(FontSource::TtfData {
+                data: jp.as_slice(),
+                size_pixels: 17.0,
+                config: Some(FontConfig {
+                    oversample_h: 2,
+                    oversample_v: 2,
+                    glyph_ranges: imgui::FontGlyphRanges::from_slice(&SYM_RANGE),
+                    ..FontConfig::default()
+                }),
+            });
         }
         ctx.fonts().add_font(&body_sources);
         // Segoe MDL2 Assets — UI icon glyphs (Private Use Area) for section / category icons.
@@ -696,30 +734,50 @@ impl ImguiRenderLoop for HeavenOverlay {
             }]);
             ICON_FONT.with(|c| c.set(Some(id)));
         }
+        // The SemiBold faces draw skill names and arrows too (optimizer cards), so they need
+        // the same JP + symbol merges as the body font — without them ◎/○/→ rasterize as "?".
+        static SYM_RANGE_SB: [u32; 9] = [0x2000, 0x206F, 0x2190, 0x21FF, 0x25A0, 0x25FF, 0x2600, 0x26FF, 0];
+        let semibold_sources = |px: f32| -> Vec<FontSource> {
+            let mut v = vec![FontSource::TtfData {
+                data: INTER_SB_TTF,
+                size_pixels: px,
+                config: Some(FontConfig {
+                    oversample_h: 3,
+                    oversample_v: 3,
+                    rasterizer_multiply: 1.05,
+                    ..FontConfig::default()
+                }),
+            }];
+            if let Some(ref jp) = jp_bytes {
+                v.push(FontSource::TtfData {
+                    data: jp.as_slice(),
+                    size_pixels: px + 1.0,
+                    config: Some(FontConfig {
+                        oversample_h: 2,
+                        oversample_v: 2,
+                        glyph_ranges: imgui::FontGlyphRanges::japanese(),
+                        ..FontConfig::default()
+                    }),
+                });
+                v.push(FontSource::TtfData {
+                    data: jp.as_slice(),
+                    size_pixels: px,
+                    config: Some(FontConfig {
+                        oversample_h: 2,
+                        oversample_v: 2,
+                        glyph_ranges: imgui::FontGlyphRanges::from_slice(&SYM_RANGE_SB),
+                        ..FontConfig::default()
+                    }),
+                });
+            }
+            v
+        };
         // Inter SemiBold for section titles (clean, modern — replaces the ornate Cinzel serif).
-        let tid = ctx.fonts().add_font(&[FontSource::TtfData {
-            data: INTER_SB_TTF,
-            size_pixels: 18.0,
-            config: Some(FontConfig {
-                oversample_h: 3,
-                oversample_v: 3,
-                rasterizer_multiply: 1.05,
-                ..FontConfig::default()
-            }),
-        }]);
+        let tid = ctx.fonts().add_font(&semibold_sources(18.0));
         TITLE_FONT.with(|c| c.set(Some(tid)));
         // Inter SemiBold for emphasised numbers / values (clean + legible — replaces the hard-to-
         // read Orbitron faces).
-        let vid = ctx.fonts().add_font(&[FontSource::TtfData {
-            data: INTER_SB_TTF,
-            size_pixels: 16.0,
-            config: Some(FontConfig {
-                oversample_h: 3,
-                oversample_v: 3,
-                rasterizer_multiply: 1.05,
-                ..FontConfig::default()
-            }),
-        }]);
+        let vid = ctx.fonts().add_font(&semibold_sources(16.0));
         VALUE_FONT.with(|c| c.set(Some(vid)));
         // Inter SemiBold for sidebar nav labels (same 17 px size as the body, a touch heavier).
         let nid = ctx.fonts().add_font(&[FontSource::TtfData {
@@ -743,8 +801,11 @@ impl ImguiRenderLoop for HeavenOverlay {
     /// the menu closed but are passive — not worth eating game input for.)
     fn should_block_messages(&self, io: &imgui::Io) -> bool {
         // While dragging affinity badges (edit mode) the menu may be closed, but we still need the
-        // mouse so clicks move the badge instead of the game UI underneath.
-        (self.show || crate::affinity::edit_mode()) && (io.want_capture_mouse || io.want_capture_keyboard)
+        // mouse so clicks move the badge instead of the game UI underneath. Same for the Skill
+        // Optimizer window: it floats over the game's skill screen, and a click on APPLY must not
+        // fall through to the shop list underneath.
+        (self.show || crate::affinity::edit_mode() || crate::skill_advisor::window_open())
+            && (io.want_capture_mouse || io.want_capture_keyboard)
     }
 
     fn render(&mut self, ui: &mut Ui) {
@@ -940,6 +1001,17 @@ impl ImguiRenderLoop for HeavenOverlay {
             if crate::settings::tele_battle() {
                 draw_battle_callout(ui);
             }
+        }
+
+        // Icon-ripper readback: staging copies MUST run on this (render) thread — the
+        // immediate context isn't thread-safe. No-op unless a dump is queued.
+        #[cfg(feature = "banner")]
+        crate::icon_dump::render_pump();
+
+        // Skill Optimizer window — like the telemetry HUD it lives OUTSIDE the menu gate,
+        // so it stays up (and interactive) while the player works the game's skill screen.
+        if crate::skill_advisor::window_open() {
+            draw_skill_optimizer(ui);
         }
 
         // First-launch hint: until the user opens the menu once, show which key opens it
@@ -1425,17 +1497,7 @@ impl HeavenOverlay {
                 let page_top = ui.cursor_screen_pos();
                 ui.child_window("##page")
                     .size([content_w, 0.0])
-                    .flags(imgui::WindowFlags::NO_SCROLL_WITH_MOUSE)
                     .build(|| {
-                    // Mouse-wheel scroll: inside imgui columns a child doesn't claim the wheel on
-                    // hover (it needs a click/focus first), so drive the scroll manually.
-                    let wheel = ui.io().mouse_wheel;
-                    if wheel != 0.0
-                        && ui.is_window_hovered_with_flags(imgui::WindowHoveredFlags::ROOT_AND_CHILD_WINDOWS)
-                    {
-                        let ny = (ui.scroll_y() - wheel * 52.0).clamp(0.0, ui.scroll_max_y());
-                        ui.set_scroll_y(ny);
-                    }
                     // Card width = the child's usable width (already excludes any scrollbar).
                     let cw = ui.content_region_avail()[0] - 2.0;
                     // Unified menu: BOTH styles render from crate::menu_model::model() — one
@@ -1695,6 +1757,12 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Custom(Custom::RoomFinder) => {
                                             draw_room_finder(ui, cw);
+                                        }
+                                        Ctrl::Custom(Custom::SkillAdvisor) => {
+                                            crate::skill_advisor::draw_panel(ui, cw);
+                                        }
+                                        Ctrl::Custom(Custom::IconDump) => {
+                                            draw_icon_dump_panel(ui);
                                         }
                                         Ctrl::Custom(Custom::Affinity) => {
                                             crate::affinity::draw_tt_panel(ui, cw);
@@ -1998,6 +2066,13 @@ impl HeavenOverlay {
                                     Ctrl::Custom(Custom::RoomFinder) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         draw_room_finder(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::SkillAdvisor) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        crate::skill_advisor::draw_panel(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::IconDump) => {
+                                        draw_icon_dump_panel(ui);
                                     }
                                     Ctrl::Custom(Custom::Affinity) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
@@ -2368,7 +2443,13 @@ pub(crate) fn btn(ui: &Ui, id: &str, label: &str) -> bool {
 
 /// Primary (filled teal) button, auto-sized. For a highlighted primary action.
 pub(crate) fn btn_primary(ui: &Ui, id: &str, label: &str) -> bool {
-    let (pad, h) = (16.0, 34.0);
+    btn_primary_sized(ui, id, label, 34.0)
+}
+
+/// [`btn_primary`] at an explicit height — pass `ui.frame_height()` to sit flush beside
+/// combos/inputs on the same row (the fixed 34px reads oversized next to them).
+pub(crate) fn btn_primary_sized(ui: &Ui, id: &str, label: &str, h: f32) -> bool {
+    let pad = if h < 30.0 { 12.0 } else { 16.0 };
     let ts = ui.calc_text_size(label);
     let w = ts[0] + pad * 2.0;
     let p = ui.cursor_screen_pos();
@@ -2376,9 +2457,28 @@ pub(crate) fn btn_primary(ui: &Ui, id: &str, label: &str) -> bool {
     let hov = ui.is_item_hovered();
     let fill = if hov { accent_hi() } else { accent() };
     let dl = ui.get_window_draw_list();
-    dl.add_rect(p, [p[0] + w, p[1] + h], fill).filled(true).rounding(9.0).build();
+    dl.add_rect(p, [p[0] + w, p[1] + h], fill).filled(true).rounding((h * 0.26).min(9.0)).build();
     dl.add_text([p[0] + pad, p[1] + (h - ts[1]) * 0.5], crate::theme::on_accent(), label);
     clicked
+}
+
+/// [`btn_primary`] with an enabled gate: when disabled, draws dimmed, ignores hover and clicks.
+pub(crate) fn btn_primary_enabled(ui: &Ui, id: &str, label: &str, enabled: bool) -> bool {
+    if enabled {
+        return btn_primary(ui, id, label);
+    }
+    let (pad, h) = (16.0, 34.0);
+    let ts = ui.calc_text_size(label);
+    let w = ts[0] + pad * 2.0;
+    let p = ui.cursor_screen_pos();
+    ui.invisible_button(id, [w, h]);
+    let dl = ui.get_window_draw_list();
+    dl.add_rect(p, [p[0] + w, p[1] + h], crate::theme::accent_a(0.18))
+        .filled(true)
+        .rounding(9.0)
+        .build();
+    dl.add_text([p[0] + pad, p[1] + (h - ts[1]) * 0.5], DIM, label);
+    false
 }
 
 /// i32 variant of [`pink_slider_f32`].
@@ -2493,7 +2593,7 @@ pub(crate) fn help_icon(ui: &Ui, tip: &str) {
 
 /// `text_colored` + wrapping at the window edge — long status/error lines otherwise
 /// bleed past the card (imgui text never wraps by default).
-fn text_wrapped_colored(ui: &Ui, col: [f32; 4], text: &str) {
+pub(crate) fn text_wrapped_colored(ui: &Ui, col: [f32; 4], text: &str) {
     let _c = ui.push_style_color(StyleColor::Text, col);
     ui.text_wrapped(text);
 }
@@ -2946,6 +3046,746 @@ fn skill_icon_tex(skill_id: i32) -> Option<imgui::TextureId> {
 #[cfg(feature = "freecam")]
 fn uma_icon_tex(chara_id: i32) -> Option<imgui::TextureId> {
     UMA_TEX.with(|m| m.borrow().get(&chara_id).copied())
+}
+
+// ── Skill Optimizer window art lookups (fallback-friendly: None = draw a styled chip) ──
+fn opt_skill_icon(skill_id: i32) -> Option<imgui::TextureId> {
+    #[cfg(feature = "freecam")]
+    {
+        return skill_icon_tex(skill_id);
+    }
+    #[cfg(not(feature = "freecam"))]
+    {
+        let _ = skill_id;
+        None
+    }
+}
+fn opt_portrait(chara_id: i32) -> Option<imgui::TextureId> {
+    // Prefer the 128px dumped portrait, fall back to the 64px race-HUD face.
+    let big = CHARA_TEX.with(|m| m.borrow().get(&chara_id).copied());
+    #[cfg(feature = "freecam")]
+    {
+        return big.or_else(|| uma_icon_tex(chara_id));
+    }
+    #[cfg(not(feature = "freecam"))]
+    {
+        big
+    }
+}
+fn opt_rank_tex(rank_id: i32) -> Option<imgui::TextureId> {
+    RANK_TEX.with(|m| m.borrow().get(&rank_id).copied())
+}
+
+/// Push the SemiBold face (18px title / 16px value). None if fonts failed to load.
+fn opt_semibold(ui: &Ui, title: bool) -> Option<imgui::FontStackToken<'_>> {
+    let f = if title { TITLE_FONT.with(|c| c.get()) } else { VALUE_FONT.with(|c| c.get()) };
+    f.map(|f| ui.push_font(f))
+}
+
+/// Small rounded chip; the optimizer window's pill primitive. `border` = outlined pill.
+fn opt_chip(ui: &Ui, label: &str, plate: [f32; 4], ink: [f32; 4], border: Option<[f32; 4]>) {
+    let (pad, h) = (8.0, 20.0);
+    let ts = ui.calc_text_size(label);
+    let p = ui.cursor_screen_pos();
+    let w = ts[0] + pad * 2.0;
+    ui.dummy([w, h]);
+    let dl = ui.get_window_draw_list();
+    dl.add_rect(p, [p[0] + w, p[1] + h], plate).filled(true).rounding(h * 0.5).build();
+    if let Some(b) = border {
+        dl.add_rect(p, [p[0] + w, p[1] + h], b).rounding(h * 0.5).thickness(1.2).build();
+    }
+    dl.add_text([p[0] + pad, p[1] + (h - ts[1]) * 0.5], ink, label);
+}
+
+/// Non-purchasable unique row (the game lists the unique first; we mirror it so the list
+/// matches the shop 1:1 — no cost, no gain, just presence).
+fn opt_unique_row(ui: &Ui, skill_id: i32, name: &str, w: f32, s: f32, vis: (f32, f32)) {
+    let h = 50.0 * s;
+    let p = ui.cursor_screen_pos();
+    if p[1] + h < vis.0 || p[1] > vis.1 {
+        ui.dummy([w, h + 9.0 * s]);
+        return;
+    }
+    {
+        let dl = ui.get_window_draw_list();
+        dl.add_rect(p, [p[0] + w, p[1] + h], [0.75, 0.55, 0.95, 0.05]).filled(true).rounding(12.0).build();
+        dl.add_rect(p, [p[0] + w, p[1] + h], [0.75, 0.55, 0.95, 0.35]).rounding(12.0).thickness(1.0).build();
+        let plate = 38.0 * s;
+        let pp = [p[0] + 9.0 * s, p[1] + (h - plate) * 0.5];
+        dl.add_rect(pp, [pp[0] + plate, pp[1] + plate], [0.75, 0.55, 0.95, 0.10]).filled(true).rounding(9.0).build();
+        let isz = plate - 8.0 * s;
+        let ip = [pp[0] + 4.0 * s, pp[1] + 4.0 * s];
+        if let Some(t) = opt_skill_icon(skill_id) {
+            dl.add_image(t, ip, [ip[0] + isz, ip[1] + isz]).build();
+        }
+        let tx = pp[0] + plate + 11.0 * s;
+        dl.add_text([tx, p[1] + (h - ui.text_line_height()) * 0.5], [0.82, 0.70, 0.95, 0.9], name);
+    }
+    // Right-aligned chip instead of cost/gain.
+    let chip = "UNIQUE";
+    {
+        ui.set_window_font_scale(s * 0.72);
+        let ts = ui.calc_text_size(chip);
+        let (cp, ch) = (8.0 * s, 20.0 * s);
+        let x = p[0] + w - ts[0] - cp * 2.0 - 10.0 * s;
+        let y = p[1] + (h - ch) * 0.5;
+        let dl = ui.get_window_draw_list();
+        dl.add_rect([x, y], [x + ts[0] + cp * 2.0, y + ch], [0.75, 0.55, 0.95, 0.14]).filled(true).rounding(ch * 0.5).build();
+        dl.add_text([x + cp, y + (ch - ts[1]) * 0.5], [0.82, 0.70, 0.95, 0.9], chip);
+        ui.set_window_font_scale(s);
+    }
+    ui.dummy([w, h + 9.0 * s]);
+}
+
+/// One buy-list card row: icon on a rounded plate, semibold name, dim prerequisite line,
+/// green gain + cost chip right-aligned on one row.
+fn opt_skill_card(ui: &Ui, it: &crate::skill_advisor::PoolItem, w: f32, s: f32, selected: bool, vis: (f32, f32)) {
+    // Unselected candidates render dimmed — the list mirrors the whole shop, and a skill the
+    // optimizer passed on must read as "seen but not worth it", not vanish entirely.
+    let dim_f = if selected { 1.0 } else { 0.42 };
+    let dim = |c: [f32; 4]| [c[0], c[1], c[2], c[3] * dim_f];
+    let has_sub = it.chain.len() > 1;
+    let h = (if has_sub { 58.0 } else { 50.0 }) * s;
+    let p = ui.cursor_screen_pos();
+    // Off the visible band → advance layout only, issue no draw calls (see culling note).
+    if p[1] + h < vis.0 || p[1] > vis.1 {
+        ui.dummy([w, h + 9.0 * s]);
+        return;
+    }
+    let gold = it.rarity >= 2;
+    // Rarity keeps its gold edge even though the window chrome is silk-themed.
+    let edge = dim(if gold { [0.85, 0.70, 0.38, 0.50] } else { [1.0, 1.0, 1.0, 0.09] });
+    {
+        let dl = ui.get_window_draw_list();
+        dl.add_rect(p, [p[0] + w, p[1] + h], dim([1.0, 1.0, 1.0, 0.040])).filled(true).rounding(12.0).build();
+        // Body wash: warm gold glow bleeding off the icon side for rares, a faint white
+        // ramp for support skills (the mockup's cards are never flat). Solid rounded-left
+        // cap + fade so the gradient starts flush at the edge (an inset leaves a bare strip).
+        let (wl, wr) = if gold {
+            (dim([0.90, 0.72, 0.35, 0.11]), dim([0.90, 0.72, 0.35, 0.0]))
+        } else {
+            (dim([1.0, 1.0, 1.0, 0.045]), dim([1.0, 1.0, 1.0, 0.0]))
+        };
+        dl.add_rect(p, [p[0] + 24.0, p[1] + h], wl)
+            .filled(true)
+            .rounding(12.0)
+            .round_top_right(false)
+            .round_bot_right(false)
+            .build();
+        dl.add_rect_filled_multicolor([p[0] + 23.0, p[1]], [p[0] + w * 0.72, p[1] + h], wl, wr, wr, wl);
+        dl.add_rect(p, [p[0] + w, p[1] + h], edge).rounding(12.0).thickness(1.0).build();
+        // Icon plate: rounded square with its own soft fill + rarity ring.
+        let plate = 38.0 * s;
+        let pp = [p[0] + 9.0 * s, p[1] + (h - plate) * 0.5];
+        let plate_bg = dim(if gold { [0.85, 0.70, 0.38, 0.13] } else { [1.0, 1.0, 1.0, 0.06] });
+        let plate_ring = dim(if gold { [0.90, 0.75, 0.40, 0.75] } else { [1.0, 1.0, 1.0, 0.14] });
+        dl.add_rect(pp, [pp[0] + plate, pp[1] + plate], plate_bg).filled(true).rounding(9.0).build();
+        dl.add_rect(pp, [pp[0] + plate, pp[1] + plate], plate_ring).rounding(9.0).thickness(1.1).build();
+        let isz = plate - 8.0 * s;
+        let ip = [pp[0] + 4.0 * s, pp[1] + 4.0 * s];
+        if let Some(t) = opt_skill_icon(it.skill_id) {
+            dl.add_image(t, ip, [ip[0] + isz, ip[1] + isz]).col([1.0, 1.0, 1.0, dim_f]).build();
+        } else {
+            let c = dim(if gold { [0.90, 0.75, 0.40, 0.95] } else { [0.58, 0.66, 0.70, 0.95] });
+            let init: String = it.name.chars().take(1).collect();
+            let ts = ui.calc_text_size(&init);
+            dl.add_text([ip[0] + (isz - ts[0]) * 0.5, ip[1] + (isz - ts[1]) * 0.5], c, &init);
+        }
+    }
+    // Right-aligned value pair FIRST (so we know where the name may ellipsize): cost chip
+    // right-most, gain to its left, one shared row.
+    let cost = crate::skill_advisor::fmt_thousands(it.cost);
+    let (chip_pad, chip_h) = (9.0 * s, 22.0 * s);
+    let mut left_of_values = p[0] + w;
+    {
+        let _v = opt_semibold(ui, false);
+        let gain = format!("+{}", crate::skill_advisor::fmt_thousands(it.grade));
+        let gts = ui.calc_text_size(&gain);
+        let cts = ui.calc_text_size(&cost);
+        let chip_w = cts[0] + chip_pad * 2.0;
+        let chip_p = [p[0] + w - chip_w - 10.0 * s, p[1] + (h - chip_h) * 0.5];
+        let dl = ui.get_window_draw_list();
+        dl.add_rect(chip_p, [chip_p[0] + chip_w, chip_p[1] + chip_h], dim([1.0, 1.0, 1.0, 0.06]))
+            .filled(true)
+            .rounding(7.0)
+            .build();
+        dl.add_text([chip_p[0] + chip_pad, chip_p[1] + (chip_h - cts[1]) * 0.5], dim(DIM), &cost);
+        let gx = chip_p[0] - gts[0] - 12.0 * s;
+        dl.add_text([gx, p[1] + (h - gts[1]) * 0.5], dim(GOOD), &gain);
+        left_of_values = gx;
+    }
+    // Name (semibold) + prerequisite sub-line, clipped clear of the value pair.
+    {
+        let tx = p[0] + 9.0 * s + 38.0 * s + 11.0 * s;
+        let max_w = (left_of_values - 10.0 * s - tx).max(40.0);
+        let _v = opt_semibold(ui, false);
+        let name_h = ui.text_line_height();
+        let name_y = if has_sub { p[1] + 9.0 * s } else { p[1] + (h - name_h) * 0.5 };
+        let dl = ui.get_window_draw_list();
+        let mut name = it.name.clone();
+        while ui.calc_text_size(&name)[0] > max_w && name.chars().count() > 4 {
+            name = name.chars().take(name.chars().count() - 2).collect::<String>() + "\u{2026}";
+        }
+        dl.add_text([tx, name_y], dim(TEXT), &name);
+        drop(_v);
+        if has_sub {
+            let via: Vec<&str> = it.chain[..it.chain.len() - 1].iter().map(|c| c.name.as_str()).collect();
+            dl.add_text([tx, name_y + name_h + 3.0 * s], dim(DIM), &format!("+ {}", via.join(" + ")));
+        }
+    }
+    ui.dummy([w, h + 9.0 * s]);
+}
+
+/// Icon-ripper control (About → Diagnostics): button + LIVE status line, so a press is
+/// never silent (a bare Ctrl::Button gave no feedback and read as broken).
+fn draw_icon_dump_panel(ui: &Ui) {
+    #[cfg(feature = "banner")]
+    {
+        if btn_primary(ui, "##icodump", "Dump loaded icon textures") {
+            crate::icon_dump::request_dump();
+        }
+        let st = crate::icon_dump::status();
+        if !st.is_empty() {
+            text_wrapped_colored(ui, GOOD, &st);
+        }
+        text_wrapped_colored(
+            ui,
+            DIM,
+            "Rips rank/skill/chara art the game has loaded RIGHT NOW into trackside-icons/_dump \
+             — press it on the screen that shows the art (career profile for the rank emblem).",
+        );
+    }
+    #[cfg(not(feature = "banner"))]
+    {
+        let _ = ui;
+    }
+}
+
+/// Silk-themed widget palette for the optimizer window. It draws BEFORE the menu's global
+/// style push (it must render with the menu closed), so without this the combos, their
+/// popups and the list scrollbar leak stock imgui grey into the clean UI.
+fn opt_widget_style(ui: &Ui) -> impl Sized + '_ {
+    (
+        (
+            ui.push_style_color(StyleColor::Text, TEXT),
+            ui.push_style_color(StyleColor::TextDisabled, DIM),
+            ui.push_style_color(StyleColor::FrameBg, FRAME_BG),
+            ui.push_style_color(StyleColor::FrameBgHovered, FRAME_HI),
+            ui.push_style_color(StyleColor::FrameBgActive, FRAME_HI),
+            ui.push_style_color(StyleColor::Button, BTN_BG),
+            ui.push_style_color(StyleColor::ButtonHovered, BTN_HI),
+            ui.push_style_color(StyleColor::ButtonActive, amber_med()),
+        ),
+        (
+            ui.push_style_color(StyleColor::Header, amber_soft()),
+            ui.push_style_color(StyleColor::HeaderHovered, amber_med()),
+            ui.push_style_color(StyleColor::HeaderActive, amber_med()),
+            ui.push_style_color(StyleColor::PopupBg, [0.075, 0.086, 0.089, 0.99]),
+            ui.push_style_color(StyleColor::ScrollbarBg, [0.0, 0.0, 0.0, 0.0]),
+            ui.push_style_color(StyleColor::ScrollbarGrab, crate::theme::accent_a(0.35)),
+            ui.push_style_color(StyleColor::ScrollbarGrabHovered, crate::theme::accent_a(0.55)),
+            ui.push_style_color(StyleColor::ScrollbarGrabActive, crate::theme::accent_a(0.75)),
+            ui.push_style_color(StyleColor::CheckMark, accent()),
+        ),
+        (
+            ui.push_style_var(StyleVar::FrameRounding(8.0)),
+            ui.push_style_var(StyleVar::PopupRounding(10.0)),
+            ui.push_style_var(StyleVar::FramePadding([9.0, 5.0])),
+            ui.push_style_var(StyleVar::ScrollbarRounding(6.0)),
+        ),
+    )
+}
+
+/// The optimizer's two-stop gradient. Left = silk accent; right = the silk secondary
+/// LIFTED toward white — without the lift, same-hue themes (e.g. the house teals)
+/// render gradients that read as flat fills.
+fn opt_grad_colors() -> ([f32; 4], [f32; 4]) {
+    let l = crate::theme::accent();
+    let r = crate::theme::secondary();
+    (l, [(r[0] + 0.24).min(1.0), (r[1] + 0.24).min(1.0), (r[2] + 0.24).min(1.0), 1.0])
+}
+
+/// Gradient border stroke: N clipped slices of a rounded-rect outline, each tinted by the
+/// interpolated colour — imgui can't stroke gradients natively.
+fn opt_gradient_border(ui: &Ui, p: [f32; 2], size: [f32; 2], rounding: f32, l: [f32; 4], r: [f32; 4]) {
+    let dl = ui.get_window_draw_list();
+    const N: usize = 24;
+    let sw = size[0] / N as f32;
+    for i in 0..N {
+        let t = (i as f32 + 0.5) / N as f32;
+        let c = [
+            l[0] + (r[0] - l[0]) * t,
+            l[1] + (r[1] - l[1]) * t,
+            l[2] + (r[2] - l[2]) * t,
+            l[3] + (r[3] - l[3]) * t,
+        ];
+        let x0 = p[0] + sw * i as f32;
+        dl.with_clip_rect([x0, p[1]], [x0 + sw + 1.0, p[1] + size[1]], || {
+            dl.add_rect(p, [p[0] + size[0], p[1] + size[1]], c).rounding(rounding).thickness(1.6).build();
+        });
+    }
+}
+
+/// Horizontal gradient bar/button fill with true rounded pill caps: gradient body inset by
+/// the cap radius + solid end caps drawn as corner-rounded rects.
+fn opt_gradient_pill(dl: &imgui::DrawListMut, p: [f32; 2], w: f32, h: f32, r: f32, l: [f32; 4], rt: [f32; 4]) {
+    let r = r.min(w * 0.5);
+    dl.add_rect(p, [p[0] + r * 2.0, p[1] + h], l)
+        .filled(true)
+        .rounding(r)
+        .round_top_right(false)
+        .round_bot_right(false)
+        .build();
+    dl.add_rect([p[0] + w - r * 2.0, p[1]], [p[0] + w, p[1] + h], rt)
+        .filled(true)
+        .rounding(r)
+        .round_top_left(false)
+        .round_bot_left(false)
+        .build();
+    if w > r * 4.0 {
+        dl.add_rect_filled_multicolor([p[0] + r * 2.0 - 1.0, p[1]], [p[0] + w - r * 2.0 + 1.0, p[1] + h], l, rt, rt, l);
+    }
+}
+
+/// The floating end-of-career Skill Optimizer window (mockup: docs-internal; manual open
+/// from Gameplay → Skill advisor). Draws with the menu closed; input-blocked while hovered.
+fn draw_skill_optimizer(ui: &Ui) {
+    use crate::skill_advisor as adv;
+    let d = dpi(ui);
+    let (bw, bh) = (440.0 * d, 690.0 * d);
+    let [dw, dh] = ui.io().display_size;
+    let (px, py, sw, sh) = crate::settings::win_rect("skopt")
+        .map(|r| (r[0], r[1], r[2], r[3]))
+        .unwrap_or(((dw - bw) * 0.5, ((dh - bh) * 0.5).max(20.0), bw, bh));
+    let _style = panel_style(ui);
+    let _widgets = opt_widget_style(ui);
+    let _rounding = ui.push_style_var(StyleVar::WindowRounding(16.0));
+    // The stock 1px border is replaced by our sliced gradient stroke (drawn in the closure).
+    let _noborder = ui.push_style_color(StyleColor::Border, [0.0, 0.0, 0.0, 0.0]);
+    ui.window("Trackside \u{00b7} Skill Optimizer")
+        .position([px, py], Condition::FirstUseEver)
+        .size([sw, sh], Condition::FirstUseEver)
+        .title_bar(false)
+        .scroll_bar(false)
+        .resizable(true)
+        .build(|| {
+            persist_window(ui, "skopt");
+            // Full-window gradient border, silk accent → lifted secondary.
+            {
+                let (gl, gr) = opt_grad_colors();
+                let bl = [gl[0], gl[1], gl[2], 0.55];
+                let br = [gr[0], gr[1], gr[2], 0.55];
+                opt_gradient_border(ui, ui.window_pos(), ui.window_size(), 16.0, bl, br);
+            }
+            let w = ui.window_size()[0];
+            let s = (w / bw).clamp(0.75, 2.2);
+            ui.set_window_font_scale(s);
+            let pad = 18.0 * s;
+            let cw = w - pad * 2.0;
+            ui.set_cursor_pos([pad, pad]);
+
+            // ── Header: portrait · brand + title + caption · plated close ──
+            {
+                let p = ui.cursor_screen_pos();
+                let psz = 50.0 * s;
+                {
+                    let dl = ui.get_window_draw_list();
+                    if let Some(t) = opt_portrait(adv::chara_id()) {
+                        dl.add_image_rounded(t, p, [p[0] + psz, p[1] + psz], psz * 0.5).build();
+                    } else {
+                        dl.add_circle([p[0] + psz * 0.5, p[1] + psz * 0.5], psz * 0.5 - 1.0, crate::theme::accent_a(0.16))
+                            .filled(true)
+                            .build();
+                    }
+                    dl.add_circle([p[0] + psz * 0.5, p[1] + psz * 0.5], psz * 0.5, crate::theme::accent_a(0.8))
+                        .thickness(1.6)
+                        .build();
+                }
+                // Brand / title / caption column.
+                let tx = p[0] + psz + 13.0 * s;
+                {
+                    let dl = ui.get_window_draw_list();
+                    ui.set_window_font_scale(s * 0.78);
+                    dl.add_text([tx, p[1] - 1.0 * s], crate::theme::accent(), "T R A C K S I D E");
+                    ui.set_window_font_scale(s);
+                }
+                {
+                    let _t = opt_semibold(ui, true);
+                    let dl = ui.get_window_draw_list();
+                    dl.add_text([tx, p[1] + 13.0 * s], TEXT, "Skill optimizer");
+                }
+                {
+                    // Chara name when known (matches Heaven's header), else the context caption.
+                    let name = adv::chara_display_name();
+                    let dl = ui.get_window_draw_list();
+                    ui.set_window_font_scale(s * 0.78);
+                    if name.is_empty() {
+                        dl.add_text([tx, p[1] + 36.0 * s], DIM, "C A R E E R   F I N I S H");
+                    } else {
+                        dl.add_text([tx, p[1] + 35.0 * s], [0.72, 0.78, 0.80, 1.0], &name);
+                    }
+                    ui.set_window_font_scale(s);
+                }
+                // Close: rounded-square plate with the ✕ drawn in.
+                let xsz = 30.0 * s;
+                let xp = [p[0] + cw - xsz, p[1] + 2.0 * s];
+                ui.set_cursor_screen_pos(xp);
+                let clicked = ui.invisible_button("##skopt_x", [xsz, xsz]);
+                let hov = ui.is_item_hovered();
+                {
+                    let dl = ui.get_window_draw_list();
+                    let bg = if hov { [1.0, 1.0, 1.0, 0.13] } else { [1.0, 1.0, 1.0, 0.06] };
+                    dl.add_rect(xp, [xp[0] + xsz, xp[1] + xsz], bg).filled(true).rounding(9.0).build();
+                    let c = if hov { TEXT } else { DIM };
+                    let (m, e) = (xsz * 0.34, xsz * 0.66);
+                    dl.add_line([xp[0] + m, xp[1] + m], [xp[0] + e, xp[1] + e], c).thickness(1.7).build();
+                    dl.add_line([xp[0] + e, xp[1] + m], [xp[0] + m, xp[1] + e], c).thickness(1.7).build();
+                }
+                if clicked {
+                    adv::set_window_open(false);
+                }
+                ui.set_cursor_screen_pos([p[0], p[1] + psz + 14.0 * s]);
+            }
+
+            let Some(res) = adv::last_result() else {
+                ui.text_colored(WARN, "No recommendation yet.");
+                ui.text_colored(DIM, "Gameplay tab \u{2192} Skill advisor \u{2192} Recommend.");
+                return;
+            };
+
+            // Live current rating: the game's real-time value while the player clicks + / −
+            // on the skill screen (falls back to the recommendation's baseline off-screen).
+            // res.projected = current + everything the optimizer would still buy on top.
+            let live_current = crate::skill_buyer::live_current_rating().unwrap_or(res.current.total);
+            let target_rating = live_current.max(res.current.total).min(res.projected.total);
+            // Eased displays (smooth on any change — manual pick, recompute, or Apply sweep).
+            let anim_rating = anim_step("skopt_rating", target_rating as f32, 9.0);
+            let remaining_gain = (res.projected.total - target_rating).max(0);
+
+            // ── Hero card: CURRENT RATING + animated rank-progress bar ──
+            {
+                let p = ui.cursor_screen_pos();
+                let hh = 130.0 * s;
+                {
+                    let dl = ui.get_window_draw_list();
+                    dl.add_rect(p, [p[0] + cw, p[1] + hh], [1.0, 1.0, 1.0, 0.045]).filled(true).rounding(14.0).build();
+                    let wl = crate::theme::accent_a(0.10);
+                    let wr = crate::theme::accent_a(0.02);
+                    dl.add_rect(p, [p[0] + 28.0, p[1] + hh], wl).filled(true).rounding(14.0).round_top_right(false).round_bot_right(false).build();
+                    dl.add_rect_filled_multicolor([p[0] + 27.0, p[1]], [p[0] + cw - 14.0, p[1] + hh], wl, wr, wr, wl);
+                    dl.add_rect(p, [p[0] + cw, p[1] + hh], crate::theme::accent_a(0.30)).rounding(14.0).thickness(1.2).build();
+                }
+                let pad = 16.0 * s;
+                // Label + big live rating.
+                {
+                    let dl = ui.get_window_draw_list();
+                    ui.set_window_font_scale(s * 0.74);
+                    dl.add_text([p[0] + pad, p[1] + 13.0 * s], DIM, "C U R R E N T   R A T I N G");
+                    ui.set_window_font_scale(s);
+                }
+                {
+                    let _t = opt_semibold(ui, true);
+                    ui.set_window_font_scale(s * 2.1);
+                    let big = adv::fmt_thousands(anim_rating.round() as i32);
+                    let dl = ui.get_window_draw_list();
+                    dl.add_text([p[0] + pad - 1.0 * s, p[1] + 26.0 * s], [0.97, 0.97, 0.99, 1.0], &big);
+                    ui.set_window_font_scale(s);
+                }
+                // Remaining-gain pill, top-right.
+                if remaining_gain > 0 {
+                    let _v = opt_semibold(ui, false);
+                    let gain = format!("+{}", adv::fmt_thousands(remaining_gain));
+                    let gts = ui.calc_text_size(&gain);
+                    let (gp, gh) = (9.0 * s, 22.0 * s);
+                    let gx = p[0] + cw - gts[0] - gp * 2.0 - pad;
+                    let gy = p[1] + 20.0 * s;
+                    let dl = ui.get_window_draw_list();
+                    dl.add_rect([gx, gy], [gx + gts[0] + gp * 2.0, gy + gh], [0.22, 0.48, 0.34, 0.30]).filled(true).rounding(gh * 0.5).build();
+                    dl.add_rect([gx, gy], [gx + gts[0] + gp * 2.0, gy + gh], [0.45, 0.85, 0.62, 0.70]).rounding(gh * 0.5).thickness(1.1).build();
+                    dl.add_text([gx + gp, gy + (gh - gts[1]) * 0.5], [0.62, 0.95, 0.75, 1.0], &gain);
+                }
+                // ── Animated rank-progress bar: [cur emblem] ==== +N ==== [next emblem] ──
+                {
+                    let esz = 40.0 * s;
+                    let by = p[1] + hh - esz - 14.0 * s;
+                    let cur_id = adv::rank_id_for(anim_rating.round() as i32);
+                    let (rmin, rmax) = adv::rank_bounds(anim_rating.round() as i32);
+                    let (next_id, next_at) = adv::next_rank(anim_rating.round() as i32).unwrap_or((cur_id, rmax));
+                    // Emblem drawer: dumped art, else silk roundel with the rank letters.
+                    let draw_emblem = |ui: &Ui, id: i32, ex: f32| {
+                        let ep = [ex, by];
+                        if let Some(t) = opt_rank_tex(id) {
+                            ui.get_window_draw_list().add_image(t, ep, [ep[0] + esz, ep[1] + esz]).build();
+                        } else {
+                            let cx = [ep[0] + esz * 0.5, ep[1] + esz * 0.5];
+                            {
+                                let dl = ui.get_window_draw_list();
+                                dl.add_circle(cx, esz * 0.5, crate::theme::accent_a(0.16)).filled(true).build();
+                                dl.add_circle(cx, esz * 0.5, crate::theme::accent()).thickness(1.8).build();
+                            }
+                            let _t = opt_semibold(ui, true);
+                            ui.set_window_font_scale(s * 0.8);
+                            let lbl = adv::rank_label(id);
+                            let ts = ui.calc_text_size(&lbl);
+                            ui.get_window_draw_list().add_text([cx[0] - ts[0] * 0.5, cx[1] - ts[1] * 0.5], crate::theme::accent_hi(), &lbl);
+                            ui.set_window_font_scale(s);
+                        }
+                    };
+                    draw_emblem(ui, cur_id, p[0] + pad);
+                    draw_emblem(ui, next_id, p[0] + cw - pad - esz);
+                    // Track + animated flowing gradient fill between the emblems.
+                    let tx0 = p[0] + pad + esz + 10.0 * s;
+                    let tx1 = p[0] + cw - pad - esz - 10.0 * s;
+                    let tw = (tx1 - tx0).max(1.0);
+                    let bh3 = 12.0 * s;
+                    let bcy = by + esz * 0.5;
+                    let span = (next_at - rmin).max(1) as f32;
+                    let frac = ((anim_rating - rmin as f32) / span).clamp(0.0, 1.0);
+                    let flow = anim_get("skopt_flow_phase"); // free-running, advanced after the card
+                    {
+                        let dl = ui.get_window_draw_list();
+                        dl.add_rect([tx0, bcy - bh3 * 0.5], [tx0 + tw, bcy + bh3 * 0.5], [1.0, 1.0, 1.0, 0.07]).filled(true).rounding(bh3 * 0.5).build();
+                        if frac > 0.005 {
+                            let fw = (tw * frac).max(bh3);
+                            // Flowing gradient: phase-shift the two stops so the fill "streams".
+                            let (gl, gr) = opt_grad_colors();
+                            let t = (flow * std::f32::consts::TAU).sin() * 0.5 + 0.5;
+                            let mix = |a: [f32; 4], b: [f32; 4], k: f32| [a[0]+(b[0]-a[0])*k, a[1]+(b[1]-a[1])*k, a[2]+(b[2]-a[2])*k, 1.0];
+                            opt_gradient_pill(&dl, [tx0, bcy - bh3 * 0.5], fw, bh3, bh3 * 0.5, mix(gl, gr, t * 0.4), mix(gr, gl, t * 0.4));
+                            let hi = crate::theme::accent_hi();
+                            dl.add_circle([tx0 + fw - bh3 * 0.5, bcy], bh3 * 0.42, [1.0, 1.0, 1.0, 0.9]).filled(true).build();
+                            let _ = hi;
+                        }
+                    }
+                    // Distance readout centered on the track (icon-only design: number, not "to UG").
+                    {
+                        let _v = opt_semibold(ui, false);
+                        let dist = next_at - anim_rating.round() as i32;
+                        let txt = if dist > 0 { format!("+{}", adv::fmt_thousands(dist)) } else { "MAXED".into() };
+                        ui.set_window_font_scale(s * 0.82);
+                        let ts = ui.calc_text_size(&txt);
+                        let dl = ui.get_window_draw_list();
+                        dl.add_text([tx0 + (tw - ts[0]) * 0.5, bcy - bh3 * 0.5 - ts[1] - 3.0 * s], [0.90, 0.92, 0.95, 1.0], &txt);
+                        ui.set_window_font_scale(s);
+                    }
+                }
+                ui.dummy([cw, hh + 14.0 * s]);
+            }
+            // Keep the flow phase advancing every frame (anim_step above reads, this drives it).
+            advance_flow_phase("skopt_flow_phase");
+
+            // ── SP spent bar (animated) ──
+            {
+                let p = ui.cursor_screen_pos();
+                ui.text_colored(DIM, "Skill points spent");
+                let live_spent = crate::skill_buyer::live_spent().unwrap_or(res.spent);
+                let anim_spent = anim_step("skopt_spent", live_spent as f32, 9.0);
+                {
+                    let _v = opt_semibold(ui, false);
+                    let spent = adv::fmt_thousands(anim_spent.round() as i32);
+                    let total = format!(" / {}", adv::fmt_thousands(res.budget));
+                    let sts = ui.calc_text_size(&spent);
+                    let tts = ui.calc_text_size(&total);
+                    let dl = ui.get_window_draw_list();
+                    dl.add_text([p[0] + cw - tts[0] - sts[0], p[1]], TEXT, &spent);
+                    dl.add_text([p[0] + cw - tts[0], p[1]], DIM, &total);
+                }
+                let by = p[1] + ui.text_line_height() + 8.0 * s;
+                let bh2 = 8.0 * s;
+                {
+                    let dl = ui.get_window_draw_list();
+                    dl.add_rect([p[0], by], [p[0] + cw, by + bh2], [1.0, 1.0, 1.0, 0.07]).filled(true).rounding(bh2 * 0.5).build();
+                    let frac = if res.budget > 0 { (anim_spent / res.budget as f32).clamp(0.0, 1.0) } else { 0.0 };
+                    if frac > 0.02 {
+                        let fw = (cw * frac).max(bh2 * 2.0);
+                        let (gl, gr) = opt_grad_colors();
+                        opt_gradient_pill(&dl, [p[0], by], fw, bh2, bh2 * 0.5, gl, gr);
+                        let hi = crate::theme::accent_hi();
+                        dl.add_circle([p[0] + fw - bh2 * 0.5, by + bh2 * 0.5], bh2 * 0.75, [hi[0], hi[1], hi[2], 0.45]).filled(true).build();
+                        dl.add_circle([p[0] + fw - bh2 * 0.5, by + bh2 * 0.5], bh2 * 0.38, [1.0, 1.0, 1.0, 0.9]).filled(true).build();
+                    }
+                }
+                ui.set_cursor_screen_pos([p[0], by + bh2 + 16.0 * s]);
+            }
+
+            // ── Filters: change anything → auto-recompute (shared row with the panel),
+            // plus an explicit Recalculate for trust + manual reruns. ──
+            {
+                crate::skill_advisor::draw_filter_row(ui, cw * 0.76);
+                ui.same_line_with_spacing(0.0, 8.0 * s);
+                if crate::skill_advisor::is_recommend_busy() {
+                    ui.text_colored(crate::theme::accent(), "computing\u{2026}");
+                } else if btn_primary_sized(ui, "##skrecalc", "Recalc", ui.frame_height()) {
+                    crate::skill_advisor::request_recommend();
+                }
+                ui.dummy([0.0, 6.0 * s]);
+            }
+
+            // ── Sectioned buy list (scrollable) ──
+            // Footer grows while the first-run Scan affordance + status text are showing.
+            let footer_h = if crate::skill_buyer::driver_ready() { 78.0 * s } else { 128.0 * s };
+            let list_h = (ui.window_size()[1] - ui.cursor_pos()[1] - footer_h).max(60.0);
+            let section_header = |title: &str, col: [f32; 4], note: &str| {
+                {
+                    let _t = opt_semibold(ui, false);
+                    ui.set_window_font_scale(s * 0.86);
+                    ui.text_colored(col, title);
+                }
+                if !note.is_empty() {
+                    ui.same_line();
+                    ui.set_window_font_scale(s * 0.80);
+                    ui.text_colored(DIM, note);
+                }
+                ui.set_window_font_scale(s);
+                ui.dummy([0.0, 4.0 * s]);
+            };
+            // One flat list in the game's own learn-screen order (disp_order sort applied in
+            // recommend()) — no gold/support framing; rarity still shows through card styling.
+            ui.child_window("##skoptlist").size([cw, list_h]).build(|| {
+                ui.set_window_font_scale(s);
+                let lw = ui.content_region_avail()[0] - 4.0;
+                // Full shop mirror: every candidate in the game's own order — buys full-colour,
+                // skips dimmed, uniques as non-purchasable rows (nothing ever looks "missing").
+                let mut rows: Vec<(&crate::skill_advisor::PoolItem, bool)> = res
+                    .selected
+                    .iter()
+                    .map(|it| (it, true))
+                    .chain(res.skipped.iter().map(|it| (it, false)))
+                    .collect();
+                rows.sort_by_key(|(it, _)| (crate::skill_advisor::skill_disp_order(it.skill_id), it.skill_id));
+                let uniques = adv::offered_uniques();
+                if rows.is_empty() && uniques.is_empty() {
+                    ui.text_colored(WARN, "No purchasable skills for these filters.");
+                } else {
+                    let note = format!(
+                        "\u{00b7}  {} BUYS OF {}  \u{00b7}  SHOP ORDER",
+                        res.selected.len(),
+                        res.pool_size
+                    );
+                    section_header("S K I L L S", crate::theme::accent(), &note);
+                    // Legend so the dimming reads as intentional, not broken.
+                    ui.set_window_font_scale(s * 0.78);
+                    ui.text_colored(DIM, "Bright = recommended buy \u{00b7} Dim = considered, skipped");
+                    ui.set_window_font_scale(s);
+                    ui.dummy([0.0, 4.0 * s]);
+                    // Scroll culling: only draw rows inside the child's visible band. Custom
+                    // draw-list calls aren't clipped by imgui, so a 60-row list would push the
+                    // whole shop into one draw list every frame — heavy enough to crash the
+                    // game's render on scroll. Off-screen rows advance layout via a bare dummy.
+                    let vis_top = ui.window_pos()[1];
+                    let vis_bot = vis_top + ui.window_size()[1];
+                    for (sid, name) in &uniques {
+                        opt_unique_row(ui, *sid, name, lw, s, (vis_top, vis_bot));
+                    }
+                    for (it, sel) in &rows {
+                        opt_skill_card(ui, it, lw, s, *sel, (vis_top, vis_bot));
+                    }
+                }
+            });
+
+            // ── Footer: APPLY OPTIMAL + decide hint + automation status ──
+            {
+                ui.dummy([0.0, 6.0 * s]);
+                let p = ui.cursor_screen_pos();
+                let btn_w = cw * 0.62;
+                let btn_h = 48.0 * s;
+                let clicked = {
+                    ui.set_cursor_screen_pos(p);
+                    ui.invisible_button("##skapply", [btn_w, btn_h])
+                };
+                let hov = ui.is_item_hovered();
+                {
+                    let dl = ui.get_window_draw_list();
+                    let (l, r) = opt_grad_colors();
+                    let boost = if hov { 0.10 } else { 0.0 };
+                    let li = [(l[0] + boost).min(1.0), (l[1] + boost).min(1.0), (l[2] + boost).min(1.0), 1.0];
+                    let ri = [(r[0] + boost).min(1.0), (r[1] + boost).min(1.0), (r[2] + boost).min(1.0), 1.0];
+                    opt_gradient_pill(&dl, p, btn_w, btn_h, 14.0 * s, li, ri);
+                    // Vertical sheen: lighter top half fading out — reads as a lit pill, not a flat bar.
+                    let rr = 14.0 * s;
+                    dl.add_rect_filled_multicolor(
+                        [p[0] + rr, p[1] + 1.0],
+                        [p[0] + btn_w - rr, p[1] + btn_h * 0.48],
+                        [1.0, 1.0, 1.0, 0.20],
+                        [1.0, 1.0, 1.0, 0.20],
+                        [1.0, 1.0, 1.0, 0.0],
+                        [1.0, 1.0, 1.0, 0.0],
+                    );
+                    dl.add_rect(p, [p[0] + btn_w, p[1] + btn_h], [1.0, 1.0, 1.0, 0.22])
+                        .rounding(14.0 * s)
+                        .thickness(1.0)
+                        .build();
+                }
+                {
+                    let _t = opt_semibold(ui, true);
+                    let label = "A P P L Y   O P T I M A L";
+                    let ts = ui.calc_text_size(label);
+                    let dl = ui.get_window_draw_list();
+                    dl.add_text(
+                        [p[0] + (btn_w - ts[0]) * 0.5, p[1] + (btn_h - ts[1]) * 0.5],
+                        crate::theme::on_accent(),
+                        label,
+                    );
+                }
+                if clicked {
+                    let ids: Vec<i32> = res
+                        .selected
+                        .iter()
+                        .flat_map(|it| it.chain.iter().map(|c| c.skill_id))
+                        .collect();
+                    crate::skill_buyer::request_apply(ids);
+                }
+                // Right block: "then press Decide" (Decide emphasized) over the in-game chip.
+                {
+                    let rx = p[0] + btn_w + 14.0 * s;
+                    let t1 = "then press ";
+                    let t1s = {
+                        // Scoped: only one DrawListMut may live at a time (opt_chip grabs its own).
+                        let dl = ui.get_window_draw_list();
+                        ui.set_window_font_scale(s * 0.88);
+                        let t1s = ui.calc_text_size(t1);
+                        dl.add_text([rx, p[1] + 4.0 * s], DIM, t1);
+                        ui.set_window_font_scale(s);
+                        t1s
+                    };
+                    {
+                        let _v = opt_semibold(ui, false);
+                        let dl = ui.get_window_draw_list();
+                        dl.add_text([rx + t1s[0], p[1] + 2.0 * s], TEXT, "Decide");
+                    }
+                    ui.set_cursor_screen_pos([rx, p[1] + 24.0 * s]);
+                    opt_chip(ui, "in-game", crate::theme::accent_a(0.14), crate::theme::accent_hi(), None);
+                }
+                ui.set_cursor_screen_pos([p[0], p[1] + btn_h + 8.0 * s]);
+                // Automation status / first-run scan affordance.
+                let st = crate::skill_buyer::status();
+                if !st.is_empty() {
+                    ui.set_window_font_scale(s * 0.85);
+                    text_wrapped_colored(ui, WARN, &st);
+                    ui.set_window_font_scale(s);
+                }
+                if !crate::skill_buyer::driver_ready() {
+                    if btn_primary(ui, "##skscan", "Scan learn screen") {
+                        crate::skill_buyer::request_scan();
+                    }
+                }
+                // Icon ripper: pull whatever icon art the game currently has loaded (rank
+                // emblem on the career screen, skill icons on the learn screen, ...).
+                #[cfg(feature = "banner")]
+                {
+                    ui.same_line_with_spacing(0.0, 8.0 * s);
+                    if btn_primary(ui, "##skdump", "Dump icons") {
+                        crate::icon_dump::request_dump();
+                    }
+                    let ds = crate::icon_dump::status();
+                    if !ds.is_empty() {
+                        ui.set_window_font_scale(s * 0.85);
+                        text_wrapped_colored(ui, DIM, &ds);
+                        ui.set_window_font_scale(s);
+                    }
+                }
+            }
+        });
 }
 
 /// Short broadcast label for a `DefeatType` (why the Uma can't win). None = no reason yet / win.

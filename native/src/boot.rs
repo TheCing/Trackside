@@ -249,6 +249,14 @@ pub fn spawn() {
             log(&format!("room finder: {r}"));
             crate::diag::record_install("room finder", &r);
         }
+        // Apply Optimal (skill-advisor auto-select). Resolution is best-effort by design —
+        // the learn screen has no prior RE; the optimizer window's Scan button is the wiring
+        // path. Its per-frame driver rides ui_tempo's single TweenManager.Update detour.
+        {
+            let r = crate::skill_buyer::install();
+            log(&format!("skill buyer: {r}"));
+            crate::diag::record_install("skill buyer", &r);
+        }
         // Legacy Select affinity numbers (on-screen exact pair total + per-parent values).
         // Read-only; its per-frame tick rides ui_tempo's single TweenManager.Update detour.
         {

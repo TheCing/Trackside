@@ -36,6 +36,10 @@ mod http;
 mod il2cpp;
 #[cfg(feature = "banner")]
 mod intro_player;
+// In-process icon ripper (rank emblems / portraits / skill icons) — needs the banner
+// build's captured D3D11 device for the staging readback.
+#[cfg(feature = "banner")]
+mod icon_dump;
 mod htt;
 mod htt_il2cpp;
 mod hunter;
@@ -67,6 +71,10 @@ mod umas;
 mod response_hook;
 mod selfupdate;
 mod settings;
+mod skill_advisor;
+// Apply Optimal: drives the skill-learn screen to select the advisor's picks (scaffold —
+// finished against the first in-game scan; see skill_buyer.rs header).
+mod skill_buyer;
 mod skip;
 mod theme;
 // Shared cross-cutting utilities (logging, process clock). See tools/mod.rs.
@@ -100,6 +108,8 @@ impl HeavenOverlay {
         // boot) so the intro can draw over the splash logos within ~1 s of launch.
         #[cfg(feature = "banner")]
         intro_player::spawn_capture();
+        // Preview-host design aid (no-op unless TRACKSIDE_SKOPT_MOCK is set).
+        skill_advisor::mock_for_preview();
         HeavenOverlay::new()
     }
 }

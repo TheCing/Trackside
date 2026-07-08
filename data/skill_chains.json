@@ -1,0 +1,5588 @@
+{
+ "1007": [
+  {
+   "id": 10071,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1008": [
+  {
+   "id": 10081,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1009": [
+  {
+   "id": 10091,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1011": [
+  {
+   "id": 10111,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1014": [
+  {
+   "id": 10141,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1018": [
+  {
+   "id": 10181,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1024": [
+  {
+   "id": 10241,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1027": [
+  {
+   "id": 10271,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1032": [
+  {
+   "id": 10321,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1035": [
+  {
+   "id": 10351,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1041": [
+  {
+   "id": 10411,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1045": [
+  {
+   "id": 10451,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1052": [
+  {
+   "id": 10521,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1056": [
+  {
+   "id": 10561,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1060": [
+  {
+   "id": 10601,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1061": [
+  {
+   "id": 10611,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "1062": [
+  {
+   "id": 10621,
+   "group_rate": 1,
+   "rarity": 3,
+   "cost": 0,
+   "grade": 240
+  }
+ ],
+ "10001": [
+  {
+   "id": 100011,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10002": [
+  {
+   "id": 100021,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10003": [
+  {
+   "id": 100031,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10004": [
+  {
+   "id": 100041,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10005": [
+  {
+   "id": 100051,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10006": [
+  {
+   "id": 100061,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10007": [
+  {
+   "id": 100071,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10008": [
+  {
+   "id": 100081,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10009": [
+  {
+   "id": 100091,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10010": [
+  {
+   "id": 100101,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10011": [
+  {
+   "id": 100111,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10012": [
+  {
+   "id": 100121,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10013": [
+  {
+   "id": 100131,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10014": [
+  {
+   "id": 100141,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10015": [
+  {
+   "id": 100151,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10016": [
+  {
+   "id": 100161,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10017": [
+  {
+   "id": 100171,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10018": [
+  {
+   "id": 100181,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10019": [
+  {
+   "id": 100191,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10020": [
+  {
+   "id": 100201,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10021": [
+  {
+   "id": 100211,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10022": [
+  {
+   "id": 100221,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10023": [
+  {
+   "id": 100231,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10024": [
+  {
+   "id": 100241,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10025": [
+  {
+   "id": 100251,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10026": [
+  {
+   "id": 100261,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10027": [
+  {
+   "id": 100271,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10028": [
+  {
+   "id": 100281,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10030": [
+  {
+   "id": 100301,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10031": [
+  {
+   "id": 100311,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10032": [
+  {
+   "id": 100321,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10033": [
+  {
+   "id": 100331,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10034": [
+  {
+   "id": 100341,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10035": [
+  {
+   "id": 100351,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10036": [
+  {
+   "id": 100361,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10037": [
+  {
+   "id": 100371,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10038": [
+  {
+   "id": 100381,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10039": [
+  {
+   "id": 100391,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10040": [
+  {
+   "id": 100401,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10041": [
+  {
+   "id": 100411,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10042": [
+  {
+   "id": 100421,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10044": [
+  {
+   "id": 100441,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10045": [
+  {
+   "id": 100451,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10046": [
+  {
+   "id": 100461,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10048": [
+  {
+   "id": 100481,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10050": [
+  {
+   "id": 100501,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10051": [
+  {
+   "id": 100511,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10052": [
+  {
+   "id": 100521,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10053": [
+  {
+   "id": 100531,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10056": [
+  {
+   "id": 100561,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10058": [
+  {
+   "id": 100581,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10059": [
+  {
+   "id": 100591,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10060": [
+  {
+   "id": 100601,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10061": [
+  {
+   "id": 100611,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10062": [
+  {
+   "id": 100621,
+   "group_rate": 1,
+   "rarity": 4,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10064": [
+  {
+   "id": 100641,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10067": [
+  {
+   "id": 100671,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10068": [
+  {
+   "id": 100681,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10069": [
+  {
+   "id": 100691,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10071": [
+  {
+   "id": 100711,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10072": [
+  {
+   "id": 100721,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10074": [
+  {
+   "id": 100741,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10098": [
+  {
+   "id": 100981,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "10099": [
+  {
+   "id": 100991,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11001": [
+  {
+   "id": 110011,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11003": [
+  {
+   "id": 110031,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11004": [
+  {
+   "id": 110041,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11005": [
+  {
+   "id": 110051,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11006": [
+  {
+   "id": 110061,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11007": [
+  {
+   "id": 110071,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11010": [
+  {
+   "id": 110101,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11011": [
+  {
+   "id": 110111,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11013": [
+  {
+   "id": 110131,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11014": [
+  {
+   "id": 110141,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11015": [
+  {
+   "id": 110151,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11017": [
+  {
+   "id": 110171,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11018": [
+  {
+   "id": 110181,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11020": [
+  {
+   "id": 110201,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11022": [
+  {
+   "id": 110221,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11023": [
+  {
+   "id": 110231,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11024": [
+  {
+   "id": 110241,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11026": [
+  {
+   "id": 110261,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11030": [
+  {
+   "id": 110301,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11037": [
+  {
+   "id": 110371,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11038": [
+  {
+   "id": 110381,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11040": [
+  {
+   "id": 110401,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11045": [
+  {
+   "id": 110451,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11052": [
+  {
+   "id": 110521,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11056": [
+  {
+   "id": 110561,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11059": [
+  {
+   "id": 110591,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11060": [
+  {
+   "id": 110601,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "11061": [
+  {
+   "id": 110611,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "12001": [
+  {
+   "id": 120011,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "12013": [
+  {
+   "id": 120131,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "20001": [
+  {
+   "id": 200013,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200012,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200011,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 200014,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 130,
+   "grade": 461
+  }
+ ],
+ "20002": [
+  {
+   "id": 200023,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200022,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200021,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20003": [
+  {
+   "id": 200033,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200032,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200031,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20004": [
+  {
+   "id": 200043,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200042,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200041,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20005": [
+  {
+   "id": 200053,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200052,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200051,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20006": [
+  {
+   "id": 200063,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200062,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200061,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 200064,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 130,
+   "grade": 461
+  }
+ ],
+ "20007": [
+  {
+   "id": 200073,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200072,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200071,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20008": [
+  {
+   "id": 200083,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 40,
+   "grade": -129
+  },
+  {
+   "id": 200082,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  },
+  {
+   "id": 200081,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 174
+  }
+ ],
+ "20009": [
+  {
+   "id": 200093,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 40,
+   "grade": -129
+  },
+  {
+   "id": 200092,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  },
+  {
+   "id": 200091,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 174
+  }
+ ],
+ "20010": [
+  {
+   "id": 200103,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 40,
+   "grade": -129
+  },
+  {
+   "id": 200102,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  },
+  {
+   "id": 200101,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 174
+  }
+ ],
+ "20011": [
+  {
+   "id": 200113,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 40,
+   "grade": -129
+  },
+  {
+   "id": 200112,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  },
+  {
+   "id": 200111,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 174
+  }
+ ],
+ "20012": [
+  {
+   "id": 200123,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 40,
+   "grade": -129
+  },
+  {
+   "id": 200122,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  },
+  {
+   "id": 200121,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 174
+  }
+ ],
+ "20013": [
+  {
+   "id": 200133,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200132,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200131,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20014": [
+  {
+   "id": 200143,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200142,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200141,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20015": [
+  {
+   "id": 200153,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200152,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200151,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 200154,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 130,
+   "grade": 461
+  }
+ ],
+ "20016": [
+  {
+   "id": 200163,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200162,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200161,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20017": [
+  {
+   "id": 200173,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200172,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200171,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 200174,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 130,
+   "grade": 461
+  }
+ ],
+ "20018": [
+  {
+   "id": 200183,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200182,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200181,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20019": [
+  {
+   "id": 200193,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200192,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200191,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 200194,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 130,
+   "grade": 461
+  }
+ ],
+ "20020": [
+  {
+   "id": 200203,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200202,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200201,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20021": [
+  {
+   "id": 200212,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200211,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20022": [
+  {
+   "id": 200222,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200221,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20023": [
+  {
+   "id": 200233,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200232,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200231,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20024": [
+  {
+   "id": 200242,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200241,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20025": [
+  {
+   "id": 200253,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200252,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200251,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20026": [
+  {
+   "id": 200263,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200262,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200261,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20027": [
+  {
+   "id": 200272,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200271,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20028": [
+  {
+   "id": 200283,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200282,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200281,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20029": [
+  {
+   "id": 200292,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200291,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20030": [
+  {
+   "id": 200302,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200301,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20031": [
+  {
+   "id": 200311,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  }
+ ],
+ "20032": [
+  {
+   "id": 200321,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  }
+ ],
+ "20033": [
+  {
+   "id": 200333,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  },
+  {
+   "id": 200332,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200331,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20034": [
+  {
+   "id": 200343,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  },
+  {
+   "id": 200342,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200341,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20035": [
+  {
+   "id": 200353,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  },
+  {
+   "id": 200352,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200351,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20036": [
+  {
+   "id": 200362,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200361,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20037": [
+  {
+   "id": 200372,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200371,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20038": [
+  {
+   "id": 200382,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200381,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20039": [
+  {
+   "id": 200391,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  }
+ ],
+ "20040": [
+  {
+   "id": 200401,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  }
+ ],
+ "20041": [
+  {
+   "id": 200411,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  }
+ ],
+ "20042": [
+  {
+   "id": 200421,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  }
+ ],
+ "20043": [
+  {
+   "id": 200433,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": -174
+  },
+  {
+   "id": 200432,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 129
+  },
+  {
+   "id": 200431,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 140,
+   "grade": 394
+  }
+ ],
+ "20044": [
+  {
+   "id": 200442,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200441,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20045": [
+  {
+   "id": 200452,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 129
+  },
+  {
+   "id": 200451,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20046": [
+  {
+   "id": 200462,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200461,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20047": [
+  {
+   "id": 200472,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200471,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20048": [
+  {
+   "id": 200482,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200481,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20049": [
+  {
+   "id": 200492,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 150,
+   "grade": 174
+  },
+  {
+   "id": 200491,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 150,
+   "grade": 394
+  }
+ ],
+ "20050": [
+  {
+   "id": 200502,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 129
+  },
+  {
+   "id": 200501,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20051": [
+  {
+   "id": 200512,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 200511,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20052": [
+  {
+   "id": 200521,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": -262
+  }
+ ],
+ "20053": [
+  {
+   "id": 200532,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 217
+  },
+  {
+   "id": 200531,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20054": [
+  {
+   "id": 200542,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200541,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20055": [
+  {
+   "id": 200552,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200551,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20056": [
+  {
+   "id": 200562,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200561,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20057": [
+  {
+   "id": 200572,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200571,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20058": [
+  {
+   "id": 200582,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200581,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20059": [
+  {
+   "id": 200592,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200591,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20060": [
+  {
+   "id": 200602,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200601,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20061": [
+  {
+   "id": 200612,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200611,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20062": [
+  {
+   "id": 200622,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200621,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20063": [
+  {
+   "id": 200632,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200631,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20064": [
+  {
+   "id": 200642,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 200641,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20065": [
+  {
+   "id": 200652,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200651,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20066": [
+  {
+   "id": 200662,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  }
+ ],
+ "20067": [
+  {
+   "id": 200672,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200671,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20068": [
+  {
+   "id": 200682,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200681,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20069": [
+  {
+   "id": 200692,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200691,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20070": [
+  {
+   "id": 200702,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200701,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20071": [
+  {
+   "id": 200712,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200711,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20072": [
+  {
+   "id": 200722,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200721,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20073": [
+  {
+   "id": 200732,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200731,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20074": [
+  {
+   "id": 200742,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200741,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20075": [
+  {
+   "id": 200752,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200751,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20076": [
+  {
+   "id": 200762,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200761,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20077": [
+  {
+   "id": 200771,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 217
+  },
+  {
+   "id": 200772,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 140,
+   "grade": 508
+  }
+ ],
+ "20078": [
+  {
+   "id": 200781,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 217
+  }
+ ],
+ "20079": [
+  {
+   "id": 200791,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 174
+  }
+ ],
+ "20080": [
+  {
+   "id": 200801,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 174
+  }
+ ],
+ "20081": [
+  {
+   "id": 200811,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 174
+  }
+ ],
+ "20082": [
+  {
+   "id": 200821,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 174
+  }
+ ],
+ "20083": [
+  {
+   "id": 200831,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20084": [
+  {
+   "id": 200841,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20085": [
+  {
+   "id": 200851,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20086": [
+  {
+   "id": 200861,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20087": [
+  {
+   "id": 200871,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20088": [
+  {
+   "id": 200881,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20089": [
+  {
+   "id": 200891,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20090": [
+  {
+   "id": 200901,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20091": [
+  {
+   "id": 200911,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20092": [
+  {
+   "id": 200921,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20093": [
+  {
+   "id": 200931,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20094": [
+  {
+   "id": 200941,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20095": [
+  {
+   "id": 200953,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  },
+  {
+   "id": 200952,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 200951,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  }
+ ],
+ "20096": [
+  {
+   "id": 200962,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 200961,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  },
+  {
+   "id": 200963,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 150,
+   "grade": 508
+  }
+ ],
+ "20097": [
+  {
+   "id": 200972,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 200971,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  }
+ ],
+ "20098": [
+  {
+   "id": 200982,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 262
+  },
+  {
+   "id": 200981,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20099": [
+  {
+   "id": 200992,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 200991,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20100": [
+  {
+   "id": 201002,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 174
+  },
+  {
+   "id": 201001,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 140,
+   "grade": 394
+  }
+ ],
+ "20101": [
+  {
+   "id": 201012,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 262
+  },
+  {
+   "id": 201011,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20102": [
+  {
+   "id": 201022,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 262
+  },
+  {
+   "id": 201021,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20103": [
+  {
+   "id": 201032,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 201031,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  }
+ ],
+ "20104": [
+  {
+   "id": 201042,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 201041,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  }
+ ],
+ "20105": [
+  {
+   "id": 201052,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201051,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20106": [
+  {
+   "id": 201062,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201061,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20107": [
+  {
+   "id": 201072,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 217
+  },
+  {
+   "id": 201071,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20108": [
+  {
+   "id": 201082,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201081,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 461
+  }
+ ],
+ "20109": [
+  {
+   "id": 201092,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201091,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20110": [
+  {
+   "id": 201102,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 201101,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  },
+  {
+   "id": 201103,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 150,
+   "grade": 508
+  }
+ ],
+ "20111": [
+  {
+   "id": 201112,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 201111,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  },
+  {
+   "id": 201113,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 150,
+   "grade": 508
+  }
+ ],
+ "20112": [
+  {
+   "id": 201122,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 129
+  },
+  {
+   "id": 201121,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 110,
+   "grade": 334
+  }
+ ],
+ "20113": [
+  {
+   "id": 201132,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 174
+  },
+  {
+   "id": 201131,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 140,
+   "grade": 394
+  }
+ ],
+ "20114": [
+  {
+   "id": 201142,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201141,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20115": [
+  {
+   "id": 201152,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201151,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20116": [
+  {
+   "id": 201162,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201161,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20117": [
+  {
+   "id": 201172,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 201171,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  },
+  {
+   "id": 201173,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 150,
+   "grade": 508
+  }
+ ],
+ "20118": [
+  {
+   "id": 201182,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 201181,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 262
+  }
+ ],
+ "20119": [
+  {
+   "id": 201192,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201191,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20120": [
+  {
+   "id": 201202,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201201,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20121": [
+  {
+   "id": 201212,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201211,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20122": [
+  {
+   "id": 201222,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201221,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 461
+  }
+ ],
+ "20123": [
+  {
+   "id": 201232,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 129
+  },
+  {
+   "id": 201231,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 110,
+   "grade": 334
+  }
+ ],
+ "20124": [
+  {
+   "id": 201242,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201241,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  }
+ ],
+ "20125": [
+  {
+   "id": 201252,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201251,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  }
+ ],
+ "20126": [
+  {
+   "id": 201262,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 129
+  },
+  {
+   "id": 201261,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 110,
+   "grade": 334
+  }
+ ],
+ "20127": [
+  {
+   "id": 201272,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201271,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20128": [
+  {
+   "id": 201282,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201281,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20129": [
+  {
+   "id": 201292,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201291,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20130": [
+  {
+   "id": 201302,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20131": [
+  {
+   "id": 201312,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201311,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  }
+ ],
+ "20132": [
+  {
+   "id": 201322,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201321,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  }
+ ],
+ "20133": [
+  {
+   "id": 201332,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 217
+  },
+  {
+   "id": 201331,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20134": [
+  {
+   "id": 201342,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 217
+  },
+  {
+   "id": 201341,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20135": [
+  {
+   "id": 201352,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201351,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20136": [
+  {
+   "id": 201362,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 217
+  },
+  {
+   "id": 201361,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20137": [
+  {
+   "id": 201372,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 85
+  },
+  {
+   "id": 201371,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 110,
+   "grade": 334
+  }
+ ],
+ "20138": [
+  {
+   "id": 201382,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201381,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  }
+ ],
+ "20139": [
+  {
+   "id": 201392,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201391,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  }
+ ],
+ "20140": [
+  {
+   "id": 201402,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 217
+  },
+  {
+   "id": 201401,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20141": [
+  {
+   "id": 201412,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 217
+  },
+  {
+   "id": 201411,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20142": [
+  {
+   "id": 201422,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201421,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20143": [
+  {
+   "id": 201432,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 85
+  },
+  {
+   "id": 201431,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20144": [
+  {
+   "id": 201442,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201441,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20145": [
+  {
+   "id": 201452,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201451,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  },
+  {
+   "id": 201453,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 150,
+   "grade": 508
+  }
+ ],
+ "20146": [
+  {
+   "id": 201462,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  },
+  {
+   "id": 201461,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 262
+  }
+ ],
+ "20147": [
+  {
+   "id": 201472,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 85
+  },
+  {
+   "id": 201471,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 110,
+   "grade": 334
+  }
+ ],
+ "20148": [
+  {
+   "id": 201482,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 201481,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20149": [
+  {
+   "id": 201492,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201491,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20150": [
+  {
+   "id": 201502,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 85
+  },
+  {
+   "id": 201501,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 110,
+   "grade": 334
+  }
+ ],
+ "20151": [
+  {
+   "id": 201512,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201511,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20152": [
+  {
+   "id": 201522,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 201521,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20153": [
+  {
+   "id": 201532,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 201531,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20154": [
+  {
+   "id": 201542,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 201541,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20155": [
+  {
+   "id": 201552,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 201551,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 130,
+   "grade": 217
+  }
+ ],
+ "20156": [
+  {
+   "id": 201562,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 201561,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 110,
+   "grade": 334
+  }
+ ],
+ "20157": [
+  {
+   "id": 201571,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  }
+ ],
+ "20158": [
+  {
+   "id": 201581,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  }
+ ],
+ "20159": [
+  {
+   "id": 201591,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201592,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20160": [
+  {
+   "id": 201601,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  }
+ ],
+ "20161": [
+  {
+   "id": 201611,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  },
+  {
+   "id": 201612,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20162": [
+  {
+   "id": 201621,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 100,
+   "grade": 217
+  }
+ ],
+ "20163": [
+  {
+   "id": 201631,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  }
+ ],
+ "20164": [
+  {
+   "id": 201641,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  }
+ ],
+ "20165": [
+  {
+   "id": 201651,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201652,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20166": [
+  {
+   "id": 201661,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201662,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20167": [
+  {
+   "id": 201672,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201671,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20168": [
+  {
+   "id": 201682,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 140,
+   "grade": 174
+  },
+  {
+   "id": 201681,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 140,
+   "grade": 394
+  }
+ ],
+ "20169": [
+  {
+   "id": 201692,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201691,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20170": [
+  {
+   "id": 201702,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 201701,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20180": [
+  {
+   "id": 201801,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 50,
+   "grade": -129
+  }
+ ],
+ "20190": [
+  {
+   "id": 201902,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 201901,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20200": [
+  {
+   "id": 202002,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202001,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 508
+  }
+ ],
+ "20201": [
+  {
+   "id": 202012,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202011,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20202": [
+  {
+   "id": 202022,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202021,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20203": [
+  {
+   "id": 202032,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 129
+  },
+  {
+   "id": 202031,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 334
+  }
+ ],
+ "20204": [
+  {
+   "id": 202042,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202041,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20205": [
+  {
+   "id": 202051,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 370
+  }
+ ],
+ "20206": [
+  {
+   "id": 202061,
+   "group_rate": 1,
+   "rarity": 2,
+   "cost": 360,
+   "grade": 508
+  }
+ ],
+ "20207": [
+  {
+   "id": 202072,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 202071,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20208": [
+  {
+   "id": 202082,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202081,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20209": [
+  {
+   "id": 202092,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202091,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20210": [
+  {
+   "id": 202102,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202101,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20211": [
+  {
+   "id": 202112,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202111,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20212": [
+  {
+   "id": 202122,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202121,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20213": [
+  {
+   "id": 202132,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202131,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20214": [
+  {
+   "id": 202141,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": -174
+  }
+ ],
+ "20215": [
+  {
+   "id": 202152,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202151,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20216": [
+  {
+   "id": 202161,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  }
+ ],
+ "20217": [
+  {
+   "id": 202172,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  }
+ ],
+ "20218": [
+  {
+   "id": 202181,
+   "group_rate": -1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": -174
+  }
+ ],
+ "20219": [
+  {
+   "id": 202192,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 202191,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20225": [
+  {
+   "id": 202252,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 70,
+   "grade": 129
+  },
+  {
+   "id": 202251,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 174
+  }
+ ],
+ "20226": [
+  {
+   "id": 202262,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202261,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20228": [
+  {
+   "id": 202282,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202281,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20230": [
+  {
+   "id": 202302,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 160,
+   "grade": 217
+  },
+  {
+   "id": 202301,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 160,
+   "grade": 508
+  }
+ ],
+ "20231": [
+  {
+   "id": 202312,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202311,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20232": [
+  {
+   "id": 202322,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202321,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20233": [
+  {
+   "id": 202332,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 174
+  },
+  {
+   "id": 202331,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 461
+  }
+ ],
+ "20234": [
+  {
+   "id": 202343,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 90,
+   "grade": 129
+  },
+  {
+   "id": 202342,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 110,
+   "grade": 174
+  },
+  {
+   "id": 202341,
+   "group_rate": 3,
+   "rarity": 2,
+   "cost": 130,
+   "grade": 461
+  }
+ ],
+ "20235": [
+  {
+   "id": 202352,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 120,
+   "grade": 174
+  },
+  {
+   "id": 202351,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 120,
+   "grade": 461
+  }
+ ],
+ "20236": [
+  {
+   "id": 202362,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202361,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20237": [
+  {
+   "id": 202372,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202371,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20238": [
+  {
+   "id": 202382,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202381,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20240": [
+  {
+   "id": 202402,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202401,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20241": [
+  {
+   "id": 202412,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202411,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20242": [
+  {
+   "id": 202422,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202421,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20243": [
+  {
+   "id": 202432,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 170,
+   "grade": 217
+  },
+  {
+   "id": 202431,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 170,
+   "grade": 508
+  }
+ ],
+ "20244": [
+  {
+   "id": 202441,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20245": [
+  {
+   "id": 202452,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202451,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20246": [
+  {
+   "id": 202462,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202461,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20247": [
+  {
+   "id": 202472,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202471,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20248": [
+  {
+   "id": 202482,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202481,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "20250": [
+  {
+   "id": 202502,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 180,
+   "grade": 217
+  },
+  {
+   "id": 202501,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 180,
+   "grade": 508
+  }
+ ],
+ "21001": [
+  {
+   "id": 210012,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 263
+  },
+  {
+   "id": 210011,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 633
+  }
+ ],
+ "21002": [
+  {
+   "id": 210022,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 263
+  },
+  {
+   "id": 210021,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 633
+  }
+ ],
+ "21003": [
+  {
+   "id": 210032,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 263
+  },
+  {
+   "id": 210031,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 633
+  }
+ ],
+ "21004": [
+  {
+   "id": 210042,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 263
+  },
+  {
+   "id": 210041,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 633
+  }
+ ],
+ "21005": [
+  {
+   "id": 210052,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 263
+  },
+  {
+   "id": 210051,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 633
+  }
+ ],
+ "21006": [
+  {
+   "id": 210062,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 263
+  },
+  {
+   "id": 210061,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 633
+  }
+ ],
+ "21008": [
+  {
+   "id": 210082,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 263
+  },
+  {
+   "id": 210081,
+   "group_rate": 2,
+   "rarity": 2,
+   "cost": 200,
+   "grade": 633
+  }
+ ],
+ "21009": [
+  {
+   "id": 210091,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 150,
+   "grade": 174
+  }
+ ],
+ "21010": [
+  {
+   "id": 210101,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 150,
+   "grade": 174
+  }
+ ],
+ "21011": [
+  {
+   "id": 210111,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 150,
+   "grade": 174
+  }
+ ],
+ "21012": [
+  {
+   "id": 210121,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 150,
+   "grade": 174
+  }
+ ],
+ "21013": [
+  {
+   "id": 210131,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 150,
+   "grade": 174
+  }
+ ],
+ "21014": [
+  {
+   "id": 210141,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 150,
+   "grade": 174
+  }
+ ],
+ "30001": [
+  {
+   "id": 300011,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30002": [
+  {
+   "id": 300021,
+   "group_rate": 1,
+   "rarity": 2,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30003": [
+  {
+   "id": 300031,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30004": [
+  {
+   "id": 300041,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30005": [
+  {
+   "id": 300051,
+   "group_rate": 1,
+   "rarity": 2,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30006": [
+  {
+   "id": 300061,
+   "group_rate": 1,
+   "rarity": 2,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30007": [
+  {
+   "id": 300071,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30008": [
+  {
+   "id": 300081,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30009": [
+  {
+   "id": 300091,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30010": [
+  {
+   "id": 300101,
+   "group_rate": 1,
+   "rarity": 2,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30011": [
+  {
+   "id": 300111,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30012": [
+  {
+   "id": 300121,
+   "group_rate": 1,
+   "rarity": 2,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "30013": [
+  {
+   "id": 300131,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "30014": [
+  {
+   "id": 300141,
+   "group_rate": 1,
+   "rarity": 5,
+   "cost": 0,
+   "grade": 340
+  }
+ ],
+ "90001": [
+  {
+   "id": 900011,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90002": [
+  {
+   "id": 900021,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90003": [
+  {
+   "id": 900031,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90004": [
+  {
+   "id": 900041,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90005": [
+  {
+   "id": 900051,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90006": [
+  {
+   "id": 900061,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90007": [
+  {
+   "id": 900071,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90008": [
+  {
+   "id": 900081,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90009": [
+  {
+   "id": 900091,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90010": [
+  {
+   "id": 900101,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90011": [
+  {
+   "id": 900111,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90012": [
+  {
+   "id": 900121,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90013": [
+  {
+   "id": 900131,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90014": [
+  {
+   "id": 900141,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90015": [
+  {
+   "id": 900151,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90016": [
+  {
+   "id": 900161,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90017": [
+  {
+   "id": 900171,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90018": [
+  {
+   "id": 900181,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90019": [
+  {
+   "id": 900191,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90020": [
+  {
+   "id": 900201,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90021": [
+  {
+   "id": 900211,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90022": [
+  {
+   "id": 900221,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90023": [
+  {
+   "id": 900231,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90024": [
+  {
+   "id": 900241,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90025": [
+  {
+   "id": 900251,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90026": [
+  {
+   "id": 900261,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90027": [
+  {
+   "id": 900271,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90028": [
+  {
+   "id": 900281,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90030": [
+  {
+   "id": 900301,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90031": [
+  {
+   "id": 900311,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90032": [
+  {
+   "id": 900321,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90033": [
+  {
+   "id": 900331,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90034": [
+  {
+   "id": 900341,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90035": [
+  {
+   "id": 900351,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90036": [
+  {
+   "id": 900361,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90037": [
+  {
+   "id": 900371,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90038": [
+  {
+   "id": 900381,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90039": [
+  {
+   "id": 900391,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90040": [
+  {
+   "id": 900401,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90041": [
+  {
+   "id": 900411,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90044": [
+  {
+   "id": 900441,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90045": [
+  {
+   "id": 900451,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90046": [
+  {
+   "id": 900461,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90048": [
+  {
+   "id": 900481,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90050": [
+  {
+   "id": 900501,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90051": [
+  {
+   "id": 900511,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90052": [
+  {
+   "id": 900521,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90053": [
+  {
+   "id": 900531,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90056": [
+  {
+   "id": 900561,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90058": [
+  {
+   "id": 900581,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90059": [
+  {
+   "id": 900591,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90060": [
+  {
+   "id": 900601,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90061": [
+  {
+   "id": 900611,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90062": [
+  {
+   "id": 900621,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90064": [
+  {
+   "id": 900641,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90067": [
+  {
+   "id": 900671,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90068": [
+  {
+   "id": 900681,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90069": [
+  {
+   "id": 900691,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90071": [
+  {
+   "id": 900711,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90072": [
+  {
+   "id": 900721,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "90074": [
+  {
+   "id": 900741,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91001": [
+  {
+   "id": 910011,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91003": [
+  {
+   "id": 910031,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91004": [
+  {
+   "id": 910041,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91005": [
+  {
+   "id": 910051,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91006": [
+  {
+   "id": 910061,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91007": [
+  {
+   "id": 910071,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91010": [
+  {
+   "id": 910101,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91011": [
+  {
+   "id": 910111,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91013": [
+  {
+   "id": 910131,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91014": [
+  {
+   "id": 910141,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91015": [
+  {
+   "id": 910151,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91017": [
+  {
+   "id": 910171,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91018": [
+  {
+   "id": 910181,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91020": [
+  {
+   "id": 910201,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91022": [
+  {
+   "id": 910221,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91023": [
+  {
+   "id": 910231,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91024": [
+  {
+   "id": 910241,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91026": [
+  {
+   "id": 910261,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91030": [
+  {
+   "id": 910301,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91037": [
+  {
+   "id": 910371,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91038": [
+  {
+   "id": 910381,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91040": [
+  {
+   "id": 910401,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91045": [
+  {
+   "id": 910451,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91052": [
+  {
+   "id": 910521,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91056": [
+  {
+   "id": 910561,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91059": [
+  {
+   "id": 910591,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91060": [
+  {
+   "id": 910601,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "91061": [
+  {
+   "id": 910611,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "92001": [
+  {
+   "id": 920011,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "92013": [
+  {
+   "id": 920131,
+   "group_rate": 2,
+   "rarity": 1,
+   "cost": 200,
+   "grade": 180
+  }
+ ],
+ "100001": [
+  {
+   "id": 1000011,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  },
+  {
+   "id": 1000012,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 0
+  }
+ ],
+ "110001": [
+  {
+   "id": 1100011,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": -500
+  }
+ ],
+ "120001": [
+  {
+   "id": 1200011,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 508
+  }
+ ],
+ "120002": [
+  {
+   "id": 1200021,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 508
+  }
+ ],
+ "120003": [
+  {
+   "id": 1200031,
+   "group_rate": 1,
+   "rarity": 1,
+   "cost": 0,
+   "grade": 508
+  }
+ ]
+}

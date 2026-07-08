@@ -71,6 +71,13 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     crate::pruner::pump(); // follower-pruner reads/removals (main thread; guarded, no-op if idle)
     crate::crashlog::step("tween:roomfinder-pump");
     crate::roomfinder::pump(); // room-match finder read/refresh/auto-join cycle (guarded, no-op if idle)
+    crate::crashlog::step("tween:skillbuyer-pump");
+    crate::skill_buyer::pump(); // Apply Optimal scan/selection driver (guarded, no-op if idle)
+    #[cfg(feature = "banner")]
+    {
+        crate::crashlog::step("tween:icondump-pump");
+        crate::icon_dump::pump(); // texture-inventory harvest (guarded, no-op if idle)
+    }
     // Diagnostic: how long Heaven's own main-thread pumps take this frame (proves we're not the stall).
     crate::loadprof::pump(pump_t0.elapsed().as_secs_f64() * 1000.0);
     crate::crashlog::step("tween:scale-orig");

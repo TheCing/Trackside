@@ -158,6 +158,36 @@ pub fn install() {
     unsafe {
         SetUnhandledExceptionFilter(Some(handler));
     }
+    // Rust panics NEVER reach the SEH filter under panic=abort (the runtime __fastfails),
+    // which is why panic crashes used to leave an empty log. A panic hook still runs first —
+    // capture the message + location + last breadcrumb, THEN let the abort proceed.
+    std::panic::set_hook(Box::new(|info| {
+        let loc = info
+            .location()
+            .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
+            .unwrap_or_else(|| "<unknown location>".into());
+        let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
+            (*s).to_string()
+        } else if let Some(s) = info.payload().downcast_ref::<String>() {
+            s.clone()
+        } else {
+            "<non-string panic payload>".into()
+        };
+        let step = {
+            let cp = CRUMB_PTR.load(Ordering::Relaxed);
+            let cl = CRUMB_LEN.load(Ordering::Relaxed);
+            if cp != 0 && cl > 0 && cl < 256 {
+                unsafe {
+                    std::str::from_utf8(std::slice::from_raw_parts(cp as *const u8, cl))
+                        .unwrap_or("<bad>")
+                        .to_string()
+                }
+            } else {
+                "(none)".into()
+            }
+        };
+        write_crash(&format!("RUST PANIC at {loc}\n  message: {msg}\n  last step: {step}"));
+    }));
     write_crash("--- trackside crash detector armed ---");
     std::thread::spawn(|| {
         for delay in [2u64, 6, 12] {

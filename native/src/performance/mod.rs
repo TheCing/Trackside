@@ -21,6 +21,7 @@ pub fn set_low_spec(on: bool) {
 /// Apply persisted settings to the whole performance domain at boot.
 pub fn apply(s: &crate::settings::Settings) {
     fps::set_cap(s.fps);
+    fps::set_vsync(s.vsync);
     cyspring::set_enabled(s.cyspring_uncap);
     graphics::set_quality_unlocked(s.gfx_quality);
     graphics::set_extras_enabled(s.gfx_extras);

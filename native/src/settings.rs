@@ -44,6 +44,9 @@ pub struct Settings {
     pub skip_scene_cutt: bool,
     pub race_result: bool,
     pub fps: i32,
+    // vSync: 0 = off (game/cap decides), 1 = on (tear-free, sync to refresh), 2 = half.
+    #[serde(default)]
+    pub vsync: i32,
     #[serde(default = "default_ui_tempo")]
     pub ui_tempo: f32,
     pub rail_right: bool,
@@ -168,6 +171,13 @@ pub struct Settings {
     // in the menu like the menu-open key. Missing/short → defaults fill in.
     #[serde(default = "default_rd_keys")]
     pub rd_keys: Vec<i32>,
+    // Skill advisor filters (Gameplay tab) — same keys as UmaLauncher.
+    #[serde(default)]
+    pub skill_filter_distance: String,
+    #[serde(default)]
+    pub skill_filter_style: String,
+    #[serde(default = "default_skill_preset")]
+    pub skill_filter_preset: i32,
 }
 
 /// Default Race Director key binds (VK codes), in RdKey order: orbit L/R, zoom in/out, height up/down,
@@ -219,6 +229,7 @@ impl Default for Settings {
             // fresh install. Private has no `races_on`, so this stays false there.
             race_result: cfg!(feature = "races_on"),
             fps: 0,
+            vsync: 0,
             ui_tempo: 1.0,
             rail_right: true,
             energy_x: 60.0,
@@ -265,11 +276,18 @@ impl Default for Settings {
             umas_export: false,
             companion_bridge: true,
             rd_keys: default_rd_keys(),
+            skill_filter_distance: String::new(),
+            skill_filter_style: String::new(),
+            skill_filter_preset: -1,
         }
     }
 }
 
 fn default_ui_tempo() -> f32 { 1.0 }
+
+fn default_skill_preset() -> i32 {
+    -1
+}
 
 fn cache() -> &'static Mutex<Settings> {
     static CACHE: OnceLock<Mutex<Settings>> = OnceLock::new();
@@ -540,6 +558,18 @@ pub fn set_low_spec(on: bool) {
     crate::performance::set_low_spec(on);
     if let Ok(mut c) = cache().lock() {
         c.low_spec = on;
+        write_file(&c);
+    }
+}
+
+/// vSync mode: 0 = off, 1 = on (tear-free), 2 = half refresh.
+pub fn vsync() -> i32 {
+    cache().lock().map(|c| c.vsync).unwrap_or(0)
+}
+pub fn set_vsync(mode: i32) {
+    crate::performance::fps::set_vsync(mode);
+    if let Ok(mut c) = cache().lock() {
+        c.vsync = mode;
         write_file(&c);
     }
 }
@@ -837,6 +867,39 @@ pub fn set_energy_pos(x: f32, y: f32) {
     if let Ok(mut c) = cache().lock() {
         c.energy_x = x;
         c.energy_y = y;
+        write_file(&c);
+    }
+}
+
+/// Skill advisor: distance filter key ('' = any, or sprint/mile/medium/long).
+pub fn skill_filter_distance() -> String {
+    cache().lock().map(|c| c.skill_filter_distance.clone()).unwrap_or_default()
+}
+pub fn set_skill_filter_distance(s: &str) {
+    if let Ok(mut c) = cache().lock() {
+        c.skill_filter_distance = s.to_string();
+        write_file(&c);
+    }
+}
+
+/// Skill advisor: style filter key ('' = any, or front/pace/late/end).
+pub fn skill_filter_style() -> String {
+    cache().lock().map(|c| c.skill_filter_style.clone()).unwrap_or_default()
+}
+pub fn set_skill_filter_style(s: &str) {
+    if let Ok(mut c) = cache().lock() {
+        c.skill_filter_style = s.to_string();
+        write_file(&c);
+    }
+}
+
+/// Skill advisor: CM race preset id (-1 = none).
+pub fn skill_filter_preset() -> i32 {
+    cache().lock().map(|c| c.skill_filter_preset).unwrap_or(-1)
+}
+pub fn set_skill_filter_preset(id: i32) {
+    if let Ok(mut c) = cache().lock() {
+        c.skill_filter_preset = id;
         write_file(&c);
     }
 }

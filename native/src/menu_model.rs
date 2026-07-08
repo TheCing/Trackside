@@ -66,6 +66,8 @@ pub enum Custom {
     TtHunter,        // Team Trials opponent hunter — auto-refresh until a target appears
     Followers,       // Follower pruner — preview + paced removal of oldest-inactive followers
     RoomFinder,      // Room Match finder — auto-refresh the room list until a room matches the filters
+    SkillAdvisor,    // End-of-career skill buy optimizer (manual Gameplay tab)
+    IconDump,        // In-process icon ripper — button + live status (About → Diagnostics)
     Affinity,        // Legacy Select succession-affinity numbers — enable + drag-to-place + size
     Intro,           // intro status + replay button
     Updates,         // version + check/pull/releases
@@ -99,6 +101,18 @@ fn display_mode_label() -> &'static str {
         3 => "Windowed",
         _ => "Default",
     }
+}
+
+// vSync: Off (cap/game decides) → On (tear-free, sync to refresh) → Half → Off.
+fn vsync_label() -> &'static str {
+    match crate::settings::vsync() {
+        1 => "On",
+        2 => "Half",
+        _ => "Off",
+    }
+}
+fn cycle_vsync() {
+    crate::settings::set_vsync((crate::settings::vsync() + 1) % 3);
 }
 
 // Silk colour theme: cycling picks a fixed silk (and turns off randomize); the label
@@ -143,6 +157,12 @@ pub fn model() -> Vec<Tab> {
             }],
         },
     ];
+    gameplay.push(Section {
+        title: "Skill advisor",
+        icon: '\u{E734}',
+        blurb: "Maximize career rating on the end-of-career skill screen. Open that screen first, then Recommend.",
+        controls: vec![Ctrl::Custom(Custom::SkillAdvisor)],
+    });
     gameplay.push(Section {
         title: "Tools",
         icon: '\u{E713}',
@@ -299,7 +319,11 @@ pub fn model() -> Vec<Tab> {
                 title: "Frame rate",
                 icon: '\u{E9D9}',
                 blurb: "",
-                controls: vec![Ctrl::Custom(Custom::Fps)],
+                controls: vec![
+                    Ctrl::Custom(Custom::Fps),
+                    Ctrl::Cycle { id: "vsync", label: "V-Sync", label_of: vsync_label, next: cycle_vsync },
+                    Ctrl::Note("On removes screen tearing (syncs to your monitor). Overrides the FPS cap."),
+                ],
             },
         ],
     });
@@ -383,6 +407,10 @@ pub fn model() -> Vec<Tab> {
             Ctrl::Toggle { id: "diag", label: "Verbose diagnostics", get: crate::diag::enabled, set: crate::diag::set_enabled },
             Ctrl::Button { id: "diagdump", label: "Save diagnostic report", action: crate::diag::dump_action },
             Ctrl::Note("Writes trackside-logs/trackside-diag.txt next to the game — send that file."),
+            // Icon ripper — reachable from ANY screen (rank emblems show on career profile,
+            // veteran list, home…), not just the optimizer's skill-screen footer.
+            #[cfg(feature = "banner")]
+            Ctrl::Custom(Custom::IconDump),
         ],
     });
     // Dev-only capture toggles (net capture / geom capture) intentionally NOT here —

@@ -50,10 +50,13 @@ unsafe fn on_response(ret: *mut c_void) {
 
     let has_race = contains(slice, b"race_horse_data");
     let has_cont = contains(slice, b"available_continue_num");
-        && (contains(slice, b"choice_array") || contains(slice, b"choice_reward_array"));
-    let has_event = false;
+    let has_chara = contains(slice, b"chara_info") && !contains(slice, b"limited_shop_info");
+    let has_event = contains(slice, b"choice_array") || contains(slice, b"choice_reward_array");
+    // Career complete: the freshly-registered trained chara carries the game's OFFICIAL
+    // rank_score — the calibration oracle for the advisor's rating model.
+    let has_trained = contains(slice, b"add_trained_chara_array");
 
-    if !has_race && !has_cont && !has_event {
+    if !has_race && !has_cont && !has_chara && !has_event && !has_trained {
         return;
     }
     let bytes = slice.to_vec();
@@ -62,6 +65,74 @@ unsafe fn on_response(ret: *mut c_void) {
     }
     if has_cont {
         parse_continues(&bytes);
+    }
+    if has_chara {
+        parse_chara(&bytes);
+    }
+    if has_trained {
+        parse_trained(&bytes);
+    }
+}
+
+/// Career-complete: pull the new trained chara (official rank_score + final stats + skills)
+/// and hand it to the advisor's rating-model calibration.
+fn parse_trained(bytes: &[u8]) {
+    let mut cur = std::io::Cursor::new(bytes);
+    let val = match rmpv::decode::read_value(&mut cur) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    let mut hits: Vec<&Value> = Vec::new();
+    find_key(&val, "add_trained_chara_array", &mut hits);
+    for arr in hits {
+        let Some(list) = as_arr(arr) else { continue };
+        for tc in list {
+            if !tc.is_map() {
+                continue;
+            }
+            let rank_score = i32_field(tc, "rank_score");
+            if rank_score <= 0 {
+                continue;
+            }
+            let mut skill_array = Vec::new();
+            if let Some(sk) = map_get(tc, "skill_array").and_then(as_arr) {
+                for s in sk {
+                    let sid = i32_field(s, "skill_id");
+                    if sid != 0 {
+                        skill_array.push(crate::skill_advisor::OwnedSkill {
+                            skill_id: sid,
+                            level: i32_field(s, "level"),
+                        });
+                    }
+                }
+            }
+            let info = crate::skill_advisor::CharaInfo {
+                skill_point: 0,
+                card_id: i32_field(tc, "card_id"),
+                talent_level: i32_field(tc, "talent_level").max(1),
+                speed: i32_field(tc, "speed"),
+                stamina: i32_field(tc, "stamina"),
+                power: i32_field(tc, "power"),
+                guts: i32_field(tc, "guts"),
+                wiz: i32_field(tc, "wiz"),
+                proper_ground_turf: i32_field(tc, "proper_ground_turf"),
+                proper_ground_dirt: i32_field(tc, "proper_ground_dirt"),
+                proper_distance_short: i32_field(tc, "proper_distance_short"),
+                proper_distance_mile: i32_field(tc, "proper_distance_mile"),
+                proper_distance_middle: i32_field(tc, "proper_distance_middle"),
+                proper_distance_long: i32_field(tc, "proper_distance_long"),
+                proper_running_style_nige: i32_field(tc, "proper_running_style_nige"),
+                proper_running_style_senko: i32_field(tc, "proper_running_style_senko"),
+                proper_running_style_sashi: i32_field(tc, "proper_running_style_sashi"),
+                proper_running_style_oikomi: i32_field(tc, "proper_running_style_oikomi"),
+                skill_array,
+                skill_tips_array: Vec::new(),
+                has_fast_learner: false,
+            };
+            log(&format!("[response] trained chara: rank_score={rank_score} (calibrating rating model)"));
+            crate::skill_advisor::calibrate_against(rank_score, &info);
+            return;
+        }
     }
 }
 
@@ -108,6 +179,88 @@ fn parse_continues(bytes: &[u8]) {
     find_key(&val, "available_continue_num", &mut hits);
     if let Some(n) = hits.first().and_then(|v| v.as_i64()) {
         crate::race::set_continues_available(n as i32);
+    }
+}
+
+fn i32_field(v: &Value, key: &str) -> i32 {
+    map_get(v, key).and_then(|x| x.as_i64()).unwrap_or(0) as i32
+}
+
+/// Capture end-of-career `chara_info` for the skill buy optimizer (Gameplay tab).
+fn parse_chara(bytes: &[u8]) {
+    let mut cur = std::io::Cursor::new(bytes);
+    let val = match rmpv::decode::read_value(&mut cur) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    let mut hits: Vec<&Value> = Vec::new();
+    find_key(&val, "chara_info", &mut hits);
+    for ci in hits {
+        if !ci.is_map() {
+            continue;
+        }
+        let mut skill_array = Vec::new();
+        if let Some(arr) = map_get(ci, "skill_array").and_then(as_arr) {
+            for s in arr {
+                let sid = i32_field(s, "skill_id");
+                if sid == 0 {
+                    continue;
+                }
+                skill_array.push(crate::skill_advisor::OwnedSkill {
+                    skill_id: sid,
+                    level: i32_field(s, "level"),
+                });
+            }
+        }
+        let mut skill_tips_array = Vec::new();
+        if let Some(arr) = map_get(ci, "skill_tips_array").and_then(as_arr) {
+            for t in arr {
+                skill_tips_array.push(crate::skill_advisor::SkillTip {
+                    group_id: i32_field(t, "group_id"),
+                    rarity: i32_field(t, "rarity"),
+                    level: i32_field(t, "level").max(1),
+                });
+            }
+        }
+        // Fast Learner (切れ者) is condition id 7 in chara_effect_id_array — an extra 10%
+        // off every skill purchase, on top of hint discounts.
+        let has_fast_learner = map_get(ci, "chara_effect_id_array")
+            .and_then(as_arr)
+            .map(|arr| arr.iter().any(|v| v.as_i64() == Some(7)))
+            .unwrap_or(false);
+        let info = crate::skill_advisor::CharaInfo {
+            skill_point: i32_field(ci, "skill_point"),
+            card_id: i32_field(ci, "card_id"),
+            talent_level: i32_field(ci, "talent_level").max(1),
+            speed: i32_field(ci, "speed"),
+            stamina: i32_field(ci, "stamina"),
+            power: i32_field(ci, "power"),
+            guts: i32_field(ci, "guts"),
+            wiz: i32_field(ci, "wiz"),
+            proper_ground_turf: i32_field(ci, "proper_ground_turf"),
+            proper_ground_dirt: i32_field(ci, "proper_ground_dirt"),
+            proper_distance_short: i32_field(ci, "proper_distance_short"),
+            proper_distance_mile: i32_field(ci, "proper_distance_mile"),
+            proper_distance_middle: i32_field(ci, "proper_distance_middle"),
+            proper_distance_long: i32_field(ci, "proper_distance_long"),
+            proper_running_style_nige: i32_field(ci, "proper_running_style_nige"),
+            proper_running_style_senko: i32_field(ci, "proper_running_style_senko"),
+            proper_running_style_sashi: i32_field(ci, "proper_running_style_sashi"),
+            proper_running_style_oikomi: i32_field(ci, "proper_running_style_oikomi"),
+            skill_array,
+            skill_tips_array,
+            has_fast_learner,
+        };
+        log(&format!(
+            "[response] chara_info: sp={} card={} skills={} hints={} fast_learner={}",
+            info.skill_point,
+            info.card_id,
+            info.skill_array.len(),
+            info.skill_tips_array.len(),
+            info.has_fast_learner
+        ));
+        crate::skill_advisor::set_chara_info(info);
+        return;
     }
 }
 

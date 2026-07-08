@@ -30,6 +30,28 @@ static VSYNC_MI: AtomicUsize = AtomicUsize::new(0);
 static TARGET_ICALL_TRAMP: AtomicUsize = AtomicUsize::new(0);
 static VSYNC_ICALL_TRAMP: AtomicUsize = AtomicUsize::new(0);
 static CURRENT: AtomicI32 = AtomicI32::new(0); // requested cap (0 = off)
+// Requested vSync: 0 = don't force (let the cap/game decide), 1 = on (sync to refresh),
+// 2 = half refresh. When on, it WINS over the cap's force-off (below) — vSync is what the
+// player wants for a tear-free image, and it caps to the monitor anyway.
+static VSYNC: AtomicI32 = AtomicI32::new(0);
+
+pub fn vsync() -> i32 {
+    VSYNC.load(Ordering::Relaxed)
+}
+
+/// Resolve the vSyncCount to write given an incoming value: forced-on wins, then a cap
+/// forces off, else the game's own value passes through.
+#[inline]
+fn resolve_vsync(incoming: i32) -> i32 {
+    let vs = VSYNC.load(Ordering::Relaxed);
+    if vs > 0 {
+        vs
+    } else if CURRENT.load(Ordering::Relaxed) != 0 {
+        0
+    } else {
+        incoming
+    }
+}
 
 static TARGET_DETOUR: OnceLock<RawDetour> = OnceLock::new();
 static VSYNC_DETOUR: OnceLock<RawDetour> = OnceLock::new();
@@ -79,8 +101,7 @@ unsafe extern "C" fn target_icall_hook(incoming: i32) {
 /// Clamp-guard on QualitySettings.set_vSyncCount: while a cap is active, force
 /// vSync OFF (0) so the target frame rate actually applies. cap 0 → pass through.
 unsafe extern "C" fn vsync_hook(incoming: i32, mi: *mut c_void) {
-    let cap = CURRENT.load(Ordering::Relaxed);
-    let value = if cap == 0 { incoming } else { 0 };
+    let value = resolve_vsync(incoming);
     let t = VSYNC_TRAMP.load(Ordering::Relaxed);
     if t != 0 {
         let f: SetIntStatic = std::mem::transmute(t);
@@ -94,8 +115,7 @@ unsafe extern "C" fn vsync_hook(incoming: i32, mi: *mut c_void) {
 /// every vSync write (ours or the engine's) is forced to 0 so the target frame rate actually applies.
 /// Signature is `void(i32)` — the icall gets NO trailing MethodInfo*.
 unsafe extern "C" fn vsync_icall_hook(incoming: i32) {
-    let cap = CURRENT.load(Ordering::Relaxed);
-    let value = if cap == 0 { incoming } else { 0 };
+    let value = resolve_vsync(incoming);
     let t = VSYNC_ICALL_TRAMP.load(Ordering::Relaxed);
     if t != 0 {
         let f: SetIntIcall = std::mem::transmute(t);
@@ -103,24 +123,43 @@ unsafe extern "C" fn vsync_icall_hook(incoming: i32) {
     }
 }
 
+/// Write a vSyncCount value now via whichever trampoline is live (icall preferred — the
+/// managed setter is stripped from this build).
+unsafe fn write_vsync(value: i32) {
+    let vi = VSYNC_ICALL_TRAMP.load(Ordering::Relaxed);
+    if vi != 0 {
+        let f: SetIntIcall = std::mem::transmute(vi);
+        f(value);
+    } else {
+        call_tramp(&VSYNC_TRAMP, &VSYNC_MI, value);
+    }
+}
+
 /// Apply an FPS cap. 0 = off, -1 = uncapped (+vSync off), N = cap at N (+vSync off).
+/// vSync-forced-on (see `set_vsync`) overrides the force-off.
 pub fn set_cap(value: i32) {
     CURRENT.store(value, Ordering::Relaxed);
     if value == 0 {
-        return; // hooks now pass the game's own values through
-    }
-    // Apply immediately via the trampolines (the hooks keep enforcing after).
-    unsafe {
-        // vSync off — prefer the icall tramp (managed setter is stripped from this build),
-        // fall back to the managed tramp if only that one was hookable.
-        let vi = VSYNC_ICALL_TRAMP.load(Ordering::Relaxed);
-        if vi != 0 {
-            let f: SetIntIcall = std::mem::transmute(vi);
-            f(0);
-        } else {
-            call_tramp(&VSYNC_TRAMP, &VSYNC_MI, 0);
+        // Cap off: still honour a forced vSync, else let the game's values pass through.
+        if VSYNC.load(Ordering::Relaxed) > 0 {
+            unsafe { write_vsync(VSYNC.load(Ordering::Relaxed)) };
         }
+        return;
+    }
+    unsafe {
+        write_vsync(resolve_vsync(0)); // 0 unless vSync is forced on
         call_tramp(&TARGET_TRAMP, &TARGET_MI, value);
+    }
+}
+
+/// Force vSync. 0 = don't force (cap/game decides), 1 = on (sync to refresh — tear-free),
+/// 2 = half refresh. Applied immediately; the hooks keep re-asserting it after.
+pub fn set_vsync(mode: i32) {
+    VSYNC.store(mode, Ordering::Relaxed);
+    unsafe {
+        // When turning vSync off while a cap is active, fall back to 0; otherwise write the
+        // requested vSync so the change takes effect this frame, not just on the next engine write.
+        write_vsync(resolve_vsync(0));
     }
 }
 

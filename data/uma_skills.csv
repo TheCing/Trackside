@@ -1,0 +1,1668 @@
+skill_type,name,alias_name,localized_name,base_value,S_A,B_C,D_E_F,G,affinity_role,is_evo,evo_parents
+ius,¡Qué alegría!,,,180.0,,,,,,0,
+ius,114th Time's the Charm,113転び114起き,114th Time's the Charm,180.0,,,,,,0,
+ius,Adventure of 564,,,180.0,,,,,,0,
+ius,Bang☆Miracle Maker!,Bang☆ミラクるわせ！,,180.0,,,,,,0,
+ius,Best Day Ever,Best day ever,Best Day Ever,180.0,,,,,,0,
+ius,Billions of Stars,Billions of stars,,180.0,,,,,,0,
+ius,Breezy Treat,,,180.0,,,,,,0,
+ius,Celeste Oath,,,180.0,,,,,,0,
+ius,Cherry☆Scramble,CHERRY☆スクランブル,,180.0,,,,,,0,
+ius,Circulating Love♡,,,180.0,198.0,162.0,144.0,126.0,Late,0,
+ius,Crystal Mist,,,180.0,198.0,162.0,144.0,126.0,End,0,
+ius,Danser le Présent,Danser le présent,,180.0,,,,,,0,
+ius,Ding Dong Boo,,,180.0,,,,,,0,
+ius,Break It Down!,Do Ya Breakin!,Break It Down!,180.0,,,,,,0,
+ius,Every Rose Has Its Fangs,Drain for rose,Every Rose Has Its Fangs,180.0,,,,,,0,
+ius,Encounter With U,,,180.0,,,,,,0,
+ius,Fairy Tale,Fairy tale,Fairy Tale,180.0,,,,,,0,
+ius,Faith in the Feral,,,180.0,,,,,,0,
+ius,Flowering Dreams,,,180.0,,,,,,0,
+ius,ForWard March!,,,180.0,,,,,Dirt,0,
+ius,...found you.,…found you.,,180.0,,,,,,0,
+ius,G00 1stF∞,,,180.0,,,,,,0,
+ius,GALmen.ふぉーえば♪,,,180.0,,,,,,0,
+ius,Dancing in the Leaves,GET DOWN,Dancing in the Leaves,180.0,,,,,,0,
+ius,GO! Full-send,,,180.0,,,,,,0,
+ius,Go☆Go☆Goal!,Go☆Go☆for it!,Go☆Go☆Goal!,180.0,,,,,,0,
+ius,Guiding Sea,,,180.0,,,,,,0,
+ius,Guten Appetit ♪,Guten Appetit♪,Guten Appetit ♪,180.0,,,,,,0,
+ius,Have S’more LOVE!,,,180.0,198.0,162.0,144.0,126.0,Pace,0,
+ius,Hephaistos,,,180.0,,,,,,0,
+ius,HOP STEP♪LOCK ON!,,,180.0,,,,,,0,
+ius,YUMMY☆SPEED!,I’M☆FULL☆SPEED!!,YUMMY☆SPEED!,180.0,,,,,,0,
+ius,Illuminate You,Illuminate you,,180.0,,,,,,0,
+ius,『I'm Possible』,『I’m possible』,,180.0,,,,,,0,
+ius,Immortal Work,,,180.0,,,,,,0,
+ius,I Never Goof Up!,,I Never Goof Up!,180.0,,,,,,0,
+ius,Info: Acquired,Info:Acquired,,180.0,,,,,,0,
+ius,Into High Gear!,,,180.0,,,,,,0,
+ius,Jingle All the Way,jingle all the way,,180.0,,,,,,0,
+ius,Joy to the World,,,180.0,,,,,,0,
+ius,Joyful Voyage!,,Joyful Voyage!,180.0,,,,,,0,
+ius,KEEP IT REAL.,,KEEP IT REAL.,180.0,,,,,,0,
+ius,Lame de Vent,Lame de vent,,180.0,,,,,,0,
+ius,#LookatCurren,LookatCurren,#LookatCurren,180.0,,,,,,0,
+ius,Mission: Triumph,Mission:Triumph,,180.0,,,,,,0,
+ius,Nemesis,,Nemesis,180.0,,,,,,0,
+ius,Never Say Never,,,180.0,,,,,,0,
+ius,Oh!bento-magic☆,,,180.0,,,,,,0,
+ius,One True Color,,One True Color,180.0,,,,,,0,
+ius,Overdrive Speed,,,180.0,,,,,,0,
+ius,Peerless Heroine,,,180.0,,,,,Turf,0,
+ius,Presents from X,,Presents from X,180.0,,,,,,0,
+ius,Prideful King,Pride of KING,Prideful King,180.0,,,,,,0,
+ius,Punkish Bite,,,180.0,198.0,162.0,144.0,126.0,Front/Pace,0,
+ius,Queen's Lumination,Queen’s Lumination,,180.0,,,,,,0,
+ius,Queen's Rebirth,Queen’s Rebirth,,180.0,,,,,Turf,0,
+ius,Ravissant,,Ravissant,180.0,,,,,,0,
+ius,Reversal Illusion,,,180.0,,,,,,0,
+ius,Road to Glory,,,180.0,,,,,,0,
+ius,Romantic Horizon,,,180.0,,,,,,0,
+ius,Schwarze Schwert,,,180.0,,,,,,0,
+ius,Shadow Break,,Shadow Break,180.0,,,,,,0,
+ius,Shining Runway,,,180.0,,,,,,0,
+ius,Silent Letter,Silent letter,,180.0,,,,,,0,
+ius,Silent Sunset Gold,,,180.0,,,,,,0,
+ius,Spooky-Scary-Happy,,,180.0,,,,,,0,
+ius,Tidebreaker,,,180.0,198.0,162.0,144.0,126.0,Long,0,
+ius,To Our Vista,,,180.0,,,,,,0,
+ius,trigger:BEAT,,trigger:BEAT,180.0,,,,,,0,
+ius,U=ma2,,U=ma2,180.0,,,,,,0,
+gold,VIP Pass,VIP顔パス,VIP Pass,508.0,559.0,457.0,406.0,356.0,Long,0,
+ius,Vive la GOLD,,,180.0,,,,,,0,
+ius,Weaving History,,,180.0,198.0,162.0,144.0,126.0,Pace,0,
+ius,win Q.E.D,,,180.0,,,,,,0,
+ius,Pop & Polish,YEAH☆VIVID TIME!,Pop & Polish,180.0,,,,,,0,
+ius,Melt in Love's Embrace,愛と熔けよただ熔けよ,,180.0,,,,,,0,
+gold,Summer Gale,青嵐,,461.0,,,,,,0,
+ius,Clear Sky Cooking♪,あおぞらクッキング♪,,180.0,,,,,,0,
+yellow,Ignited Spirit WIT,アオハル点火・賢,Ignited Spirit WIT,263.0,,,,,,0,
+yellow,Ignited Spirit GUTS,アオハル点火・根,Ignited Spirit GUTS,263.0,,,,,,0,
+yellow,Ignited Spirit SPD,アオハル点火・速,Ignited Spirit SPD,263.0,,,,,,0,
+blue,Ignited Spirit STA,アオハル点火・体,Ignited Spirit STA,263.0,,,,,,0,
+yellow,Ignited Spirit PWR,アオハル点火・力,Ignited Spirit PWR,263.0,,,,,,0,
+gold,Burning Spirit WIT,アオハル燃焼・賢,Burning Spirit WIT,633.0,,,,,,0,
+gold,Burning Spirit GUTS,アオハル燃焼・根,Burning Spirit GUTS,633.0,,,,,,0,
+gold,Burning Spirit SPD,アオハル燃焼・速,Burning Spirit SPD,633.0,,,,,,0,
+gold,Burning Spirit STA,アオハル燃焼・体,Burning Spirit STA,633.0,,,,,,0,
+gold,Burning Spirit PWR,アオハル燃焼・力,Burning Spirit PWR,633.0,,,,,,0,
+ius,Flag of Dawn: Katsuragi Ace,暁の御旗『葛城栄主』！,,180.0,,,,,,0,
+gold,It's On!,アガッてきた！,It's On!,508.0,,,,,,0,
+yellow,Promising Omen,明るい兆し,,217.0,,,,,Dirt,0,
+green,Fall Runner ○,秋ウマ娘○,Fall Runner ○,129.0,,,,,,0,
+green,Fall Runner ◎,秋ウマ娘◎,Fall Runner ◎,174.0,,,,,,0,
+yellow,Acceleration,アクセラレーション,Acceleration,217.0,239.0,195.0,174.0,152.0,Mile,0,
+gold,Step on the Gas!,アクセル全開！,Step on the Gas!,508.0,559.0,457.0,406.0,356.0,Mile,0,
+yellow,Aggressive,アグレッシブ,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+ius,Everybody Put Your Hands Up!,アゲてアゲてぷちょへんざ！,,180.0,,,,,,0,
+ius,Ambition to Surpass the Sakura,憧れは桜を越える！,Ambition to Surpass the Sakura,180.0,,,,,,0,
+yellow,憧れを超えて,,,217.0,263.0,176.0,139.0,106.0,Medium/Pace,0,
+yellow,Foothold,足がかり,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Footloose,足任せ,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Playtime's Over!,遊びはおしまいっ！,Playtime's Over!,217.0,,,,,,0,
+gold,Petrifying Gaze,熱いまなざし,Petrifying Gaze,508.0,559.0,457.0,406.0,356.0,End,0,
+gold,Staggering Lead,圧倒的リード,Staggering Lead,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+red,Pressing Feeling,圧迫感,,217.0,,,,,Dirt,0,
+ius,Lavish Feast,あっぱれ大盤振る舞い！,,180.0,,,,,,0,
+ius,Ad Astra,アド・アストラ,,180.0,,,,,,0,
+yellow,Fearless Advance,後先恐れず,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+ius,Latte Art For You,あなたに捧げるフリーポア,,180.0,,,,,,0,
+ius,Chasing After You,アナタヲ・オイカケテ,Chasing After You,180.0,,,,,,0,
+gold,Big-Sisterly,姉御肌,Big-Sisterly,334.0,367.0,301.0,267.0,234.0,Mile,0,
+green,Overflowing Vitality,あふれる活力,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+yellow,Overflowing Passion,溢れる情熱,,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Approach,アプローチ,,217.0,,,,,Dirt,0,
+green,Rainy Days ○,雨の日○,Rainy Days ○,129.0,,,,,,0,
+green,Rainy Days ◎,雨の日◎,Rainy Days ◎,174.0,,,,,,0,
+yellow,American Dream,アメリカンドリーム,,263.0,,,,,,0,
+yellow,Risky Business,あやしげな作戦,Risky Business,129.0,,,,,,0,
+gold,Forger of Legends,新たな伝説を築く者,,633.0,,,,,,0,
+gold,Wild Wind,荒ぶる旋風,Wild Wind,508.0,559.0,457.0,406.0,356.0,Medium,0,
+yellow,All I've Got,ありったけ,All I've Got,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Be Myself,あるがままに,,263.0,289.0,237.0,210.0,184.0,Medium/Long,0,
+ius,Angling and Scheming,アングリング×スキーミング,Angling and Scheming,180.0,,,,,,0,
+gold,Unstoppable,アンストッパブル,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,In the Right Place!,いいとこ入った！,,508.0,,,,,,0,
+blue,Moxie,勢い任せ,Moxie,217.0,239.0,195.0,174.0,152.0,Front,0,
+yellow,Full of Zeal,意気込み十分,,217.0,,,,,Dirt,0,
+gold,In High Spirits,意気衝天,In High Spirits,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+yellow,Ignition,イグニッション,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Stubborn,意地っ張り,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Fast-Paced,急ぎ足,Fast-Paced,217.0,239.0,195.0,174.0,152.0,Front,0,
+ius,Victory belongs to me—Strelitzia! ☆,いただき☆ストレリチア！,Victory belongs to me—Strelitzia! ☆,180.0,,,,,,0,
+yellow,Aim for the Summit,頂を目指して,,217.0,263.0,176.0,139.0,106.0,Medium/Late,0,
+gold,Single-Minded,一意専心,,508.0,615.0,411.0,325.0,249.0,Long/Pace,0,
+ius,"A Lifelong Dream, A Moment's Flight",一期の夢、刹那の飛翔,"A Lifelong Dream, A Moment's Flight",180.0,,,,,,0,
+gold,Rushing Gale!,一陣の風,Rushing Gale!,508.0,,,,,,0,
+yellow,Position Pilfer,位置取り押し上げ,Position Pilfer,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Early Bird,一番乗り,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Radiant Star,一番星,Radiant Star,633.0,,,,,,0,
+gold,Clean Sweep,一網打尽,,508.0,615.0,411.0,325.0,249.0,Long/End,0,
+gold,In One Fell Swoop,一気呵成,,508.0,615.0,411.0,325.0,249.0,Long/Late,0,
+gold,Undivided Focus,一心不乱,,508.0,559.0,457.0,406.0,356.0,End,0,
+gold,一世一代,,,508.0,615.0,411.0,325.0,249.0,Long/Late,0,
+yellow,Mighty Leap,一足飛び,,217.0,239.0,195.0,174.0,152.0,Sprint/Mile,0,
+gold,Tension and Release,一張一弛,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Laser-Focused,一点集中,,508.0,615.0,411.0,325.0,249.0,Long/Pace,0,
+ius,Have Your Fill!,いっぱいおあげんしぇ！,,180.0,,,,,,0,
+gold,One-shot,一発必中,,508.0,559.0,457.0,406.0,356.0,Long,0,
+green,Lone Wolf,一匹狼,Lone Wolf,129.0,,,,,,0,
+yellow,From the First Step,一歩から,,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Forward Step by Step,一歩ずつ前へ,,217.0,,,,,,0,
+yellow,Forever Healthy,いつまでも健やかに,,263.0,289.0,237.0,210.0,184.0,Sprint/Mile,0,
+gold,Chilling Wind,凍て風,,461.0,,,,,,0,
+yellow,Thunderbolt Step,イナズマステップ,Thunderbolt Step,174.0,191.0,157.0,139.0,122.0,Medium,0,
+gold,Initiative,イニシアチブ,,508.0,615.0,411.0,325.0,249.0,Sprint/Front,0,
+ius,Bountiful Harvest,禾スナハチ登ル,Bountiful Harvest,180.0,,,,,,0,
+gold,Innovation,イノベーション,,508.0,,,,,Dirt,0,
+gold,Dignified,威風堂々,,508.0,559.0,457.0,406.0,356.0,Late,0,
+ius,Dreams Donned with Pride!,威風堂々、夢錦！,Dreams Donned with Pride!,180.0,,,,,,0,
+gold,インスピレーション,,,508.0,559.0,457.0,406.0,356.0,Late,0,
+ius,Vivace Volare,ヴィヴァーチェ・ヴォラーレ,,180.0,,,,,,0,
+ius,Shooting for Victory!,ヴィクトリーショット！,Shooting for Victory!,180.0,,,,,,0,
+ius,This Dance Is for Vittoria!,ヴィットーリアに捧ぐ舞踏,This Dance Is for Vittoria!,180.0,,,,,,0,
+ius,Strike and Strengthen,打ち、鍛えて,,180.0,,,,,,0,
+yellow,Beast Within,内なる獣,,217.0,263.0,176.0,139.0,106.0,Medium/Late,0,
+yellow,Inside Scoop,内弁慶,Inside Scoop,217.0,239.0,195.0,174.0,152.0,Long,0,
+green,Inner Post Proficiency ○,内枠得意○,Inner Post Proficiency ○,129.0,,,,,,0,
+green,Inner Post Proficiency ◎,内枠得意◎,Inner Post Proficiency ◎,174.0,,,,,,0,
+yellow,Uma Stan,ウマ好み,Uma Stan,217.0,,,,,,0,
+blue,Calm in a Crowd,ウマ込み冷静,Calm in a Crowd,217.0,,,,,,0,
+gold,Superstan,ウママニア,Superstan,508.0,,,,,,0,
+yellow,Blessing of the Ocean,海の加護,,263.0,,,,,,0,
+yellow,Contradicting Emotions,裏腹なキモチ,,217.0,,,,,Dirt,0,
+ius,Lovely Spring Breeze,麗しき花信風,Lovely Spring Breeze,180.0,,,,,,0,
+gold,Cloud Dragon's Metamorphosis,雲蒸竜変,,508.0,559.0,457.0,406.0,356.0,Mile/Medium,0,
+ius,Wager on the Holy Night Stars,運否、聖夜の星に賭ける,,180.0,198.0,162.0,144.0,126.0,Medium/Long,0,
+ius,Allegro of Valor,鋭気のアレグロ,,180.0,,,,,,0,
+gold,Incisive Flash,鋭脚一閃,,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Incisive Slash,鋭脚円刃,,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Gallant Figure,英姿颯爽,,508.0,615.0,411.0,325.0,249.0,Medium/Front,0,
+gold,Breaking Free,影従打破,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Unpredecented Prodigy,英俊豪傑,,633.0,,,,,,0,
+blue,Hydrate,栄養補給,Hydrate,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Energetic,エネルギッシュ,,633.0,,,,,,0,
+gold,Swinging Maestro,円弧のマエストロ,Swinging Maestro,508.0,,,,,,0,
+ius,Engine Ignition!,エンジン点火！,,180.0,,,,,,0,
+ius,"Engine, Full Throttle! Turbo Time!",エンジン全開！大噴射！,,180.0,,,,,,0,
+ius,Naginata Maiden's Dance,演舞・撫子大薙刀,,180.0,,,,,,0,
+yellow,Pressure,追い上げ,Pressure,217.0,239.0,195.0,174.0,152.0,Long,0,
+yellow,Riding the Tailwind,追い風に乗って,,217.0,263.0,176.0,139.0,106.0,Medium/Front,0,
+red,Flustered End Closers,追込焦り,Flustered End Closers,217.0,,,,,,0,
+red,Frenzied End Closers,追込駆け引き,Frenzied End Closers,174.0,,,,,,0,
+red,Subdued End Closers,追込けん制,Subdued End Closers,217.0,,,,,,0,
+yellow,End Closer Corners ○,追込コーナー○,End Closer Corners ○,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,End Closer Corners ◎,追込コーナー◎,End Closer Corners ◎,262.0,288.0,236.0,210.0,183.0,End,0,
+red,Hesitant End Closers,追込ためらい,Hesitant End Closers,217.0,,,,,,0,
+yellow,End Closer Straightaways ○,追込直線○,End Closer Straightaways ○,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,End Closer Straightaways ◎,追込直線◎,End Closer Straightaways ◎,262.0,288.0,236.0,210.0,183.0,End,0,
+green,End Closer Savvy ○,追込のコツ○,End Closer Savvy ○,174.0,191.0,157.0,139.0,122.0,End,0,
+green,End Closer Savvy ◎,追込のコツ◎,End Closer Savvy ◎,217.0,239.0,195.0,174.0,152.0,End,0,
+ius,Secret Technique: Everlasting Summer!!,奥義・常夏バーニング！！,,180.0,,,,,,0,
+ius,In Search of Gold,黄金を訪ねて,,180.0,198.0,162.0,144.0,126.0,Late/End,0,
+gold,Check,王手,,508.0,559.0,457.0,406.0,356.0,Pace/Late,0,
+gold,Just Rule,王道一途,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+yellow,Great Haste,大急ぎ,,217.0,263.0,176.0,139.0,106.0,Long/Late,0,
+green,Oi Racecourse ○,大井レース場○,Oi Racecourse ○,129.0,,,,,,0,
+green,Oi Racecourse ◎,大井レース場◎,Oi Racecourse ◎,174.0,,,,,,0,
+yellow,Huge Lead,大きなリード,Huge Lead,262.0,288.0,236.0,210.0,183.0,Sprint,0,
+yellow,Finale,大詰め,,217.0,263.0,176.0,139.0,106.0,Long/Front,0,
+gold,Runaway,大逃げ,Runaway,370.0,407.0,333.0,296.0,259.0,Front,0,
+ius,Extra Large First Bite!,大盛り！ファーストバイト！,,180.0,,,,,,0,
+yellow,Unwavering Heart,臆せぬ心,,217.0,239.0,195.0,174.0,152.0,Long,0,
+gold,See Ya Later!,お先に失礼っ！,See Ya Later!,508.0,,,,,,0,
+yellow,Final Push,押し切り準備,Final Push,217.0,239.0,195.0,174.0,152.0,Front,0,
+yellow,Pushing Through!,押し通る！,,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Committed Push,押しの一手,,217.0,239.0,195.0,174.0,152.0,Front/Pace,0,
+yellow,No Reluctance,惜しみなし,,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Fearless,恐れぬ心,Fearless,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Believe in Yourself,己を信じて,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+green,Maverick ○,おひとり様○,Maverick ○,129.0,,,,,,0,
+green,Maverick ◎,おひとり様◎,Maverick ◎,174.0,,,,,,0,
+ius,Operation Cacao,オペレーション・Cacao,Operation Cacao,180.0,,,,,,0,
+yellow,I Can See Right Through You,お見通し,I Can See Right Through You,85.0,94.0,77.0,68.0,59.0,End,0,
+yellow,Take the Plunge,思い切り,,217.0,263.0,176.0,139.0,106.0,Long/Pace,0,
+yellow,Unquenched Longing,想い焦がれて,,263.0,289.0,237.0,210.0,184.0,Mile/Medium,0,
+ius,Because I Believe,念い、信ずればこそ,,180.0,198.0,162.0,144.0,126.0,Pace,0,
+yellow,Bearer of Hope,想いを背負って,,263.0,,,,,,0,
+yellow,Unbreakable Mind,折れない心,,217.0,,,,,,0,
+gold,Blooming,開花,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Steady Advance,快進撃,,508.0,615.0,411.0,325.0,249.0,Medium/Pace,0,
+yellow,Satisfying Pace,会心の一歩,,217.0,239.0,195.0,174.0,152.0,Pace/Late,0,
+ius,Now We're Cruisin'!,快走かな、快走かな！,Now We're Cruisin'!,180.0,,,,,,0,
+yellow,Rapid,快速,,263.0,,,,,,0,
+gold,Gordian Cut,快刀乱麻,,508.0,615.0,411.0,325.0,249.0,Long/Pace,0,
+ius,Invigorating Strength,快なる剛力,,180.0,,,,,,0,
+gold,Monster,怪物,,508.0,615.0,411.0,325.0,249.0,Long/Pace,0,
+yellow,Glimpse of Light,垣間見た光,,217.0,263.0,176.0,139.0,106.0,Medium/End,0,
+ius,Eternal Encompassing Shine,晦冥を照らせ永遠の耀き,Eternal Encompassing Shine,180.0,,,,,,0,
+ius,Raise Thy Soul's Sword!,掲げよ、己が魂の剣を！,,180.0,,,,,,0,
+ius,Shine ☆ Tomakomai,かがやけ☆とまこまい,,180.0,,,,,,0,
+yellow,Firm Resolve,覚悟を決めて,,217.0,263.0,176.0,139.0,106.0,Long/Front,0,
+red,Disorient,かく乱,Disorient,85.0,94.0,77.0,68.0,59.0,Pace,0,
+blue,Lay Low,隠れ蓑,Lay Low,217.0,,,,,,0,
+yellow,Feature Act,影打,Feature Act,217.0,239.0,195.0,174.0,152.0,Long,0,
+yellow,Descent,駆け降り,,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Shadowstepper,影踏み,,217.0,239.0,195.0,174.0,152.0,End,0,
+ius,"Arrows Whistle, Shadows Disperse",翳り退く、さざめきの矢,"Arrows Whistle, Shadows Disperse",180.0,,,,,,0,
+gold,Heat Haze,陽炎,,508.0,559.0,457.0,406.0,356.0,Late,0,
+yellow,Chasing the Shadow,影を追って,,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Wind Vane,風切り,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+gold,Adrenaline Rush,火事場のバ鹿力,Adrenaline Rush,508.0,559.0,457.0,406.0,356.0,Long,0,
+gold,Wind Rider,風翔,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+ius,A Spring in My Step,風光る,,180.0,,,,,,0,
+yellow,Mold Breaker,型破り,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+ius,Victory Cheer!,勝ち鬨ワッショイ！,Victory Cheer!,180.0,,,,,,0,
+ius,Bravo ☆ Wonder Doll!,喝采☆ワンダードール！,,180.0,,,,,,0,
+ius,Cut and Drive!,カッティング×DRIVE！,Cut and Drive!,180.0,,,,,,0,
+gold,Send It Flying!,かっとばせ！,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+yellow,Find a Way!,活路を拓く！,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+ius,"Moving Past, and Beyond",彼方、その先へ…,"Moving Past, and Beyond",180.0,,,,,,0,
+ius,Merrymaking Song and Dance,歌舞歓楽や、ああをかし,,180.0,,,,,,0,
+gold,Miraculous Step,神業ステップ,Miraculous Step,508.0,559.0,457.0,406.0,356.0,Medium,0,
+yellow,Devil-May-Care,がむしゃら,,217.0,263.0,176.0,139.0,106.0,Long/Late,0,
+gold,Finishing Touch,画竜点睛,,508.0,615.0,411.0,325.0,249.0,Long/Front,0,
+yellow,Light as a Feather,軽い足取り,Light as a Feather,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+ius,"Driven by Light, the Heavenly Wolf Hunts",駆るは光、狩るは星々,,180.0,,,,,,0,
+yellow,Gorgeous Step,華麗な足取り,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+blue,Soft Step,軽やかステップ,Soft Step,217.0,239.0,195.0,174.0,152.0,Medium,0,
+green,Kawasaki Racetrack ○,川崎レース場○,,129.0,,,,,,0,
+green,Kawasaki Racetrack ◎,川崎レース場◎,,174.0,,,,,,0,
+yellow,Exploit the Gap,間隙を突いて,,217.0,263.0,176.0,139.0,106.0,Medium/Late,0,
+gold,Complete Combustion,完全燃焼,,508.0,559.0,457.0,406.0,356.0,End,0,
+yellow,Fighter,がんばり屋,Fighter,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Pumped,気合十分,Pumped,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Shifting Gears,ギアシフト,Shifting Gears,217.0,239.0,195.0,174.0,152.0,Mile,0,
+gold,Changing Gears,ギアチェンジ,Changing Gears,508.0,559.0,457.0,406.0,356.0,Mile,0,
+gold,Burning Soul,気炎万丈,Burning Soul,508.0,559.0,457.0,406.0,356.0,Medium,0,
+yellow,Ghastly,鬼気迫って,,217.0,263.0,176.0,139.0,106.0,Medium/End,0,
+yellow,Dodging Danger,危険回避,Dodging Danger,129.0,142.0,116.0,103.0,90.0,Front,0,
+ius,The Duty of Dignity Calls,貴顕の使命を果たすべく,The Duty of Dignity Calls,180.0,,,,,,0,
+gold,Technician,技巧派,Technician,334.0,367.0,301.0,267.0,234.0,Pace,0,
+gold,Unyielding Tenacity,気骨稜稜,,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+gold,From the Brink,起死回生,From the Brink,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Illusionist,奇術師,Illusionist,334.0,367.0,301.0,267.0,234.0,Long,0,
+yellow,Resolute Stance,気丈な姿勢,,217.0,263.0,176.0,139.0,106.0,Mile/Pace,0,
+gold,Stout-Hearted,気丈夫,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+ius,"Miracle, Hopes, Melody",きせき・おもい・かなで,,180.0,,,,,,0,
+gold,Battle for Initiative,機先の勝負,,508.0,,,,,,0,
+ius,Just a Little Farther!,きっとその先へ…！,Just a Little Farther!,180.0,,,,,,0,
+yellow,Free-Spirited,気の向くままに,,217.0,263.0,176.0,139.0,106.0,Long/Front,0,
+yellow,With All My Soul,気迫を込めて,With All My Soul,217.0,239.0,195.0,174.0,152.0,Medium,0,
+ius,I See Victory in My Future!,来ます来てます来させます！,I See Victory in My Future!,180.0,,,,,,0,
+yellow,Carefree Step,気ままな足取り,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,I Want to Win With You,キミと勝ちたい,,633.0,,,,,,0,
+yellow,With Feelings Aboard,気持ちを乗せて,,217.0,,,,,,0,
+ius,Sky-High Teio Step,究極テイオーステップ,Sky-High Teio Step,180.0,,,,,,0,
+gold,Ultimate Hill Climber,究極のヒルクライマー,,508.0,,,,,,0,
+yellow,Nosedive,急降下,,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Surprise Attack,急襲,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+yellow,Swift Takeoff,急発進,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+yellow,Rapid Ascent,急浮上,,217.0,,,,,Dirt,0,
+ius,暁霞を拓き、朝を掴む,,,180.0,198.0,162.0,144.0,126.0,Pace,0,
+gold,Daring Strike,強攻策,Daring Strike,508.0,559.0,457.0,406.0,356.0,End,0,
+gold,Proof of Strength,強者の証,,508.0,615.0,411.0,325.0,249.0,Medium/Pace,0,
+green,Kyoto Racecourse ○,京都レース場○,Kyoto Racecourse ○,129.0,,,,,,0,
+green,Kyoto Racecourse ◎,京都レース場◎,Kyoto Racecourse ◎,174.0,,,,,,0,
+gold,Corner Connoisseur,曲線のソムリエ,Corner Connoisseur,508.0,,,,,,0,
+yellow,Giant Stride,巨歩,,217.0,,,,,,0,
+gold,Killer Tunes,キラーチューン,Killer Tunes,508.0,559.0,457.0,406.0,356.0,Medium,0,
+ius,SPARKLY☆STARDOM,キラキラ☆STARDOM,SPARKLY☆STARDOM,180.0,,,,,,0,
+yellow,Glittering Star,綺羅星,Glittering Star,263.0,,,,,,0,
+ius,Lights of Vaudeville,煌星のヴォードヴィル,Lights of Vaudeville,180.0,,,,,,0,
+ius,"The Sea Glitters, but You're Dazzling",きらめくは海、まばゆきは君,,180.0,,,,,,0,
+yellow,Striking Back,切り返し,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+yellow,Switch Over Pro,切り替え上手,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Cleave,切り崩し,,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Spearhead,切り込み隊長,,217.0,239.0,195.0,174.0,152.0,Front,0,
+gold,Trackblazer,切り開く者,Trackblazer,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Wonderkid,麒麟児,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+yellow,Witful,切れ味,,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Razor-Sharp Stride,キレる脚,,217.0,239.0,195.0,174.0,152.0,Late,0,
+gold,Crowning Beauty,錦上添花,,334.0,367.0,301.0,267.0,234.0,Medium,0,
+yellow,Steadfast,食い下がり,Steadfast,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Gourmand,食いしん坊,Gourmand,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Cooldown,クールダウン,Cooldown,508.0,559.0,457.0,406.0,356.0,Long,0,
+gold,Shatterproof,くじけぬ精神,Shatterproof,334.0,367.0,301.0,267.0,234.0,Pace,0,
+yellow,Downhill Speedster,下り坂巧者,Downhill Speedster,217.0,,,,,,0,
+ius,A Kiss for Courage,グッときて♪Chu,A Kiss for Courage,180.0,,,,,,0,
+green,Cloudy Days ○,曇りの日○,Cloudy Days ○,129.0,,,,,,0,
+green,Cloudy Days ◎,曇りの日◎,Cloudy Days ◎,174.0,,,,,,0,
+yellow,Tooth and Tail,食らいつき,,217.0,239.0,195.0,174.0,152.0,Pace/Late,0,
+ius,Give Mummy a Hug ♡,ぐるぐるマミートリック♡,Give Mummy a Hug ♡,180.0,,,,,,0,
+ius,Eternal Moments,薫風、永遠なる瞬間を,Eternal Moments,180.0,,,,,,0,
+gold,Reign,君臨,,508.0,615.0,411.0,325.0,249.0,Medium/End,0,
+gold,Keen Eye,慧眼,Keen Eye,508.0,559.0,457.0,406.0,356.0,Mile,0,
+ius,Barcarole of Blessings,恵福バルカローレ,Barcarole of Blessings,180.0,,,,,,0,
+ius,Superior Heal,ゲインヒール・スペリアー,Superior Heal,180.0,,,,,,0,
+gold,Go-Home Specialist,下校後のスペシャリスト,Go-Home Specialist,508.0,559.0,457.0,406.0,356.0,End,0,
+blue,After-School Stroll,下校の楽しみ,After-School Stroll,217.0,239.0,195.0,174.0,152.0,End,0,
+ius,Determined Stroke,決意一筆,,180.0,,,,,,0,
+gold,Determined Descent,決意の直滑降,Determined Descent,334.0,367.0,301.0,267.0,234.0,Pace,0,
+gold,Moonlit Flash,月影一閃,Moonlit Flash,508.0,559.0,457.0,406.0,356.0,End,0,
+gold,Moonlight Slash,月影円刃,,508.0,559.0,457.0,406.0,356.0,End,0,
+gold,Come What May,決死の覚悟,Come What May,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Preeminent,傑出,,508.0,559.0,457.0,406.0,356.0,Front,0,
+yellow,Decisive Blow,決定打,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+ius,Che Piacevole!,ケ・ピアチェーヴォレ！,,180.0,,,,,,0,
+ius,"Arrow of Gold, Break up the Dark Clouds",玄雲散らす、黄金甲矢,,180.0,,,,,,0,
+gold,Beyond the Limits,限界の先へ,,633.0,,,,,,0,
+ius,Laugh in the Face of Danger,剣ヶ峰より、狂気に嗤え,,180.0,,,,,,0,
+yellow,Trekker,健脚,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+gold,Redoubled Efforts,捲土重来,,508.0,,,,,Dirt,0,
+gold,Dazzling Disorientation,幻惑のかく乱,Dazzling Disorientation,334.0,367.0,301.0,267.0,234.0,Pace,0,
+blue,Preferred Position,好位追走,Preferred Position,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Floating with the Tide,行雲流水,,508.0,559.0,457.0,406.0,356.0,Pace/Late,0,
+ius,Red Shift/LP1211-M,紅焔ギア/LP1211-M,Red Shift/LP1211-M,180.0,,,,,,0,
+gold,Curiosity,好奇心,,508.0,,,,,,0,
+gold,Furious Feat,豪脚,Furious Feat,508.0,559.0,457.0,406.0,356.0,Mile,0,
+yellow,Seize the Chance,好機を捉えて,,217.0,263.0,176.0,139.0,106.0,Long/End,0,
+yellow,Ambitions,向上心,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Belligerent,好戦的,,217.0,239.0,195.0,174.0,152.0,Mile/Medium,0,
+gold,Peerless Boldness,豪胆無比,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+gold,Breath of Fresh Air,好転一息,Breath of Fresh Air,508.0,,,,,,0,
+ius,Louder! Tracen Cheer!,轟！トレセン応援団！,Louder! Tracen Cheer!,180.0,,,,,,0,
+gold,Cyclone Flash,豪風一閃,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+gold,Cyclone Slash,豪風円刃,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+gold,Flash Forward,光芒一閃,Flash Forward,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Refraction Arc,光芒円刃,Refraction Arc,508.0,559.0,457.0,406.0,356.0,Medium,0,
+red,Intimidate,後方釘付,Intimidate,262.0,288.0,236.0,210.0,183.0,Sprint,0,
+blue,Standing By,後方待機,Standing By,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Luminance,光明,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+ius,Decisive Blade of Blazing Fire,剛勇果断、烈火之刀,,180.0,,,,,,0,
+gold,Elated,高揚感,Elated,508.0,559.0,457.0,406.0,356.0,Medium,0,
+green,Exchange Races ○,交流重賞○,,129.0,,,,,,0,
+green,Exchange Races ◎,交流重賞◎,,174.0,,,,,,0,
+gold,Exchange Races Demon,交流重賞の鬼,,461.0,,,,,,0,
+blue,Corner Recovery ○,コーナー回復◯,Corner Recovery ○,217.0,,,,,,0,
+yellow,Corner Acceleration ○,コーナー加速◯,Corner Acceleration ○,217.0,,,,,,0,
+yellow,Corner Adept ○,コーナー巧者◯,Corner Adept ○,217.0,,,,,,0,
+gold,Call & Response,コール＆レスポンス,,633.0,,,,,Dirt,0,
+green,Kokura Racecourse ○,小倉レース場○,Kokura Racecourse ○,129.0,,,,,,0,
+green,Kokura Racecourse ◎,小倉レース場◎,Kokura Racecourse ◎,174.0,,,,,,0,
+yellow,Crucial Stage,ここ一番,,217.0,263.0,176.0,139.0,106.0,Long/Late,0,
+ius,Purrfect Hospitality,心からのおもてにゃし,,180.0,,,,,,0,
+ius,"Steel Your Heart, Tsuyoshi!",心、強し！,,180.0,,,,,,0,
+yellow,High Hopes,心弾んで,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Intrigued,心惹かれて,,217.0,,,,,,0,
+ius,Parade of the Five Heavenly Beasts,五獣挙りて彩光奏づ,,180.0,,,,,Dirt,0,
+gold,Professor of Curvature,弧線のプロフェッサー,Professor of Curvature,508.0,,,,,,0,
+yellow,Self-Restraint,克己心,,263.0,289.0,237.0,210.0,184.0,Medium,0,
+gold,Connection,コネクト,,334.0,,,,,Turf,0,
+gold,Seize the Initiative,後の先,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+gold,The Future in My Hands,この手に掴んだ未来,,291.0,320.0,262.0,233.0,204.0,Mile/Medium,0,
+yellow,Rapid Overtakes,ごぼう抜き,,217.0,263.0,176.0,139.0,106.0,Long/End,0,
+green,Tight Turns ○,小回り○,,129.0,,,,,,0,
+green,Tight Turns ◎,小回り◎,,174.0,,,,,,0,
+yellow,Rising Passion,込み上げる熱,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+ius,Rolling Power Drive!,ごろりん！？パワードライブ,,180.0,,,,,,0,
+green,Standard Distance ○,根幹距離○,Standard Distance ○,129.0,,,,,,0,
+green,Standard Distance ◎,根幹距離◎,Standard Distance ◎,174.0,,,,,,0,
+yellow,Mighty Step,渾身の足取り,,217.0,263.0,176.0,139.0,106.0,Medium/End,0,
+gold,Concentration,コンセントレーション,Concentration,394.0,,,,,,0,
+ius,Condor's Fury,コンドル猛撃波,Condor's Fury,180.0,,,,,,0,
+gold,Brilliant Mind,才気煥発,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+ius,Legacy of the Strong,最強の名を懸けて,Legacy of the Strong,180.0,,,,,,0,
+gold,Dreaming of the Peak,最高峰の夢,,633.0,,,,,,0,
+gold,Brains and Beauty,才色兼備,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+yellow,Clear Head,冴える思考,,217.0,,,,,Dirt,0,
+yellow,Early Lead,先駆け,Early Lead,217.0,239.0,195.0,174.0,152.0,Front,0,
+yellow,Strategist,策士,Strategist,85.0,94.0,77.0,68.0,59.0,End,0,
+ius,Bloom! Blossom! Sakura!,咲け咲け！私！,,180.0,,,,,,0,
+red,Murmur,ささやき,Murmur,217.0,239.0,195.0,174.0,152.0,Medium,0,
+red,Flustered Late Surgers,差し焦り,Flustered Late Surgers,217.0,,,,,,0,
+red,Frenzied Late Surgers,差し駆け引き,Frenzied Late Surgers,174.0,,,,,,0,
+yellow,Slick Surge,差し切り体勢,Slick Surge,217.0,239.0,195.0,174.0,152.0,Late,0,
+red,Subdued Late Surgers,差しけん制,Subdued Late Surgers,217.0,,,,,,0,
+yellow,Late Surger Corners ○,差しコーナー○,Late Surger Corners ○,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Late Surger Corners ◎,差しコーナー◎,Late Surger Corners ◎,262.0,288.0,236.0,210.0,183.0,Late,0,
+red,Hesitant Late Surgers,差しためらい,Hesitant Late Surgers,217.0,,,,,,0,
+yellow,Late Surger Straightaways ○,差し直線○,Late Surger Straightaways ○,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Late Surger Straightaways ◎,差し直線◎,Late Surger Straightaways ◎,262.0,288.0,236.0,210.0,183.0,Late,0,
+green,Late Surger Savvy ○,差しのコツ○,Late Surger Savvy ○,174.0,191.0,157.0,139.0,122.0,Late,0,
+green,Late Surger Savvy ◎,差しのコツ◎,Late Surger Savvy ◎,217.0,239.0,195.0,174.0,152.0,Late,0,
+gold,Sandstorm Flash,砂塵一閃,,508.0,,,,,Dirt,0,
+gold,Sandstorm Slash,砂塵円刃,,508.0,,,,,Dirt,0,
+blue,Familiar Ground,砂塵慣れ,Familiar Ground,217.0,,,,,Dirt,0,
+green,Sapporo Racecourse ○,札幌レース場○,Sapporo Racecourse ○,129.0,,,,,,0,
+green,Sapporo Racecourse ◎,札幌レース場◎,Sapporo Racecourse ◎,174.0,,,,,,0,
+yellow,To Greater Heights,さらなる高みへ,,217.0,263.0,176.0,139.0,106.0,Medium/Pace,0,
+gold,Afterimage,残影,,508.0,559.0,457.0,406.0,356.0,End,0,
+ius,Blue Ray of Happiness,幸せの青い光,,180.0,,,,,,0,
+ius,Geschenk of the Salty Sea Breeze,潮風のGeschenk,,180.0,,,,,,0,
+gold,The Coast Is Clear!,視界良好！異常なし！,The Coast Is Clear!,334.0,367.0,301.0,267.0,234.0,End,0,
+yellow,Meticulous Measures,仕掛け準備,Meticulous Measures,174.0,191.0,157.0,139.0,122.0,Sprint,0,
+yellow,Masterful Gambit,仕掛け抜群,Masterful Gambit,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Groundwork,地固め,Groundwork,217.0,,,,,,0,
+gold,Supreme Downhiller,至高のダウンヒラー,,508.0,,,,,,0,
+ius,Reign Supreme,至上であれ,,180.0,,,,,,0,
+green,Self-Assured,自信家,,217.0,239.0,195.0,174.0,152.0,Mile/Medium,0,
+blue,Be Still,静かな呼吸,Be Still,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Simmering Heat,静かな熱,,217.0,239.0,195.0,174.0,152.0,Late,0,
+green,Restraint,自制心,Restraint,217.0,,,,,,0,
+yellow,Herald of a New Age,時代を変える者,,263.0,,,,,,0,
+yellow,Preliminary Preparation,下準備,,217.0,239.0,195.0,174.0,152.0,Late,0,
+gold,Exquisite Timing,時中の妙,,508.0,,,,,,0,
+gold,Sixth Sense,シックスセンス,Sixth Sense,334.0,367.0,301.0,267.0,234.0,Front,0,
+gold,Sturm und Drang,疾風怒濤,Sturm und Drang,508.0,559.0,457.0,406.0,356.0,End,0,
+ius,Blasting Gale Pegasus Dash!,疾風爆走ペガサスダッシュ！,,180.0,,,,,,0,
+yellow,Tail Held High,尻尾上がり,Tail Held High,217.0,,,,,,0,
+gold,Tail Nine,尻尾の滝登り,Tail Nine,508.0,,,,,,0,
+gold,Lightning Flash,紫電一閃,,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+gold,Lightning Slash,紫電円刃,,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+yellow,Graceful Step,しとやかな足取り,,217.0,239.0,195.0,174.0,152.0,Mile/Medium,0,
+yellow,Electrifying Run,シビれる走り,,217.0,239.0,195.0,174.0,152.0,Sprint/Mile,0,
+gold,Radiant Treasure,至宝の輝き,,508.0,615.0,411.0,325.0,249.0,Sprint/Late,0,
+yellow,Steady Effort,地道に重ねて,,217.0,263.0,176.0,139.0,106.0,Long/Pace,0,
+yellow,Frantic State,しゃかりき,,217.0,239.0,195.0,174.0,152.0,Front,0,
+gold,Restless,じゃじゃウマ娘,Restless,508.0,559.0,457.0,406.0,356.0,Front,0,
+gold,Reckless,遮二無二,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+gold,Pure Perfection,十全十美,,508.0,559.0,457.0,406.0,356.0,Mile/Medium,0,
+yellow,Focus,集中力,Focus,129.0,,,,,,0,
+ius,Shooting Star,シューティングスター,Shooting Star,180.0,,,,,,0,
+gold,Freewheeling,自由奔放,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+yellow,"1,500,000 CC",十万バリキ,"1,500,000 CC",217.0,239.0,195.0,174.0,152.0,Late,0,
+ius,Sugar Parade: Start!,シュガーパレード･始動！,,180.0,,,,,,0,
+gold,1000% Output!,出力1000％！,,508.0,559.0,457.0,406.0,356.0,Front,0,
+ius,Je t'aime ☆ Vacances,ジュ・テーム☆バカンス！,,180.0,,,,,,0,
+ius,Spring Light: Bon Appétit,春光・Bon appétit,,180.0,,,,,,0,
+yellow,Explosive Force,瞬発力,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+gold,Perfect Prep!,準備万全！,Perfect Prep!,394.0,433.0,355.0,315.0,276.0,Sprint,0,
+gold,Smooth Sailing,順風満帆,,508.0,,,,,,0,
+gold,Manipulation,掌握,,508.0,559.0,457.0,406.0,356.0,End,0,
+blue,A Small Breather,小休憩,A Small Breather,217.0,239.0,195.0,174.0,152.0,Late,0,
+yellow,Updrafters,上昇気流,Updrafters,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Diligence,精進,,217.0,,,,,Dirt,0,
+green,Impulse,衝動,,434.0,477.0,391.0,347.0,304.0,Late,0,
+gold,情熱と挑戦の先の栄光,,,633.0,,,,,,0,
+gold,Gambler,勝負師,,508.0,,,,,,0,
+gold,The Fight's Not Over Yet!,勝負はここから！,,508.0,615.0,411.0,325.0,249.0,Medium/Front,0,
+yellow,Putting All on the Line,勝負を懸けて,,263.0,,,,,,0,
+yellow,Frontal Breakthrough,正面突破,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Toward Victory,勝利に向かって,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Victory Opportunity,勝利の機運,,508.0,,,,,Dirt,0,
+ius,Triumphant Pulse,勝利の鼓動,Triumphant Pulse,180.0,,,,,,0,
+ius,Our Ticket to Win!,勝利のチケットを、君にッ！,Our Ticket to Win!,180.0,,,,,,0,
+ius,Accumulative Victory,勝利ヘ至ル累積,,180.0,,,,,,0,
+gold,Unyielding,勝利への執念,Unyielding,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Showdown,ショーダウン,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Unwavering Ambition,初志貫徹,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+ius,Lyricism at Journey's End,叙情、旅路の果てに,,180.0,,,,,,0,
+yellow,Opening Leg Adept,序盤巧者,,217.0,,,,,,0,
+gold,Peak Ferocity,熾烈の極み,,508.0,559.0,457.0,406.0,356.0,Long,0,
+ius,White Lightning Comin' Through!,白い稲妻、見せたるで！,White Lightning Comin' Through!,180.0,,,,,,0,
+gold,Headliner,真打,Headliner,508.0,559.0,457.0,406.0,356.0,Long,0,
+ius,Terpsichore of the Abyss,深淵のテルプシコラー,,180.0,,,,,,0,
+gold,Singularity,シンギュラリティ,,461.0,558.0,374.0,295.0,226.0,Medium/Pace,0,
+blue,Deep Breaths,深呼吸,Deep Breaths,217.0,239.0,195.0,174.0,152.0,Long,0,
+gold,Proven Mettle,真骨頂,,508.0,,,,,,0,
+yellow,On the Move,進出開始,,217.0,239.0,195.0,174.0,152.0,Late,0,
+gold,Divine Speed,神速,,633.0,,,,,,0,
+gold,Fast & Furious,迅速果断,Fast & Furious,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Earthshaker,震天動地,,508.0,,,,,Dirt,0,
+gold,Clear Mind,心頭滅却,,508.0,559.0,457.0,406.0,356.0,End,0,
+green,Sympathy,シンパシー,Sympathy,129.0,,,,,,0,
+gold,Gale Flash,陣風一閃,,508.0,559.0,457.0,406.0,356.0,Front,0,
+gold,Gale Slash,陣風円刃,,508.0,559.0,457.0,406.0,356.0,Front,0,
+ius,Beyond the Ocean's Infinity,水平線のその先へ,,180.0,,,,,,0,
+yellow,Sufficient Thrust,推力十分,,217.0,239.0,195.0,174.0,152.0,End,0,
+gold,Super Lucky Seven,スーパーラッキーセブン,Super Lucky Seven,334.0,,,,,,0,
+yellow,Homestretch Haste,末脚,Homestretch Haste,217.0,,,,,,0,
+ius,Scarlet Lily's Elation,スカーレットリリィの高揚,,180.0,,,,,,0,
+red,Stamina Eater,スタミナイーター,Stamina Eater,217.0,239.0,195.0,174.0,152.0,Long,0,
+blue,Stamina to Spare,スタミナキープ,Stamina to Spare,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Stamina Siphon,スタミナグリード,Stamina Siphon,461.0,507.0,415.0,369.0,323.0,Long,0,
+ius,Shine on Forever,ずっとずっと輝いて,,180.0,,,,,,0,
+yellow,Step Up,ステップアップ,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+gold,Straight Heart,ストレートハート,,508.0,615.0,411.0,325.0,249.0,Medium/Late,0,
+yellow,Dust Bath ○,砂浴び◯,,217.0,,,,,Dirt,0,
+yellow,An Honest Step,素直な一歩,,217.0,,,,,,0,
+yellow,Sand Stride,砂蹴り,,217.0,,,,,Dirt,0,
+gold,Pioneer of the Sands,砂の開拓者,,508.0,,,,,Dirt,0,
+gold,Master of the Sands,砂の玄人,Master of the Sands,508.0,,,,,Dirt,0,
+gold,Sand Virtuoso,砂の妙手,,508.0,,,,,Dirt,0,
+blue,Dust Off,砂払い,,217.0,,,,,Dirt,0,
+red,Speed Eater,スピードイーター,Speed Eater,217.0,239.0,195.0,174.0,152.0,Mile,0,
+gold,Speed Star,スピードスター,Speed Star,508.0,559.0,457.0,406.0,356.0,Pace,0,
+yellow,Sprinting Gear,スプリントギア,Sprinting Gear,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+gold,Turbo Sprint,スプリントターボ,Turbo Sprint,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+blue,Triple 7s,スリーセブン,Triple 7s,217.0,,,,,,0,
+yellow,Slipstream,スリップストリーム,Slipstream,217.0,,,,,,0,
+red,Sharp Gaze,鋭い眼光,Sharp Gaze,217.0,239.0,195.0,174.0,152.0,Late,0,
+gold,Frontal Attack,正攻法,,508.0,,,,,,0,
+ius,"Where There's a Will, There's a Way",精神一到何事か成らざらん,"Where There's a Will, There's a Way",180.0,,,,,,0,
+green,Mental Strength,精神力,,174.0,210.0,141.0,111.0,85.0,Medium/Late,0,
+gold,Forthright,正々堂々,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,清濁併吞,,,508.0,,,,,Dirt,0,
+ius,Festive Miracle,聖夜のミラクルラン！,Festive Miracle,180.0,,,,,,0,
+ius,Seirios,セイリオス,,180.0,,,,,,0,
+yellow,Productive Plan,積極策,Productive Plan,217.0,239.0,195.0,174.0,152.0,Mile,0,
+ius,絶対最強☆アピール宣言！,,,180.0,,,,,,0,
+ius,Certain Victory,絶対は、ボクだ,Certain Victory,180.0,,,,,,0,
+gold,Moment of Opportunity,刹那の勝機,,508.0,615.0,411.0,325.0,249.0,Medium/Late,0,
+gold,Encroaching Shadow,迫る影,Encroaching Shadow,508.0,559.0,457.0,406.0,356.0,End,0,
+yellow,Attack Stance,攻めの姿勢,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Flash,閃光,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+red,Flustered Pace Chasers,先行焦り,Flustered Pace Chasers,217.0,,,,,,0,
+red,Frenzied Pace Chasers,先行駆け引き,Frenzied Pace Chasers,174.0,,,,,,0,
+red,Subdued Pace Chasers,先行けん制,Subdued Pace Chasers,217.0,,,,,,0,
+yellow,Pace Chaser Corners ○,先行コーナー○,Pace Chaser Corners ○,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Pace Chaser Corners ◎,先行コーナー◎,Pace Chaser Corners ◎,262.0,288.0,236.0,210.0,183.0,Pace,0,
+red,Hesitant Pace Chasers,先行ためらい,Hesitant Pace Chasers,217.0,,,,,,0,
+yellow,Pace Chaser Straightaways ○,先行直線○,Pace Chaser Straightaways ○,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Pace Chaser Straightaways ◎,先行直線◎,Pace Chaser Straightaways ◎,262.0,288.0,236.0,210.0,183.0,Pace,0,
+green,Pace Chaser Savvy ○,先行のコツ○,Pace Chaser Savvy ○,174.0,191.0,157.0,139.0,122.0,Pace,0,
+green,Pace Chaser Savvy ◎,先行のコツ◎,Pace Chaser Savvy ◎,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Countermeasure,善後策,Countermeasure,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+gold,Golden Opportunity,千載一遇,,508.0,615.0,411.0,325.0,249.0,Long/End,0,
+yellow,The Only Way is Forward,前進あるのみ,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,In Body and Mind,全身全霊,In Body and Mind,508.0,,,,,,0,
+gold,Vanguard Spirit,先陣の心得,Vanguard Spirit,508.0,559.0,457.0,406.0,356.0,Long,0,
+gold,Uncharted Heights,前人未到,,508.0,,,,,,0,
+gold,Full Speed Ahead!,全速前進！,,508.0,,,,,Dirt,0,
+gold,千鍛万錬,,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Taking the Lead,先手必勝,Taking the Lead,334.0,367.0,301.0,267.0,234.0,Front,0,
+ius,The View from the Lead Is Mine!,先頭の景色は譲らない…！,The View from the Lead Is Mine!,180.0,,,,,,0,
+yellow,Leader's Pride,先頭プライド,Leader's Pride,217.0,239.0,195.0,174.0,152.0,Front,0,
+blue,Rosy Outlook,前途洋々,Rosy Outlook,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Lie in Wait,潜伏態勢,Lie in Wait,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Clairvoyance,千里眼,Clairvoyance,334.0,367.0,301.0,267.0,234.0,Medium,0,
+gold,Thousand-Mile Journey,千里の道,,508.0,559.0,457.0,406.0,356.0,Late,0,
+green,Strategist,戦略家,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+ius,Full-Throttle Cyclone!,全力全開！サイクロン,,180.0,,,,,,0,
+yellow,"Forward, March!",前列狙い,"Forward, March!",174.0,,,,,Dirt,0,
+ius,Sapphire Flame,蒼炎,,180.0,,,,,,0,
+ius,想像×創造＝∞,,,180.0,198.0,162.0,144.0,126.0,Medium/Long,0,
+gold,Swift Decision,即断即決,,342.0,376.0,308.0,274.0,239.0,End,0,
+red,Tether,束縛,Tether,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Outer Swell,外差し準備,Outer Swell,217.0,239.0,195.0,174.0,152.0,Late,0,
+green,Outer Post Proficiency ○,外枠得意○,Outer Post Proficiency ○,129.0,,,,,,0,
+green,Outer Post Proficiency ◎,外枠得意◎,Outer Post Proficiency ◎,174.0,,,,,,0,
+ius,«Bon Voyage»,『それでは、よき旅を』,,180.0,,,,,,0,
+yellow,Dirt Corners ○,ダートコーナー○,,217.0,,,,,Dirt,0,
+yellow,Dirt Corners ◎,ダートコーナー◎,,262.0,,,,,Dirt,0,
+yellow,Dirt Straights ○,ダート直線○,,217.0,,,,,Dirt,0,
+yellow,Dirt Straights ◎,ダート直線◎,,262.0,,,,,Dirt,0,
+yellow,Turning Point,ターニングポイント,,217.0,263.0,176.0,139.0,106.0,Sprint/Late,0,
+gold,Wisdom of the Ocean,大海の叡智,,633.0,,,,,,0,
+gold,The Bigger Picture,大局観,The Bigger Picture,334.0,367.0,301.0,267.0,234.0,Late,0,
+green,Competitive Spirit ○,対抗意識○,Competitive Spirit ○,129.0,,,,,,0,
+green,Competitive Spirit ◎,対抗意識◎,Competitive Spirit ◎,174.0,,,,,,0,
+gold,All-Out Effort,大車輪,,334.0,367.0,301.0,267.0,234.0,Pace,0,
+ius,Target Acquired! Serving Justice!,対象捕捉！正義遂行！,,180.0,,,,,,0,
+yellow,大志を抱いて,,,217.0,239.0,195.0,174.0,152.0,Late,0,
+gold,Of Calm Mind,泰然自若,Of Calm Mind,508.0,559.0,457.0,406.0,356.0,Long,0,
+gold,Dauntless,大胆不敵,Dauntless,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Wisdom of the Land,大地の叡智,,633.0,,,,,,0,
+ius,You and Me! One-on-One!,タイマン！デッドヒート！,You and Me! One-on-One!,180.0,,,,,,0,
+gold,Wisdom of the Sun,太陽の叡智,,633.0,,,,,,0,
+yellow,Breakthrough Plan,打開策,,217.0,239.0,195.0,174.0,152.0,End,0,
+gold,Surging Beat,昂る鼓動,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+yellow,Boiling Emotions,滾る想い,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Boiling Blood,たぎる血潮,,217.0,239.0,195.0,174.0,152.0,End,0,
+yellow,Outstanding Run,卓越する走り,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Shrewd Step,巧みなステップ,Shrewd Step,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Firm Step,確かな足取り,,217.0,263.0,176.0,139.0,106.0,Medium/Pace,0,
+gold,Escape Artist,脱出術,Escape Artist,508.0,559.0,457.0,406.0,356.0,Front,0,
+gold,Ahead of the Game,脱兎の先へ,,633.0,696.0,570.0,506.0,443.0,Long,0,
+ius,"Traced Bloodline, Budding Future",辿る血脈、芽吹く未来,,180.0,,,,,,0,
+yellow,Nimble Navigator,垂れウマ回避,Nimble Navigator,174.0,,,,,,0,
+gold,Further Than Anyone,誰より前へ！,,334.0,367.0,301.0,267.0,234.0,Medium,0,
+green,Inquisitive Mind,探求心,,174.0,210.0,141.0,111.0,85.0,Medium/Pace,0,
+yellow,Sprint Corners ○,短距離コーナー○,Sprint Corners ○,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+yellow,Sprint Corners ◎,短距離コーナー◎,Sprint Corners ◎,262.0,288.0,236.0,210.0,183.0,Sprint,0,
+yellow,Sprint Straightaways ○,短距離直線○,Sprint Straightaways ○,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+yellow,Sprint Straightaways ◎,短距離直線◎,Sprint Straightaways ◎,262.0,288.0,236.0,210.0,183.0,Sprint,0,
+blue,Fuse,端緒,,263.0,,,,,,0,
+ius,A Small Miracle for You♪,小さな奇跡、フォーユー♪,,180.0,,,,,,0,
+yellow,With All My Might,力の限り,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Brute Force,力業,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+ius,千歳、廻りて,,,180.0,,,,,,0,
+ius,Geothermal Overdrive,地熱解放オーヴァードライブ,,180.0,,,,,Dirt,0,
+yellow,Blessing of the Land,地の加護,,263.0,,,,,,0,
+ius,All Charged! It's Go Time!,チャージ完了！全速前進！,All Charged! It's Go Time!,180.0,,,,,,0,
+gold,Trending in the Charts!,チャート急上昇！,Trending in the Charts!,508.0,,,,,Dirt,0,
+green,Chukyo Racecourse ○,中京レース場○,Chukyo Racecourse ○,129.0,,,,,,0,
+green,Chukyo Racecourse ◎,中京レース場◎,Chukyo Racecourse ◎,174.0,,,,,,0,
+yellow,Medium Corners ○,中距離コーナー○,Medium Corners ○,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Medium Corners ◎,中距離コーナー◎,Medium Corners ◎,262.0,288.0,236.0,210.0,183.0,Medium,0,
+yellow,Medium Straightaways ○,中距離直線○,Medium Straightaways ○,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Medium Straightaways ◎,中距離直線◎,Medium Straightaways ◎,262.0,288.0,236.0,210.0,183.0,Medium,0,
+yellow,Middle Leg Adept,中盤巧者,,217.0,,,,,,0,
+gold,Center Stage,注目の踊り子,Center Stage,334.0,,,,,,0,
+yellow,Long Corners ○,長距離コーナー○,Long Corners ○,217.0,239.0,195.0,174.0,152.0,Long,0,
+yellow,Long Corners ◎,長距離コーナー◎,Long Corners ◎,262.0,288.0,236.0,210.0,183.0,Long,0,
+yellow,Long Straightaways ○,長距離直線○,Long Straightaways ○,217.0,239.0,195.0,174.0,152.0,Long,0,
+yellow,Long Straightaways ◎,長距離直線◎,Long Straightaways ◎,262.0,288.0,236.0,210.0,183.0,Long,0,
+ius,Tachyon Potential,超光速微粒子の可能性,,180.0,,,,,,0,
+gold,Fierce Clash,丁々発止,,508.0,615.0,411.0,325.0,249.0,Sprint/Pace,0,
+yellow,Straightaway Spurt,直線一気,Straightaway Spurt,217.0,239.0,195.0,174.0,152.0,End,0,
+blue,Straightaway Recovery,直線回復,Straightaway Recovery,217.0,,,,,,0,
+yellow,Straightaway Acceleration,直線加速,Straightaway Acceleration,217.0,,,,,,0,
+yellow,Straightaway Adept,直線巧者,Straightaway Adept,217.0,,,,,,0,
+green,Straight Course ○,直線コース○,,129.0,,,,,,0,
+green,Straight Course ◎,直線コース◎,,174.0,,,,,,0,
+yellow,Straight Descent,直滑降,Straight Descent,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Headlong Charge,猪突猛進,,508.0,559.0,457.0,406.0,356.0,Front/Pace,0,
+yellow,Give Chase,追駆,,217.0,239.0,195.0,174.0,152.0,End,0,
+gold,Pursuer,追跡者,,508.0,615.0,411.0,325.0,249.0,Medium/End,0,
+red,Cloud of Dust,土煙,,174.0,,,,,Dirt,0,
+ius,Connecting Dreams With the Future,繋ぐ・繋がる×夢・未来,,180.0,,,,,,0,
+gold,Neck and Neck,鍔迫り合い,Neck and Neck,508.0,559.0,457.0,406.0,356.0,Pace,0,
+ius,Budding Blossom,つぼみ、ほころぶ時,Budding Blossom,180.0,,,,,,0,
+yellow,Gap Closer,詰め寄り,Gap Closer,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+ius,Shooting Star of Dioskouroi,ディオスクロイの流星,Shooting Star of Dioskouroi,180.0,,,,,,0,
+green,Target in Sight ○,徹底マーク○,Target in Sight ○,129.0,,,,,,0,
+green,Target in Sight ◎,徹底マーク◎,Target in Sight ◎,174.0,,,,,,0,
+ius,My Flame Lights the Way,照らすのはわたしの焔,,180.0,,,,,,0,
+ius,Deluxe☆Fountain,デラックス☆ファウンテン,,180.0,,,,,,0,
+yellow,Art of Coaxing,手練手管,,217.0,239.0,195.0,174.0,152.0,End,0,
+gold,Seamless,天衣無縫,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+blue,Watchful Eye,展開窺い,Watchful Eye,217.0,239.0,195.0,174.0,152.0,Mile,0,
+gold,Blinding Flash,電撃の煌めき,Blinding Flash,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+gold,Lightning Speed,電光石火,,508.0,559.0,457.0,406.0,356.0,Sprint/Mile,0,
+green,Natural Genius,天才肌,,217.0,239.0,195.0,174.0,152.0,Medium/Long,0,
+gold,Lightning Blitz,電迅速攻,,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+gold,Carefree Stride,天真爛漫,,508.0,,,,,,0,
+gold,Sum of Small Efforts,点滴穿石,,508.0,,,,,Dirt,0,
+gold,Natural Talent,天賦の才,,508.0,615.0,411.0,325.0,249.0,Medium/Late,0,
+yellow,Up-Tempo,テンポアップ,Up-Tempo,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Crusader,天命士,Crusader,334.0,367.0,301.0,267.0,234.0,End,0,
+green,Tokyo Racecourse ○,東京レース場○,Tokyo Racecourse ○,129.0,,,,,,0,
+green,Tokyo Racecourse ◎,東京レース場◎,Tokyo Racecourse ◎,174.0,,,,,,0,
+ius,Bristling Lights,灯穂,,180.0,,,,,,0,
+yellow,Fighting Spirit,闘争心,Fighting Spirit,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Killer Instict,闘争本能,,508.0,559.0,457.0,406.0,356.0,Mile/Medium,0,
+ius,尊み☆ﾗｽﾄｽﾊﾟー(ﾟ∀ﾟ)ーﾄ!,,,180.0,,,,,,0,
+gold,Unrestrained,逃亡者,Unrestrained,508.0,559.0,457.0,406.0,356.0,Front,0,
+yellow,Gateway to Success,登竜門,,217.0,239.0,195.0,174.0,152.0,End,0,
+ius,Perennial Babbles,時かけるせせらぎ,,180.0,198.0,162.0,144.0,126.0,Pace,0,
+gold,Unshackled Passion,解き放つ情念,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,0,
+ius,Wherever This Wonder Leads,ときめきが呼ぶほうへ,Wherever This Wonder Leads,180.0,,,,,,0,
+gold,Fluttering Heart,トキメキハート,,508.0,559.0,457.0,406.0,356.0,Sprint/Mile,0,
+gold,Dominator,独占力,Dominator,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Independence,独立独歩,,508.0,559.0,457.0,406.0,356.0,Late,0,
+ius,Everlasting Knot,解けぬ結い目,,180.0,198.0,162.0,144.0,126.0,Pace,0,
+gold,Unruffled,どこ吹く風,Unruffled,508.0,,,,,,0,
+yellow,Highlander,登山家,Highlander,217.0,,,,,,0,
+yellow,Studious,読解力,Studious,85.0,94.0,77.0,68.0,59.0,Late,0,
+gold,Blitzing Spirit,突撃魂,,508.0,559.0,457.0,406.0,356.0,Late,0,
+ius,Special Materialization,とっておきmaterialize,,180.0,,,,,,0,
+gold,Breach,突破口,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Top Gear,トップギア,,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Top Runner,トップランナー,Top Runner,508.0,559.0,457.0,406.0,356.0,Front,0,
+gold,Overwhelming Pressure,怒涛の追い上げ,Overwhelming Pressure,508.0,559.0,457.0,406.0,356.0,Long,0,
+yellow,Thunderous Footfall,轟く足音,,217.0,,,,,Dirt,0,
+ius,Popping☆Clams,とびだせ☆ポッピングシェル,,180.0,,,,,,0,
+yellow,With a Light in My Heart,灯を胸に,,217.0,239.0,195.0,174.0,152.0,Mile/Medium,0,
+red,Trick (Rear),トリック（後）,Trick (Rear),217.0,,,,,,0,
+red,Trick (Front),トリック（前）,Trick (Front),217.0,,,,,,0,
+gold,Hard Worker,努力家,Hard Worker,334.0,367.0,301.0,267.0,234.0,Late,0,
+gold,Fruits of Labor,努力の結実,,508.0,615.0,411.0,325.0,249.0,Long/Pace,0,
+green,Mud Play ○,泥遊び○,,129.0,,,,,Dirt,0,
+green,Mud Play ◎,泥遊び◎,,174.0,,,,,Dirt,0,
+gold,Mud Master,泥んこマイスター,,461.0,,,,,Dirt,0,
+ius,"Go, Go, Mun!",どんっ、パッ、むんっ,"Go, Go, Mun!",180.0,,,,,,0,
+green,Nocturnal ○,ナイター○,,129.0,,,,,,0,
+green,Nocturnal ◎,ナイター◎,,174.0,,,,,,0,
+gold,Innate Experience,内的体験,Innate Experience,508.0,559.0,457.0,406.0,356.0,Long,0,
+green,Nakayama Racecourse ○,中山レース場○,Nakayama Racecourse ○,129.0,,,,,,0,
+green,Nakayama Racecourse ◎,中山レース場◎,Nakayama Racecourse ◎,174.0,,,,,,0,
+green,Summer Runner ○,夏ウマ娘○,Summer Runner ○,129.0,,,,,,0,
+green,Summer Runner ◎,夏ウマ娘◎,Summer Runner ◎,174.0,,,,,,0,
+ius,Summer Halation,夏空ハレーション,,180.0,,,,,,0,
+yellow,No Concern for Appearances,なりふり構わず,,217.0,,,,,Dirt,0,
+ius,Behold Thine Emperor's Divine Might,汝、皇帝の神威を見よ,Behold Thine Emperor's Divine Might,180.0,,,,,,0,
+green,Niigata Racecourse ○,新潟レース場○,Niigata Racecourse ○,129.0,,,,,,0,
+green,Niigata Racecourse ◎,新潟レース場◎,Niigata Racecourse ◎,174.0,,,,,,0,
+gold,Relentless Approach,肉薄,,508.0,559.0,457.0,406.0,356.0,End,0,
+red,Flustered Front Runners,逃げ焦り,Flustered Front Runners,217.0,,,,,,0,
+red,Frenzied Front Runners,逃げ駆け引き,Frenzied Front Runners,174.0,,,,,,0,
+yellow,Pulling Away,逃げ切り体勢,,217.0,263.0,176.0,139.0,106.0,Medium/Front,0,
+red,Subdued Front Runners,逃げけん制,Subdued Front Runners,217.0,,,,,,0,
+yellow,Front Runner Corners ○,逃げコーナー○,Front Runner Corners ○,217.0,239.0,195.0,174.0,152.0,Front,0,
+yellow,Front Runner Corners ◎,逃げコーナー◎,Front Runner Corners ◎,262.0,288.0,236.0,210.0,183.0,Front,0,
+red,Hesitant Front Runners,逃げためらい,Hesitant Front Runners,217.0,,,,,,0,
+yellow,Front Runner Straightaways ○,逃げ直線○,Front Runner Straightaways ○,217.0,239.0,195.0,174.0,152.0,Front,0,
+yellow,Front Runner Straightaways ◎,逃げ直線◎,Front Runner Straightaways ◎,262.0,288.0,236.0,210.0,183.0,Front,0,
+green,Front Runner Savvy ○,逃げのコツ○,Front Runner Savvy ○,174.0,191.0,157.0,139.0,122.0,Front,0,
+green,Front Runner Savvy ◎,逃げのコツ◎,Front Runner Savvy ◎,217.0,239.0,195.0,174.0,152.0,Front,0,
+yellow,Running is Winning!,逃げるが勝ち！,,217.0,239.0,195.0,174.0,152.0,Front,0,
+yellow,Backup Planning,二段構え,,263.0,,,,,Dirt,0,
+yellow,Second Wind,二の矢,Second Wind,217.0,239.0,195.0,174.0,152.0,Front,0,
+gold,Best in Japan,日本一のウマ娘,Best in Japan,508.0,559.0,457.0,406.0,356.0,Long,0,
+ius,Ninja Art: Seal of the Smiling Heart,忍法・ほほえみ心結の印,,180.0,,,,,,0,
+blue,Faultless,抜かりなし,,217.0,263.0,176.0,139.0,106.0,Long/Pace,0,
+yellow,Outstanding Step,抜きん出る一歩,,217.0,239.0,195.0,174.0,152.0,Front,0,
+red,Stop Right There!,抜け駆け禁止,Stop Right There!,262.0,288.0,236.0,210.0,183.0,Sprint,0,
+yellow,Prepared to Pass,抜け出し準備,Prepared to Pass,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Fervor,熱狂的,,217.0,239.0,195.0,174.0,152.0,Long,0,
+ius,Hot-Blooded Disciplinary Attack!,熱血！！風紀アタック,,180.0,,,,,,0,
+gold,Ardour,熱情,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+gold,Never Give Up,ネバーギブアップ,,508.0,,,,,,0,
+yellow,Steadfast,粘り腰,,217.0,239.0,195.0,174.0,152.0,Front,0,
+gold,Sleeping Lion,眠れる獅子,Sleeping Lion,508.0,559.0,457.0,406.0,356.0,End,0,
+yellow,Honing In,狙いを定めて,,217.0,263.0,176.0,139.0,106.0,Long/Pace,0,
+gold,Lead the Charge!,狙うは最前列！,Lead the Charge!,394.0,,,,,Dirt,0,
+gold,Adored by All,悩殺術,Adored by All,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+ius,It's Mashup Time!,ノッてけ、マッシュアップ！,,180.0,,,,,,0,
+gold,Rising Dragon,昇り龍,Rising Dragon,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,On Your Left!,乗り換え上手,On Your Left!,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,No Stopping Me!,ノンストップガール,No Stopping Me!,394.0,,,,,,0,
+yellow,Burning Soul,バーニングソウル,,263.0,289.0,237.0,210.0,184.0,Mile/Medium,0,
+ius,Summer Thunder Cascade!,夏雷カスケード！,,180.0,198.0,162.0,144.0,126.0,Late,0,
+ius,Critical Point: Gray,灰色の臨界点,,180.0,,,,,,0,
+yellow,Pioneer,パイオニア,,217.0,,,,,Dirt,0,
+yellow,Vitality,バイタリティ,,217.0,,,,,Dirt,0,
+ius,Ashen Trail: Cinderella Gray,灰の光跡：シンデレラグレイ,,180.0,,,,,,0,
+yellow,High Pitch,ハイピッチ,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Up the Vibes,バイブス上昇,,263.0,289.0,237.0,210.0,184.0,Long,0,
+gold,High Voltage,ハイボルテージ,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+yellow,Creeping Footsteps,這い寄る足音,,217.0,263.0,176.0,139.0,106.0,Medium/End,0,
+gold,Iron Will,鋼の意志,Iron Will,508.0,,,,,,0,
+yellow,High Ambitions,覇気十分,,263.0,289.0,237.0,210.0,184.0,Medium/Long,0,
+gold,Nothing Ventured,博打うち,Nothing Ventured,334.0,,,,,,0,
+gold,Blazing Radiance!,爆熱のキラメキ,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,0,
+green,Hakodate Racecourse ○,函館レース場○,Hakodate Racecourse ○,129.0,,,,,,0,
+green,Hakodate Racecourse ◎,函館レース場◎,Hakodate Racecourse ◎,174.0,,,,,,0,
+yellow,Bouncy Step,弾ける足取り,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+gold,ハジける闘志,,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+blue,Passing Pro,パス上手,Passing Pro,217.0,239.0,195.0,174.0,152.0,Long,0,
+gold,Pathfinder,パスファインダー,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+gold,Full of Vigor,破竹の勢い,Full of Vigor,508.0,559.0,457.0,406.0,356.0,Mile,0,
+gold,Fall Frenzy,初嵐,Fall Frenzy,461.0,,,,,,0,
+gold,Unrivaled Wits,抜群の切れ味,,508.0,559.0,457.0,406.0,356.0,End,0,
+gold,Outstanding Step,抜群の踏み込み,,461.0,,,,,Dirt,0,
+gold,All-Seeing Eyes,八方にらみ,All-Seeing Eyes,508.0,559.0,457.0,406.0,356.0,Late,0,
+yellow,Lively,溌剌,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Unprecedented,破天荒,,217.0,263.0,176.0,139.0,106.0,Medium/Front,0,
+ius,Blossoming World,花開き、世界,,180.0,,,,,,0,
+yellow,Early Start,早仕掛け,Early Start,217.0,239.0,195.0,174.0,152.0,End,0,
+gold,Beeline Burst,ハヤテ一文字,Beeline Burst,508.0,,,,,,0,
+yellow,Restless Step,逸る足取り,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Quick Work,早業,,508.0,559.0,457.0,406.0,356.0,Front,0,
+gold,Paradigm Shift,パラダイムシフト,,291.0,320.0,262.0,233.0,204.0,Pace,0,
+yellow,Enthusiastic,張り切り,,263.0,289.0,237.0,210.0,184.0,Long,0,
+gold,Spring Spectacle,春一番,Spring Spectacle,461.0,,,,,,0,
+green,Spring Runner ○,春ウマ娘○,Spring Runner ○,129.0,,,,,,0,
+green,Spring Runner ◎,春ウマ娘◎,Spring Runner ◎,174.0,,,,,,0,
+gold,To the Far Beyond,遥か先へ,,633.0,,,,,,0,
+green,Sunny Days ○,晴れの日○,Sunny Days ○,129.0,,,,,,0,
+green,Sunny Days ◎,晴れの日◎,Sunny Days ◎,174.0,,,,,,0,
+ius,Colorful☆Marvelous★World,万彩☆マーベラス★世界,,180.0,,,,,,0,
+gold,Unshakable Stance,盤石の構え,,508.0,,,,,,0,
+green,Hanshin Racecourse ○,阪神レース場○,Hanshin Racecourse ○,129.0,,,,,,0,
+green,Hanshin Racecourse ◎,阪神レース場◎,Hanshin Racecourse ◎,174.0,,,,,,0,
+gold,"One Sky, One Goal",万里一空,,508.0,615.0,411.0,325.0,249.0,Long/Front,0,
+yellow,Heat Up,ヒートアップ,,217.0,263.0,176.0,139.0,106.0,Sprint/End,0,
+ius,Thunderous Firestarter,火神鳴,,180.0,,,,,,0,
+yellow,Towards the Light,光差す方へ,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+green,Non-Standard Distance ○,非根幹距離○,Non-Standard Distance ○,129.0,,,,,,0,
+green,Non-Standard Distance ◎,非根幹距離◎,Non-Standard Distance ◎,174.0,,,,,,0,
+gold,Soaring Stride,飛翔脚,,508.0,559.0,457.0,406.0,356.0,End,0,
+yellow,Single-Minded Advance,ひたむき前進,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+green,Left-Handed ○,左回り○,Left-Handed ○,129.0,,,,,,0,
+green,Left-Handed ◎,左回り◎,Left-Handed ◎,174.0,,,,,,0,
+yellow,Flying Sparks,火花散らして,,217.0,263.0,176.0,139.0,106.0,Sprint/Pace,0,
+gold,Latent Fighting Spirit,秘めた闘魂,,508.0,615.0,411.0,325.0,249.0,Medium/Late,0,
+ius,A Princess Must Seize Victory!,姫たるもの、勝利をこの手に,A Princess Must Seize Victory!,180.0,,,,,,0,
+gold,Battle-Hardened,百戦錬磨,,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+yellow,Leap Premonition,飛躍の予感,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,"15,000,000 CC",百万バリキ,"15,000,000 CC",334.0,367.0,301.0,267.0,234.0,Late,0,
+ius,Pure Heart,ピュリティオブハート,Pure Heart,180.0,,,,,,0,
+ius,Flashy☆Landing,ひらめき☆ランディング,Flashy☆Landing,180.0,,,,,,0,
+gold,Thunderflash,閃く雷光,,334.0,367.0,301.0,267.0,234.0,Sprint,0,
+yellow,Peerless,比類なき,,263.0,,,,,,0,
+yellow,Refined Conduct,品行方正,,217.0,239.0,195.0,174.0,152.0,Mile/Medium,0,
+gold,Winds of Change,風雲の志,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+green,Fukushima Racecourse ○,福島レース場○,Fukushima Racecourse ○,129.0,,,,,,0,
+green,Fukushima Racecourse ◎,福島レース場◎,Fukushima Racecourse ◎,174.0,,,,,,0,
+gold,Indomitable,不屈の心,Indomitable,508.0,,,,,,0,
+green,Long Shot ○,伏兵○,Long Shot ○,129.0,,,,,,0,
+green,Long Shot ◎,伏兵◎,Long Shot ◎,174.0,,,,,,0,
+ius,"Growing Dreams, Pioneer's Path",ふくらむ夢、先駆の途,,180.0,,,,,,0,
+gold,Battle Formation,布陣,Battle Formation,508.0,559.0,457.0,406.0,356.0,Mile,0,
+red,Opening Gambit,布石,Opening Gambit,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Ceaseless Training,不断の鍛錬,,291.0,352.0,236.0,186.0,143.0,Medium/Late,0,
+gold,Seriously☆Good↑Vibes,ブチ☆アゲ↑バイブス,,633.0,696.0,570.0,506.0,443.0,Long,0,
+gold,Child of Fuchu,府中の申し子,,461.0,,,,,,0,
+ius,Anchors Aweigh!,不沈艦、抜錨ォッ！,Anchors Aweigh!,180.0,,,,,,0,
+gold,Breakaway!,ぶっちぎり！,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+ius,Keep Pushing Ahead,ぶっちぎりロード,Keep Pushing Ahead,180.0,,,,,,0,
+blue,Immovable Spirit,不動の心,,217.0,239.0,195.0,174.0,152.0,End,0,
+ius,Funabashi Above All!,『船橋最強！』,,180.0,,,,,,0,
+green,Funabashi Racetrack ○,船橋レース場○,,129.0,,,,,,0,
+green,Funabashi Racetrack ◎,船橋レース場◎,,174.0,,,,,,0,
+gold,Steadfast Spirit,不抜の気概,,508.0,615.0,411.0,325.0,249.0,Mile/Pace,0,
+gold,Untouchable Shadow,踏ませぬ影,,508.0,559.0,457.0,406.0,356.0,Front,0,
+green,Skillful Step,踏み込み上手,,174.0,,,,,Dirt,0,
+gold,Stamp on the Ground,踏みしめる大地,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+green,Winter Runner ○,冬ウマ娘○,Winter Runner ○,129.0,,,,,,0,
+green,Winter Runner ◎,冬ウマ娘◎,Winter Runner ◎,174.0,,,,,,0,
+ius,Flowery☆Maneuver,フラワリー☆マニューバ,Flowery☆Maneuver,180.0,,,,,,0,
+gold,Plan X,プランX,Plan X,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+ius,Victoria por plancha ☆,プランチャ☆ガナドール,Victoria por plancha ☆,180.0,,,,,,0,
+blue,Shake It Out,ふり絞り,Shake It Out,217.0,,,,,,0,
+ius,Resplendent Red Ace,ブリリアント・レッドエース,Resplendent Red Ace,180.0,,,,,,0,
+ius,Blue Rose Closer,ブルーローズチェイサー,Blue Rose Closer,180.0,,,,,,0,
+yellow,Full Throttle,フルスロットル,Full Throttle,217.0,239.0,195.0,174.0,152.0,Late,0,
+gold,Breakthrough,ブレイクスルー,,508.0,559.0,457.0,406.0,356.0,End,0,
+ius,Blazing Pride,ブレイズ・オブ・プライド,Blazing Pride,180.0,,,,,,0,
+yellow,Pressure,プレッシャー,,217.0,239.0,195.0,174.0,152.0,Late,0,
+ius,Fresh ☆ Parlor,フレッシュ☆パーラー,,180.0,,,,,,0,
+yellow,Prelude,プレリュード,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+ius,Fluffy Fuzzy Hour,ふわもこアワー,,180.0,,,,,,0,
+yellow,Fierce Struggle,奮闘,,217.0,239.0,195.0,174.0,152.0,Long,0,
+gold,Domineering Glare,睥睨,,633.0,696.0,570.0,506.0,443.0,Medium/Long,0,
+yellow,Ramp Up,ペースアップ,Ramp Up,217.0,,,,,,0,
+blue,Pace Strategy,ペースキープ,Pace Strategy,217.0,,,,,,0,
+ius,Thunderstorm Sublation,霹靂のアウフヘーベン,,180.0,,,,,,0,
+blue,Extra Tank,別腹タンク,Extra Tank,217.0,239.0,195.0,174.0,152.0,Long,0,
+yellow,Hawkeye,ホークアイ,Hawkeye,129.0,142.0,116.0,103.0,90.0,Medium,0,
+yellow,With Pride,誇りを抱いて,,217.0,263.0,176.0,139.0,106.0,Sprint/Late,0,
+yellow,Prudent Positioning,ポジションセンス,Prudent Positioning,129.0,,,,,,0,
+yellow,Capture,捕捉,,217.0,239.0,195.0,174.0,152.0,End,0,
+ius,Hop Step Gotcha ♡,ホップステップ・ゲッチュ♡,,180.0,,,,,,0,
+gold,Surging Spirit,迸る気迫,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Miracle of Recreation,保養が導く奇跡,,633.0,,,,,,0,
+yellow,Rest and Rise,本気で休んで、もう一度,,263.0,,,,,,0,
+ius,Ponte de Diamant,ポンテ・デ・ディアマン,,180.0,,,,,,0,
+gold,Pure Instincts,本能の解放,,508.0,559.0,457.0,406.0,356.0,Late/End,0,
+gold,本能の架け橋,,,633.0,696.0,570.0,506.0,443.0,Medium/Long,0,
+yellow,True Worth,本領発揮,,217.0,263.0,176.0,139.0,106.0,Long/Pace,0,
+blue,Free-Spirited,マイペース,Free-Spirited,217.0,239.0,195.0,174.0,152.0,Long,0,
+yellow,Mile Corners ○,マイルコーナー○,Mile Corners ○,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Mile Corners ◎,マイルコーナー◎,Mile Corners ◎,262.0,288.0,236.0,210.0,183.0,Mile,0,
+yellow,Mile Straightaways ○,マイル直線○,Mile Straightaways ○,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Mile Straightaways ◎,マイル直線◎,Mile Straightaways ◎,262.0,288.0,236.0,210.0,183.0,Mile,0,
+gold,Mile Maven,マイルの支配者,Mile Maven,508.0,559.0,457.0,406.0,356.0,Mile,0,
+yellow,Eyes on the Horizon,前だけ見据えて,,263.0,,,,,,0,
+yellow,Eager,前のめり,Eager,217.0,239.0,195.0,174.0,152.0,Medium,0,
+yellow,Tactical Tweak,まき直し,Tactical Tweak,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Curtain Closer,幕引き,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+yellow,Unyielding Spirit,負けん気,Unyielding Spirit,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,Head-On,真っ向勝負,Head-On,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,At Full Speed,まっしぐら,,217.0,,,,,Dirt,0,
+yellow,Straight Steps,真っ直ぐな走り,,217.0,263.0,176.0,139.0,106.0,Medium/Late,0,
+yellow,In No Time,待ったなし,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+red,Intense Gaze,まなざし,Intense Gaze,217.0,239.0,195.0,174.0,152.0,End,0,
+gold,Don't Blink!,まばたき厳禁！,,508.0,559.0,457.0,406.0,356.0,Sprint/Mile,0,
+yellow,No Hesitation,迷いなし,,217.0,263.0,176.0,139.0,106.0,Long/Front,0,
+green,Right-Handed ○,右回り○,Right-Handed ○,129.0,,,,,,0,
+green,Right-Handed ◎,右回り◎,Right-Handed ◎,174.0,,,,,,0,
+gold,Right-Handed Demon,右回りの鬼,Right-Handed Demon,461.0,,,,,,0,
+gold,Magnificent Sand Stride,見事な砂蹴り,,508.0,,,,,Dirt,0,
+ius,Close Encounters of the Literary Kind,未知との遭遇、即ち物語,,180.0,,,,,,0,
+green,Wet Conditions ○,道悪○,Wet Conditions ○,129.0,,,,,,0,
+green,Wet Conditions ◎,道悪◎,Wet Conditions ◎,174.0,,,,,,0,
+gold,Bad Track Demon,道悪の鬼,,461.0,,,,,,0,
+gold,Tantalizing Trick,見惚れるトリック,Tantalizing Trick,508.0,,,,,,0,
+yellow,Overflowing Fighting Spirit,みなぎる闘志,,217.0,239.0,195.0,174.0,152.0,Front/Pace,0,
+gold,Mystifying Murmur,魅惑のささやき,Mystifying Murmur,508.0,559.0,457.0,406.0,356.0,Medium,0,
+ius,Becoming Everyone's Joy!,ミンナノアタシへ！,,180.0,,,,,,0,
+gold,Lose Yourself,無我夢中,,508.0,615.0,411.0,325.0,249.0,Long/Late,0,
+yellow,Bare Passion,むきだしの情熱,,217.0,239.0,195.0,174.0,152.0,Late/End,0,
+yellow,Rushing in Blind,向こう見ず,,217.0,239.0,195.0,174.0,152.0,Mile,0,
+yellow,No Third Chances,無三,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+yellow,No Second Thoughts,無二,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+ius,Path of Singular Focus,無二無三なる一条の路,,180.0,,,,,,0,
+yellow,Pounding Chest,胸の高鳴り,,217.0,239.0,195.0,174.0,152.0,Sprint/Mile,0,
+ius,Dreaming of the Silver World,夢寐に見る銀世界,,180.0,,,,,,0,
+red,Smoke Screen,目くらまし,Smoke Screen,129.0,142.0,116.0,103.0,90.0,Long,0,
+gold,Aim for the Center!,目指せセンター！,,508.0,,,,,Dirt,0,
+yellow,Time to Awaken,目覚めの時,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+yellow,Not Even a Glimpse,目にも留まらず,,217.0,239.0,195.0,174.0,152.0,Front,0,
+gold,For a Fleeting View,もう少しだけ、いい景色,,633.0,696.0,570.0,506.0,443.0,Medium/Long,0,
+gold,Hot Pursuit,猛追,,508.0,559.0,457.0,406.0,356.0,Pace/Late,0,
+yellow,もう一踏ん張り,,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Furious Sprint,猛烈激走,,508.0,559.0,457.0,406.0,356.0,Front/Pace,0,
+ius,萌到譲我活過来了！,,,180.0,,,,,,0,
+ius,Flames of Unyielding Resolve,燃え盛るは絶対の意志,,180.0,,,,,,0,
+ius,Springy Festivities,もちっと・ハレハレ,,180.0,,,,,,0,
+gold,Soul Ablaze,燃ゆる魂,,508.0,559.0,457.0,406.0,356.0,Mile/Medium,0,
+green,Morioka Racetrack ○,盛岡レース場○,,129.0,,,,,,0,
+green,Morioka Racetrack ◎,盛岡レース場◎,,174.0,,,,,,0,
+yellow,Turnaround,盛り返し,,217.0,,,,,Dirt,0,
+gold,Foregone Conclusion,問答無用,,508.0,559.0,457.0,406.0,356.0,Sprint,0,
+yellow,Dynamic Motion,躍動,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+ius,Sick Moves ☆ Juggle Beat,ヤバ技☆ジャグルビート,,180.0,198.0,162.0,144.0,126.0,Medium/Long,0,
+green,Gambling Spirit,やまっけ,,217.0,,,,,,0,
+gold,One and Only,唯一無二,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+gold,Ascendance,優位形成,,508.0,559.0,457.0,406.0,356.0,Mile/Medium,0,
+gold,Keep Going!,勇往邁進,Keep Going!,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Leisurely Dust Bath,優雅な砂浴び,,508.0,,,,,Dirt,0,
+yellow,One Brave Step,勇気の一歩,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Long Haul,悠久走破,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+gold,Mettlesome,勇気凛々,,508.0,615.0,411.0,325.0,249.0,Medium/End,0,
+gold,有志竟成,,,508.0,559.0,457.0,406.0,356.0,Late,0,
+gold,Valiant Flash,勇迅一閃,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Bravery Slash,勇迅円刃,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Heroic Energy,勇壮活発,,508.0,,,,,Dirt,0,
+yellow,Model Student,優等生,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+ius,Genius x Bakushin = Victory,優等生×バクシン=大勝利ッ,Genius x Bakushin = Victory,180.0,,,,,,0,
+gold,Brave and Bold,勇猛果敢,,508.0,559.0,457.0,406.0,356.0,Mile,0,
+ius,Chasing the Snowlight,ゆきあかり、おいかけて,,180.0,,,,,,0,
+green,Snowy Days ○,雪の日○,Snowy Days ○,129.0,,,,,,0,
+green,Snowy Days ◎,雪の日◎,Snowy Days ◎,174.0,,,,,,0,
+yellow,Unyielding Step,譲れぬ一歩,,217.0,263.0,176.0,139.0,106.0,Sprint/Front,0,
+yellow,Reproducing a Dream,夢の再生方法,,263.0,289.0,237.0,210.0,184.0,Medium/Long,0,
+ius,Delivering Beyond the Dreams!,夢の先へ、届け！,,180.0,,,,,,0,
+yellow,Halfway to a Dream,夢の途中,,263.0,,,,,,0,
+gold,To the Stage of Dreams,夢の舞台へ,,508.0,615.0,411.0,325.0,249.0,Medium/Pace,0,
+yellow,Dream-Fulfilling Challenge,夢への挑戦,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+ius,Bathkeeper's Heart of Zen,湯守の和心,,180.0,,,,,,0,
+yellow,Unshakeable Faith,揺るがぬ信念,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Thorough Preparation,用意周到,,508.0,559.0,457.0,406.0,356.0,Late,0,
+blue,Wait-and-See,様子見,Wait-and-See,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+yellow,Blessing of the Sun,陽の加護,,263.0,,,,,,0,
+yellow,Ride the Momentum,余勢を駆って,,217.0,239.0,195.0,174.0,152.0,Pace,0,
+gold,Yodo Invicta,淀の申し子,Yodo Invicta,461.0,,,,,,0,
+yellow,No Stagnation,淀みなし,,217.0,239.0,195.0,174.0,152.0,Pace/Late,0,
+gold,Calm and Collected,余裕綽々,Calm and Collected,508.0,559.0,457.0,406.0,356.0,Pace,0,
+ius,Deceive Thy Foe and Be Certain of Victory,知宵欺敵、百戦不殆,,180.0,,,,,,0,
+gold,Lightning Step,ライトニングステップ,Lightning Step,394.0,433.0,355.0,315.0,276.0,Pace,0,
+ius,Scarlet Ascension of the Rakshasa,羅刹、赤翼にて天上へ至らん,,180.0,,,,,,0,
+green,Lucky Seven,ラッキーセブン,Lucky Seven,174.0,,,,,,0,
+ius,Radiant Stride,爛然闊歩,,180.0,,,,,,0,
+yellow,Keeping the Lead,リードキープ,Keeping the Lead,217.0,239.0,195.0,174.0,152.0,Long,0,
+ius,Luck Comes to the Prepared,理運開かりて翔る,,180.0,,,,,,0,
+red,Restart,リスタート,Restart,217.0,239.0,195.0,174.0,152.0,Front,0,
+ius,The Winding Road to Ideals,理想へのwinding road,,180.0,,,,,,0,
+gold,Gamma Ray Burst,流星光底,,508.0,559.0,457.0,406.0,356.0,Pace,0,
+green,Firm Conditions ○,良バ場○,Firm Conditions ○,129.0,,,,,,0,
+green,Firm Conditions ◎,良バ場◎,Firm Conditions ◎,174.0,,,,,,0,
+gold,Firm Course Menace,良バ場の鬼,Firm Course Menace,461.0,,,,,,0,
+gold,Relax,リラックス,Relax,508.0,559.0,457.0,406.0,356.0,Late,0,
+yellow,Go with the Flow,臨機応変,Go with the Flow,129.0,,,,,,0,
+yellow,With Dignity,凛然と,,217.0,263.0,176.0,139.0,106.0,Medium/End,0,
+gold,Luminescence,ルミネセンス,,508.0,559.0,457.0,406.0,356.0,Medium,0,
+ius,Miraculously Tubular Oracle,霊験灼然チョベリグ神託,,180.0,,,,,,0,
+blue,Levelheaded,冷静,Levelheaded,217.0,239.0,195.0,174.0,152.0,End,0,
+gold,Serenity,冷静沈着,Serenity,508.0,559.0,457.0,406.0,356.0,End,0,
+gold,Sharp-Witted Composure,怜悧清澄,,633.0,696.0,570.0,506.0,443.0,Medium,0,
+yellow,Essence of Racing・Wisdom,レースの真髄・賢,,174.0,,,,,,0,
+green,Essence of Racing・Energy,レースの真髄・心,,174.0,,,,,,0,
+yellow,Essence of Racing・Guts,レースの真髄・根,,174.0,,,,,,0,
+yellow,Essence of Racing・Speed,レースの真髄・速,,174.0,,,,,,0,
+yellow,Essence of Racing・Stamina,レースの真髄・体,,174.0,,,,,,0,
+yellow,Essence of Racing・Power,レースの真髄・力,,174.0,,,,,,0,
+gold,Race Planner,レースプランナー,Race Planner,508.0,559.0,457.0,406.0,356.0,Pace,0,
+gold,Lane Legerdemain,レーンの魔術師,Lane Legerdemain,334.0,,,,,,0,
+yellow,Top Pick,レコメンド,Top Pick,217.0,,,,,Dirt,0,
+gold,Like a Blaze,烈火の如く,,508.0,559.0,457.0,406.0,356.0,Medium/Long,0,
+ius,烈花の洗礼,,,180.0,,,,,,0,
+ius,Peerless Dance of Flowering Flames,烈火繚乱、無敵之舞,Peerless Dance of Flowering Flames,180.0,,,,,,0,
+ius,Let's Pump Some Iron!,レッツ・アナボリック！,Let's Pump Some Iron!,180.0,,,,,,0,
+gold,Blast Forward,烈風一閃,Blast Forward,508.0,559.0,457.0,406.0,356.0,Long,0,
+gold,Wind Slash,烈風円刃,,508.0,559.0,457.0,406.0,356.0,Long,0,
+gold,Chain Reaction,連鎖反応,,633.0,,,,,,0,
+yellow,Step Toward Mastery,練達の一歩,,217.0,239.0,195.0,174.0,152.0,Sprint,0,
+yellow,Spare No Effort,労を惜しまず,,217.0,239.0,195.0,174.0,152.0,Medium,0,
+gold,Rocket Start,ロケットスタート,,333.0,366.0,300.0,266.0,233.0,Sprint,0,
+yellow,Lock On,ロックオン,,217.0,239.0,195.0,174.0,152.0,Long,0,
+gold,Child of Longchamp,ロンシャンの申し子,,461.0,,,,,,0,
+green,Longchamp Racetrack ○,ロンシャンレース場○,,129.0,,,,,,0,
+green,Longchamp Racetrack ◎,ロンシャンレース場◎,,174.0,,,,,,0,
+ius,None Shall Object My Rule,我が覇道、阻むものなし,,180.0,198.0,162.0,144.0,126.0,End,0,
+blue,Stay the Course,脇目も振らず,,263.0,289.0,237.0,210.0,184.0,Long,0,
+ius,Super-Duper Climax,ワクワククライマックス,Super-Duper Climax,180.0,,,,,,0,
+gold,The Races We Run,私たちの走る道程,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,0,
+ius,Dazzl'n ♪ Diver,わやかわ♪マリンダイヴ,Dazzl'n ♪ Diver,180.0,,,,,,0,
+yellow,Take the Chance,ワンチャンス,Take the Chance,217.0,239.0,195.0,174.0,152.0,Medium,0,
+ius,α-star*,,,180.0,,,,,,0,
+evo,Clear View with 564 Eyes!,564アイズで視界クッキリ！,,394.0,433.0,355.0,315.0,276.0,End,1,The Coast Is Clear!
+evo,Beat the Stars,,,633.0,696.0,570.0,506.0,443.0,Medium,1,Surging Beat
+evo,BLAZING WOLF,,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Hot Pursuit
+evo,Breakaway Star,,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,Burn Down,,,633.0,696.0,570.0,506.0,443.0,Medium,1,Burning Soul
+evo,Dreamer's Path,Dreamer’s Path,,633.0,696.0,570.0,506.0,443.0,Late,1,Thousand-Mile Journey
+evo,Enjoy the Flight,,,633.0,696.0,570.0,506.0,443.0,Mile,1,High Voltage
+evo,Frontier Spirit,,,633.0,696.0,570.0,506.0,443.0,Mile,1,Mile Maven
+evo,Gluttony's Grip,Gluttony’s Grip,,586.0,645.0,527.0,469.0,410.0,Long,1,Stamina Siphon
+evo,I Copy!,I copy!,,461.0,,,,,,1,No Stopping Me!
+evo,Ignite This Stage,Ignite this Stage,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Soul Ablaze
+evo,K.Speed,,,633.0,766.0,570.0,506.0,443.0,Sprint/Pace,1,Speed Star
+evo,Limitless Love,,,633.0,696.0,570.0,506.0,443.0,Pace,1,Unstoppable
+evo,METI レゾナンス,,,394.0,433.0,355.0,315.0,276.0,Medium,1,Connection
+evo,Power Am I,,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,Proof of Strength
+evo,Ritter von Fuchu,,,508.0,,,,,,1,Child of Fuchu
+evo,Service: Transit,,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,On Your Left!
+evo,Sheep Stampede!,,,633.0,696.0,570.0,506.0,443.0,Pace,1,Headlong Charge
+evo,Smooth Sailing!,,,633.0,,,,,,1,Tail Nine
+evo,The Next Phase,,,416.0,458.0,374.0,333.0,291.0,Pace,1,Paradigm Shift
+evo,True Wire-to-Wire!,,,633.0,696.0,570.0,506.0,443.0,Front,1,Untouchable Shadow
+evo,Turn the Tables!,Turn the tables!,,633.0,,,,,Dirt,1,Innovation
+evo,VIP Back View,VIPな後ろ姿,,633.0,696.0,570.0,506.0,443.0,Long,1,VIP Pass
+evo,Wild Runway,,,633.0,696.0,570.0,506.0,443.0,Late,1,Keep Going!
+evo,You Copy?,You copy?,,633.0,,,,,,1,Breath of Fresh Air
+evo,I'll Take Anyone On!,相手が誰でも関係ねーし！,,633.0,,,,,Dirt,1,清濁併吞
+evo,Azure Revolution,蒼色革命,,633.0,696.0,570.0,506.0,443.0,Medium,1,From the Brink
+evo,Let's Meet Under the Blue Sky!,青空の下で待ってるよ！,,633.0,696.0,633.0,633.0,633.0,Medium,1,See Ya Later!
+evo,Crimson Stirring,赫き胎動,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Killer Instict
+evo,諦めない、ですぅ〜！,,,633.0,,,,,,1,Indomitable
+evo,Active Rest,アクティブレスト,,633.0,696.0,570.0,506.0,443.0,Long,1,Cooldown
+evo,I Like a Rough Road,悪路のほうが好みでね,,508.0,,,,,Turf,1,Bad Track Demon
+evo,Dawn Always Comes!,明けぬ夜はない！,,508.0,559.0,457.0,406.0,356.0,Long,1,Stamina Siphon
+evo,Admired City Girl,憧れのシチーガール,,461.0,,,,,,1,No Stopping Me!
+evo,"Easy, Peasy, Lemon Squeezy",朝腹、朝腹、かやすしや♪,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Vivid Battle Formation,鮮やかな布陣,,633.0,696.0,570.0,506.0,443.0,Mile,1,Battle Formation
+evo,"Keep Calm, Don't Overthink",焦らず、気負わず,,633.0,696.0,570.0,506.0,443.0,Late,1,Relax
+evo,This is my win!,アタシが勝つんだから！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,Simply the Best!,あたしサイコーじゃん！,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,Dauntless
+evo,Can't Top Me!,あたししか勝たん！,,633.0,696.0,570.0,506.0,443.0,Late,1,Dauntless
+evo,Journey to a New Dream,新しい夢への旅路,,633.0,,,,,,1,Uncharted Heights
+evo,Stunning Trick,圧巻のトリック,,633.0,,,,,,1,Tantalizing Trick
+evo,Unleash the Dragon,あっぱれ！臥竜勇往,,633.0,766.0,513.0,405.0,310.0,Long/Front,1,Finishing Touch
+evo,Uplifting,アップリフティング,,633.0,696.0,570.0,506.0,443.0,Medium,1,Elated
+evo,Adventure Leader,アドベンチャーの先導者,,633.0,696.0,570.0,506.0,443.0,Mile,1,Mile Maven
+evo,Raging Dragon,暴れ龍,,633.0,696.0,570.0,506.0,443.0,Late,1,Rising Dragon
+evo,Sweet Bewitching,あま～い幻惑,,394.0,433.0,355.0,315.0,276.0,Pace,1,Dazzling Disorientation
+evo,Soaring Step,天翔る足取り,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Seamless
+evo,Slightly Sweet Escape,甘さ控えめエスケープ,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,Heavenly Wind,天つ風,,633.0,696.0,570.0,506.0,443.0,Pace,1,Winds of Change
+evo,Golden Ship of the Rough Seas,荒磯好みの黄金船,,508.0,,,,,,1,Bad Track Demon
+evo,The Stormforged Hero Advances,嵐纏いし英雄は往く,,508.0,,,,,,1,Fall Frenzy
+evo,Storm-Calling God of Destruction,嵐を呼ぶ破壊神,,633.0,696.0,570.0,506.0,443.0,End,1,Sturm und Drang
+evo,Raging Wind God,荒ぶる風神,,633.0,696.0,570.0,506.0,443.0,Medium,1,Wild Wind
+evo,Arrow of Artemis,アルテミスの矢,,633.0,696.0,570.0,506.0,443.0,End,1,Moonlit Flash
+evo,On Vultur Cadens' Trail,アル・ワーキを追いかけて,,633.0,766.0,513.0,405.0,310.0,Medium/End,1,Pursuer
+evo,Attack of Ares,アレスの進撃,,633.0,696.0,570.0,506.0,443.0,Mile,1,Furious Feat
+evo,Ephemeral Afterglow,淡く儚い残照,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,Flash Forward
+evo,Rather Run than Worry!,案ずるより走るが速し,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,Speed Star
+evo,Anpan and Milk,あんぱんと牛乳,,633.0,696.0,570.0,506.0,443.0,Long,1,Cooldown
+evo,Ambitious Card,アンビシャスカード,,633.0,696.0,570.0,506.0,443.0,Late,1,Fast & Furious
+evo,"Tasty, Isn't It?",いい味、出てるでしょ？,,633.0,,,,,,1,In the Right Place!
+evo,Squid for a Quid!,イカ揚げ、いかがですか！？,,633.0,696.0,570.0,506.0,443.0,Medium,1,Elated
+evo,Stylish and Masterful,粋でいなせな達人技,,633.0,696.0,570.0,506.0,443.0,Medium,1,Master of the Sands
+evo,Guidance of Many Moons,幾星霜が導く一手,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Check
+evo,Marvelous Showtime ♪,いざ、ショーベラスタイム♪,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Wonderkid
+evo,Onward! To the Sea!,いざ征かん！マリンロード,,633.0,696.0,570.0,506.0,443.0,Late,1,Thousand-Mile Journey
+evo,Dimensional Runaway,異次元の逃亡者,,633.0,696.0,570.0,506.0,443.0,Front,1,Unrestrained
+evo,Become the Foundation,礎たれ,,633.0,696.0,570.0,506.0,443.0,Medium,1,Come What May
+evo,Grand Expedition,偉大なる踏破,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,Steady Advance
+evo,Masterful Prankster,いたずらマイスター,,508.0,,,,,Dirt,1,Mud Master
+evo,Fleet Foot of Idaten,韋駄天ノ襲脚,,633.0,766.0,513.0,405.0,310.0,Long/End,1,Encroaching Shadow
+evo,Wholehearted Refresher,一意専心にリフレッシュ！,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Single-Minded
+evo,To the Best View!,一番眺めのいい場所へ！,,394.0,433.0,355.0,315.0,276.0,Medium,1,Further Than Anyone
+evo,First in the Bath!,一番風呂いただきます！,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,First-Class Presence,一流の在り方,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Unyielding Tenacity
+evo,A Petal's Bravery,一輪の勇気,,633.0,,,,,,1,Beeline Burst
+evo,All in on One Bet,一点張りでいこう,,633.0,696.0,570.0,506.0,443.0,Late,1,Top Gear
+evo,Brightest Star's Arabesque,一等星のアラベスク,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Decisive Cleave,一刀両断,,633.0,,,,,,1,Beeline Burst
+evo,Not My Usual Self!,いつもの僕じゃないから！,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Showdown
+evo,Piercing Azure,射貫く蒼,,633.0,696.0,570.0,506.0,443.0,Late,1,Keep Going!
+evo,Spark of Life,命の火花,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Veiled Grit,いぶし銀の闘志,,394.0,,,,,Dirt,1,Big-Sisterly
+evo,Healing Maestro,癒しのマエストロ,,633.0,,,,,,1,Swinging Maestro
+evo,Winning Road,ウイニングロード,,633.0,696.0,570.0,506.0,443.0,Late,1,Fast & Furious
+evo,Wind Shear,ウインドシアー,,633.0,696.0,570.0,506.0,443.0,Mile,1,Changing Gears
+evo,Veil-Swaying Spring Storm,ヴェール揺らす春疾風,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Supreme Downhiller
+evo,Starved Monster,飢えた怪物,,633.0,696.0,570.0,506.0,443.0,Pace,1,Gourmand
+evo,Immovable as Mt. Youtei,動かざること羊蹄山の若し,,633.0,696.0,570.0,506.0,443.0,Long,1,Of Calm Mind
+evo,Beautiful Phosphorescence,美しき燐光,,633.0,696.0,570.0,506.0,443.0,Pace,1,Indomitable
+evo,Umadol Power Trend ↑↑,ウマドルパワー急上昇↑↑,,633.0,,,,,Dirt,1,Trending in the Charts!
+evo,Shining From The Ocean Floor...☆,海の底からキラめいて…☆,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Never Give Up
+evo,梅仰ぎ、漕ぐ計略,,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Cloud Dragon's Metamorphosis
+evo,Beautiful Transformation,麗しき転身,,633.0,696.0,570.0,506.0,443.0,Medium,1,Tension and Release
+evo,Soar Above The Clouds,雲上飛翔,,633.0,696.0,570.0,506.0,443.0,End,1,Soaring Stride
+evo,Forever and Ever,永永無窮,,633.0,696.0,570.0,506.0,443.0,Pace,1,Gamma Ray Burst
+evo,Ei! Ei! Mun!,えい！えい！むん！,,633.0,696.0,570.0,506.0,443.0,Long,1,Overwhelming Pressure
+evo,Eternal Brilliance,永遠の輝き,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,None Can Block Glory's Advance,栄華の歩み、誰ぞ遮る,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,Steady Advance
+evo,Fluttering Towards Glory,栄光への羽ばたき,,633.0,696.0,570.0,506.0,443.0,Late,1,All-Seeing Eyes
+evo,Hero Handbook,英雄への道標,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,Extreme After-School Technique,エクストリーム下校術,,633.0,696.0,570.0,506.0,443.0,End,1,Go-Home Specialist
+evo,Esplosione,エスプロズィオーネ,,633.0,766.0,513.0,405.0,310.0,Long/Late,1,Dignified
+evo,Entertainer,エンターテイナー,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,Waltz Maestro,円舞曲のマエストロ,,633.0,,,,,,1,Swinging Maestro
+evo,Don't Leave Me,オイテイカナイデ,,508.0,559.0,457.0,406.0,356.0,Long,1,Stamina Siphon
+evo,Sovereign's Dominion,王威絢爛,,758.0,834.0,682.0,606.0,531.0,Medium,1,Domineering Glare
+evo,Like and Comment!,応援コメントよろしく！,,688.0,833.0,557.0,440.0,337.0,Medium/Late,1,One and Only
+evo,桜華爛漫一直線,,,633.0,,,,,,1,Beeline Burst
+evo,Fan Dance,扇ノ舞,,633.0,696.0,570.0,506.0,443.0,Long,1,Innate Experience
+evo,Golden Flare,黄金の炎陽,,633.0,696.0,570.0,506.0,443.0,Late,1,Heat Haze
+evo,King's Perspective,王の大局観,,394.0,433.0,355.0,315.0,276.0,Late,1,The Bigger Picture
+evo,Year-End Cleaning Pro,大掃除上手,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,On Your Left!
+evo,Perfect Order!,オーダーはバッチリ！,,461.0,,,,,,1,Concentration
+evo,Dramatic Finale,大見得切り,,633.0,696.0,570.0,506.0,443.0,End,1,Encroaching Shadow
+evo,Angler's Wisdom,大物狙いの心得,,633.0,696.0,570.0,506.0,443.0,Medium,1,Vanguard Spirit
+evo,Going Ahead☆Tailwind,お先に☆テールウィンド,,633.0,766.0,513.0,405.0,310.0,Long/Front,1,"One Sky, One Goal"
+evo,I'll Go the Extra Mile!!,推してまいる！！,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Fluttering Heart
+evo,Coming Through♪,お邪魔しま～す♪,,633.0,,,,,,1,In the Right Place!
+evo,"Flood of ""Je t'aime""",押し寄せるジュテーム,,633.0,696.0,570.0,506.0,443.0,End,1,Encroaching Shadow
+evo,押忍ッ！気合十分ッス！,,,633.0,696.0,570.0,506.0,443.0,Mile,1,Full of Vigor
+evo,You Shall Kneel in Reverence,――畏れよ、然して拝跪せよ,,758.0,834.0,682.0,606.0,531.0,Medium/Long,1,Domineering Glare
+evo,Ruler of the Stage,お立ち台の支配者,,633.0,696.0,570.0,506.0,443.0,Mile,1,Mile Maven
+evo,Tomboy Queen,おてんば女王,,633.0,696.0,570.0,506.0,443.0,Front,1,Restless
+evo,I'm a Big Sis After All,お姉ちゃん、だもの,,633.0,696.0,633.0,633.0,633.0,Mile,1,Unshakable Stance
+evo,Step Aside,――お退きなさい,,461.0,507.0,415.0,369.0,323.0,Pace,1,No Stopping Me!
+evo,"Pretty Blossoms, Pretty Year!",お花見当たり年！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Speed Star
+evo,"Please Remember Me, Okay?",覚えていてくださいね？,,633.0,766.0,513.0,405.0,310.0,Sprint/Front,1,Initiative
+evo,Here You Go!,お待ちどおさま！,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Lightning Speed
+evo,Memories Become Power,思い出を力に変えて,,633.0,696.0,570.0,506.0,443.0,Mile,1,Changing Gears
+evo,Olifant's Roar,オリファントの轟雷,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Lightning Speed
+evo,Professional Pamperer,お世話のプロフェッショナル,,633.0,,,,,,1,Professor of Curvature
+evo,Hands-Down Victory,鎧袖一触,,633.0,,,,,,1,Professor of Curvature
+evo,Trails of Pioneers,開拓者の軌跡,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Pathfinder
+evo,Monstrous Cornering,怪物的コーナリング,,633.0,,,,,,1,Corner Connoisseur
+evo,Caesura,カエスーラ,,633.0,,,,,,1,Breath of Fresh Air
+evo,Sparkling Top Star,輝くトップスタァ,,394.0,433.0,355.0,315.0,276.0,Mile,1,Big-Sisterly
+evo,Blazing Brilliance,赫焉,,633.0,766.0,513.0,405.0,310.0,Medium/End,1,Reign
+evo,Assured Victory,確信された勝利,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,One and Only
+evo,Revolutionized Future,革新された未来,,633.0,766.0,513.0,405.0,310.0,Mile/Pace,1,One and Only
+evo,Unconcealed Brilliance,隠せぬ輝き,,633.0,696.0,570.0,506.0,443.0,Late,1,Lie in Wait
+evo,Crossroads of Revolution,革命の岐路,,633.0,,,,,,1,Exquisite Timing
+evo,Revolutionary Presence,革命をもたらす威容,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,One-shot
+evo,March of the Opera King,歌劇王の行進,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Unclouded Noble Path,陰りなき王道,,633.0,696.0,570.0,506.0,443.0,Long,1,Dominator
+evo,Winter's Beauty Under the Waning Moon,下弦の雪月花,,633.0,696.0,570.0,506.0,443.0,Mile,1,Corner Connoisseur
+evo,風上に立て,,,394.0,433.0,355.0,315.0,276.0,Mile/Medium,1,Big-Sisterly
+evo,Glutton of Kasamatsu,笠松の食いしん坊,,633.0,696.0,570.0,506.0,443.0,Pace,1,Gourmand
+evo,"Follow the Wind, Follow the Water",風まかせ、お湯まかせ,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Floating with the Tide
+evo,Victory Path Domination,勝ち筋ドミネーション,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Unshakable Stance
+evo,I Really Wanna Win!,勝ちたいんだもん！,,394.0,,,,,,1,Center Stage
+evo,Blasting Off!,かっ飛ばすわよ！,,633.0,696.0,570.0,506.0,443.0,Mile,1,Changing Gears
+evo,Craving Monster,渇望する怪物,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Monster
+evo,Pupil of Possibility,可能性の徒,,633.0,696.0,570.0,506.0,443.0,Medium,1,Dominator
+evo,Godly Runner's Wisdom,神逃げの心得,,633.0,696.0,570.0,506.0,443.0,Long,1,Vanguard Spirit
+evo,Divine Crossing,神渡し,,633.0,696.0,570.0,506.0,443.0,Pace,1,Winds of Change
+evo,Spurring Emotions,駆り立てる想い,,633.0,696.0,570.0,506.0,443.0,End,1,Encroaching Shadow
+evo,Be Majestic,華麗であれ,,633.0,696.0,570.0,506.0,443.0,Late,1,Dignified
+evo,Brilliant Serving,華麗なサーブ,,588.0,647.0,529.0,470.0,412.0,Front,1,Gale Slash
+evo,#WannaGetCurren'd?,＃カレンに染まってみる？,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Adored by All
+evo,Hungry Wolf's Fang,餓狼牙,,633.0,,,,,,1,In Body and Mind
+evo,#Cute Perturbation♪,＃カワイイかく乱♪,,394.0,433.0,355.0,315.0,276.0,Pace,1,Dazzling Disorientation
+evo,Tourism Ambassador's Prestige,観光大使の面目躍如！,,633.0,,,,,Dirt,1,Trending in the Charts!
+evo,Hometown Medley,感謝のふるさとメドレー,,758.0,834.0,682.0,606.0,531.0,Pace,1,Call & Response
+evo,Shrine Maiden's Dance,神薙ダンス,,633.0,766.0,513.0,405.0,310.0,Mile/Front,1,Preeminent
+evo,Guess I've Gotta Try,頑張るしかないよね,,633.0,696.0,570.0,506.0,443.0,Medium,1,Dominator
+evo,I'll Do My Beeest!,がんばるぞー…おー！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Trying My Best!,がんばるもん！,,394.0,433.0,355.0,315.0,276.0,Late,1,Hard Worker
+evo,Perfect Bugfixing Technique,完璧なエラー対処術,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,Unforgettable Step,記憶に刻む足取り,,633.0,696.0,570.0,506.0,443.0,Sprint,1,In High Spirits
+evo,Menacing Presence,鬼気森然,,633.0,696.0,570.0,506.0,443.0,End,1,Sleeping Lion
+evo,First Step To Recovery,起死回生の一歩,,633.0,696.0,570.0,506.0,443.0,Medium,1,From the Brink
+evo,Recovery Output,起死回生の出力,,633.0,696.0,570.0,506.0,443.0,Medium,1,From the Brink
+evo,North Wind Kick,北風一蹴,,633.0,696.0,570.0,506.0,443.0,Long,1,Blast Forward
+evo,Lucky Omen!,吉兆です！,,394.0,433.0,355.0,315.0,276.0,Long,1,Illusionist
+evo,You'll fly for sure!,きっと飛べる！,,633.0,696.0,570.0,506.0,443.0,Medium,1,Come What May
+evo,Hope Comes Around,希望は巡る、何度でも,,416.0,458.0,374.0,333.0,291.0,Mile/Medium,1,The Future in My Hands
+evo,Curely Heal,キュアリーヒール,,633.0,696.0,570.0,506.0,443.0,Long,1,Cooldown
+evo,Emergency! Hero on the Scene!,急行！ヒーロー参上！,,633.0,696.0,570.0,506.0,443.0,Late,1,Fast & Furious
+evo,Marvelous Momentum☆,ギュンギュンのマーベラス☆,,633.0,,,,,,1,Elated
+evo,Dawnborne,暁光背負いて,,633.0,766.0,513.0,405.0,310.0,Medium/Front,1,Gallant Figure
+evo,Snow Fluttering Through the Corner,曲線に舞う深雪,,633.0,,,,,,1,Corner Connoisseur
+evo,Curve Grand Chef,曲線のグランシェフ,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Corner Connoisseur
+evo,Sparkle ☆ Dolly Stage,煌めき☆ドーリィステージ,,633.0,696.0,570.0,506.0,443.0,Late,1,Luminescence
+evo,Dazzling Illusion,煌めきのイリュージョン,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,Hot Pursuit
+evo,Sparkling Contest,キラメキの勝負,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Battle for Initiative
+evo,Glittering Top Star,煌めきのトップスタァ,,633.0,696.0,570.0,506.0,443.0,Pace,1,Speed Star
+evo,煌めくキセキを,,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,Beyond the Milky Way With You,銀河のその先へ、あなたと,,633.0,696.0,570.0,506.0,443.0,Medium,1,Come What May
+evo,緊急重版,,,633.0,696.0,570.0,506.0,443.0,Front,1,一世一代
+evo,Emergency Magic Boost,緊急魔力ブースト,,633.0,696.0,570.0,506.0,443.0,End,1,Undivided Focus
+evo,Cool Gaze,クールな視線,,633.0,696.0,570.0,506.0,443.0,Late,1,All-Seeing Eyes
+evo,Leave the Dark Nights to Me!,暗い夜道もお任せを！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Breaking Free
+evo,Grand Jeté,グラン・ジュッテ,,633.0,696.0,570.0,506.0,443.0,End,1,Relentless Approach
+evo,First-hand Christmas Miracle,クリスマスの奇跡体験,,633.0,696.0,570.0,506.0,443.0,Long,1,Innate Experience
+evo,Crimson Over-revving,紅蓮のオーバーレブ,,633.0,696.0,570.0,506.0,443.0,Mile,1,Step on the Gas!
+evo,Black Flash,黒い閃光,,633.0,696.0,570.0,506.0,443.0,Medium,1,Flash Forward
+evo,Overclocking,クロックアップ,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Black Assassin,黒の刺客,,633.0,696.0,570.0,506.0,443.0,Long,1,Cooldown
+evo,Respect! Uma Mania!,敬愛ッ！ウママニア,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Superstan
+evo,Scheduled Cooldown,計画的クールダウン,,633.0,696.0,570.0,506.0,443.0,Long,1,Cooldown
+evo,Torment,刑苦,,633.0,696.0,570.0,506.0,443.0,Long,1,Innate Experience
+evo,Hype☆Roadmap,激アツ☆ロードマップ,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Pathfinder
+evo,Steadfast Determination,決意の根性娘,,394.0,433.0,355.0,315.0,276.0,Pace,1,Determined Descent
+evo,Determined Hero,決意のヒーロー,,394.0,433.0,355.0,315.0,276.0,Pace,1,Determined Descent
+evo,In Ninefold Bloom,けふ九重に満開です,,508.0,,,,,,1,Spring Spectacle
+evo,Uma Mania Max,限界ウママニア,,633.0,,,,,,1,Superstan
+evo,World of Marvels,玄界領域,,633.0,766.0,513.0,405.0,310.0,Long/End,1,Clean Sweep
+evo,All or Nothing,乾坤一擲の大博打,,394.0,,,,,,1,Nothing Ventured
+evo,Steady Stratagem,堅実なる秘策,,633.0,696.0,570.0,506.0,443.0,Late,1,Thorough Preparation
+evo,Dazzling Luxon,眩耀のルクシオン,,633.0,696.0,570.0,506.0,443.0,Pace,1,Unstoppable
+evo,Vanguard's Limelight,嚆矢の花道,,633.0,696.0,570.0,506.0,443.0,Pace,1,Curtain Closer
+evo,FTL Particle,光速を超える粒子,,633.0,766.0,570.0,506.0,443.0,Medium/Pace,1,Gamma Ray Burst
+evo,Emperor's Gaze,皇帝の眼差し,,633.0,696.0,570.0,506.0,443.0,Medium,1,Dominator
+evo,Unparalleled Bravery,豪勇無双,,633.0,696.0,570.0,506.0,443.0,Mile,1,Furious Feat
+evo,Efficient Recreation,効率的休息法,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,The Yellow Dragon Ascends,黄龍、天へと昇る,,633.0,,,,,Dirt,1,Sum of Small Efforts
+evo,Centurial Overlord Descends!,降臨！世紀末覇王！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Speed Star
+evo,Going My Way,ゴーイングマイウェイ,,633.0,,,,,,1,Unruffled
+evo,Opera King's Corner Theatrics,コーナーに舞い降りし歌劇王,,633.0,696.0,570.0,506.0,443.0,Long,1,Swinging Maestro
+evo,Coffee Break,コーヒーブレイク,,633.0,696.0,570.0,506.0,443.0,Late,1,Relax
+evo,Now's the Time to Go Wild!,ここ、カマしどきっしょ！,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Check
+evo,Not Gonna Miss This Chance☆,ここ、逃す手はないってね☆,,633.0,,,,,Dirt,1,Heroic Energy
+evo,Mid-Meal Seasoning!,ここらで味変！,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Exquisite Timing
+evo,Enthralling Glitter,心奪われる閃光,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Adored by All
+evo,With A Sparkling Heart!,ココロ、キラめくままに！,,633.0,,,,,,1,It's On!
+evo,Fervent Determination,心に灯す闘志,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Eagle-eyed,虎視眈々,,633.0,696.0,570.0,506.0,443.0,Late,1,Lie in Wait
+evo,Immolated Comet,己身焦がすほうき星,,633.0,696.0,570.0,506.0,443.0,End,1,Sturm und Drang
+evo,Archline Top Scholar,弧線のトップスカラー,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Professor of Curvature
+evo,Cockpit Magician,コックピット・マジシャン,,633.0,696.0,570.0,506.0,443.0,Front,1,Quick Work
+evo,Copano-style Rising Fortunes!,コパッと開運！,,633.0,,,,,Dirt,1,Victory Opportunity
+evo,Adamantine,金剛不壊,,633.0,696.0,570.0,506.0,443.0,Late,1,Lie in Wait
+evo,Condor Leap,コンドル跳躍術,,633.0,696.0,570.0,506.0,443.0,Mile,1,Furious Feat
+evo,Overcomer of Difficulties,困難を乗り越える者,,633.0,696.0,570.0,506.0,443.0,Medium,1,Trackblazer
+evo,"'ight, let's get em!",さあ、ウチとやろうや！,,633.0,,,,,,1,It's On!
+evo,さァさ、お立ち会い！,,,633.0,766.0,513.0,405.0,310.0,Long/End,1,Golden Opportunity
+evo,To the Ultimate Stage!,最高峰のステージに！,,633.0,,,,,Dirt,1,Trending in the Charts!
+evo,The Front Row Is Non-Negotiable!,最前列は譲れない！,,461.0,,,,,Dirt,1,Lead the Charge!
+evo,Fastest Top Gear,最速のトップギア,,633.0,696.0,570.0,506.0,443.0,Late,1,Top Gear
+evo,Perfect Concentration,最大集中,,461.0,,,,,,1,Concentration
+evo,The Bestest Princess,最っっっ高のプリンセス,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,Top Gear
+evo,Unobstructable,遮るものはない,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Furious Feat
+evo,Advancing Sakura Front!,桜前線進行中！,,633.0,696.0,570.0,506.0,443.0,Late,1,Keep Going!
+evo,"Now Then, Let's Conclude This",さて、収めに参りましょう,,633.0,766.0,513.0,405.0,310.0,Long/End,1,Relentless Approach
+evo,Surprise~Successful~☆,サプライズ大成功～☆,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,Salvia☆Splendens,サルビア☆スプレンデンス,,633.0,696.0,570.0,506.0,443.0,End,1,Petrifying Gaze
+evo,Summit Meal,山頂でイタダキマス,,633.0,696.0,570.0,506.0,443.0,Pace,1,Ultimate Hill Climber
+evo,Serving Victory Supreme,至高の勝利を召し上がれ,,633.0,,,,,,1,Supreme Downhiller
+evo,Blooming in Sickness and in Health,末永く、寄り添う花,,633.0,696.0,570.0,506.0,443.0,Mile,1,Supreme Downhiller
+evo,Perfect Preparation,仕込みは完璧,,633.0,696.0,570.0,506.0,443.0,Medium,1,Dominator
+evo,Step with Confidence,自信持って踏み出して,,633.0,696.0,570.0,506.0,443.0,Late,1,Dauntless
+evo,Silent Oath,静かな誓い,,633.0,696.0,570.0,506.0,443.0,End,1,Serenity
+evo,All Systems Green,システムオールグリーン,,758.0,834.0,682.0,606.0,531.0,Medium,1,Sharp-Witted Composure
+evo,Flawless Mise en Place!,下ごしらえ万全！,,461.0,507.0,415.0,369.0,323.0,Sprint,1,Perfect Prep!
+evo,Seven Heavenly Fortunes,七福即生,,394.0,,,,,,1,Super Lucky Seven
+evo,Ironclad,質実剛健,,633.0,766.0,513.0,405.0,310.0,Long/Late,1,Lose Yourself
+evo,Ahead of the Gale,疾風より先へ,,633.0,,,,,,1,Beeline Burst
+evo,Tail of Ecstasy,尻尾の有頂天,,633.0,,,,,,1,Tail Nine
+evo,Beat You to It!,してやったり！,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Simulation Glasses: ON,シミュレートグラス・オン,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Laser-Focused
+evo,Wild Onee-chan,じゃじゃウマお姉ちゃん,,633.0,696.0,570.0,506.0,443.0,Front,1,Restless
+evo,Conqueror of Banquets,祝宴の征服者,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Mile Maven
+evo,A Lady's Domain,淑女の独擅場,,633.0,696.0,570.0,506.0,443.0,Pace,1,Proof of Strength
+evo,Flower Girl's Blessing,祝福のフラワーガール,,633.0,696.0,570.0,506.0,443.0,Mile,1,Cyclone Slash
+evo,Sandstorm Wielder,熟練の砂塵使い,,633.0,,,,,Dirt,1,Master of the Sands
+evo,Ten Million Percent Output!!,出力1000万％！！,,633.0,696.0,570.0,506.0,443.0,Front,1,1000% Output!
+evo,Pure Love,純愛,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Pure Perfection
+evo,Champion's Composure,俊傑の悠,,633.0,696.0,570.0,506.0,443.0,Pace,1,Winds of Change
+evo,Treading the Spring Path,春道踏破,,633.0,696.0,570.0,506.0,443.0,Pace,1,Gamma Ray Burst
+evo,Snow White Whisper,純白のささやき,,633.0,696.0,570.0,506.0,443.0,Medium,1,Mystifying Murmur
+evo,"As Spring Blooms, the Sakura Dance",春風吹きて、桜舞う,,508.0,,,,,,1,Spring Spectacle
+evo,Seizing Victory,勝機到来,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Seize the Initiative
+evo,Crescent Moon Sommelier,上弦のソムリエール,,633.0,,,,,,1,Corner Connoisseur
+evo,The Empress' Pride,女帝の矜持,,394.0,433.0,355.0,315.0,276.0,Mile,1,Big-Sisterly
+evo,General's Swift Strike,将の疾刃,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Check
+evo,Gambler's Stratagem,勝負師の才略,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Tension and Release
+evo,Information Broker,情報強者,,633.0,696.0,633.0,633.0,633.0,Mile/Medium,1,Unshakable Stance
+evo,Ardent Desire for Victory,勝利に焦がれる激情,,633.0,696.0,570.0,506.0,443.0,Medium,1,Unyielding
+evo,Recipe of Victory,勝利のレシピ,,633.0,696.0,570.0,506.0,443.0,Medium,1,Dominator
+evo,Victory Roar,勝利への咆哮,,633.0,696.0,570.0,506.0,443.0,Medium,1,Unyielding
+evo,The Empress' Ploy,女帝の権謀,,394.0,433.0,355.0,315.0,276.0,Pace,1,Dazzling Disorientation
+evo,Sylphid Magia,シルフィード・マギア,,633.0,696.0,570.0,506.0,443.0,End,1,Unrivaled Wits
+evo,Sylph Spirit,シルフ・スピリット,,633.0,766.0,513.0,405.0,310.0,Mile/Pace,1,Winds of Change
+evo,Vow of White Cloth,白妙の約定,,633.0,696.0,570.0,506.0,443.0,Medium,1,Unwavering Ambition
+evo,No Holds Barred!,真剣勝負デス！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Perfect Composure,神色自若,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Butterfly Transformation Jutsu,神仙蝶変の術,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Monster
+evo,Mysterious Gold Ship Warp!,神秘体験！ゴルシワープ,,633.0,696.0,570.0,506.0,443.0,Long,1,Innate Experience
+evo,Dust Devil Manifest,塵旋風となりて,,633.0,696.0,570.0,506.0,443.0,Pace,1,Send It Flying!
+evo,Fierce as Fire,侵掠如火,,633.0,696.0,570.0,506.0,443.0,Medium,1,Burning Soul
+evo,"Moonlit Water, Mirror Flower",水月鏡花,,394.0,,,,,,1,Lane Legerdemain
+evo,Comet-Colored Flutter,彗星色の羽搏き,,394.0,433.0,355.0,315.0,276.0,Sprint,1,Thunderflash
+evo,Flasks Up,スキットルブレイク,,633.0,,,,,,1,Breath of Fresh Air
+evo,Marvelous World Plan☆,進め！世界マーベラス計画☆,,461.0,,,,,,1,No Stopping Me!
+evo,Aiming for Stardom!,スターダムを目指して！,,633.0,,,,,,1,In the Right Place!
+evo,Stay Tuned,ステイチューン！,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Streaming ♡ Rush,ストリーミング♡ラッシュ,,668.0,809.0,541.0,427.0,328.0,Medium/Late,1,Straight Heart
+evo,Sincere-Hearted Radiance,誠心たる光燿,,633.0,696.0,570.0,506.0,443.0,End,1,Reign
+evo,The Right Path,正道,,633.0,696.0,570.0,506.0,443.0,Long,1,Headliner
+evo,Heavenly Road of the Holy Night,聖夜の天路,,633.0,696.0,570.0,506.0,443.0,Late,1,Thousand-Mile Journey
+evo,There's No Way I'll Lose!,ぜーったい負けられない！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Let Me Win Pleeease ♥,ぜーったい譲って♡,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,Neck and Neck
+evo,World-wide Supreme Brilliance,世界を貫く至高の輝き,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Lightning Flash
+evo,World-Captivating Brilliance,世界を魅せる輝き,,633.0,,,,,,1,In Body and Mind
+evo,Snowflake Pursuit,雪華の追い上げ,,633.0,696.0,570.0,506.0,443.0,Long,1,Overwhelming Pressure
+evo,Absolute Center!,絶対的センター！,,633.0,,,,,Dirt,1,Aim for the Center!
+evo,Moment's Readiness,刹那への覚悟,,633.0,696.0,570.0,506.0,443.0,Medium,1,Come What May
+evo,Imminent Twilight,迫りくる宵闇,,633.0,696.0,570.0,506.0,443.0,End,1,Encroaching Shadow
+evo,Zero Latency,ゼロレイテンシ,,633.0,,,,,,1,Soaring Stride
+evo,Prescience,先見の明,,633.0,696.0,570.0,506.0,443.0,Mile,1,Keen Eye
+evo,Flash Dash!,閃光一走！,,633.0,766.0,513.0,405.0,310.0,Sprint/Front,1,Lightning Flash
+evo,Flash Torrent,閃光の奔流,,633.0,696.0,570.0,506.0,443.0,Late,1,Keep Going!
+evo,Flash Magier,閃光のマギア,,394.0,,,,,,1,Lane Legerdemain
+evo,Slash of a Thousand Trials,千辛万苦切り裂く刃,,633.0,696.0,570.0,506.0,443.0,Pace,1,Bravery Slash
+evo,"Full Speed Ahead, Nanoda!",全速前進なのだ！,,633.0,,,,,Dirt,1,Full Speed Ahead!
+evo,Ode to Our Predecessors,先達に献ぐ祈りの頌,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Lead-Preserving Algorithm,先頭維持アルゴリズム,,633.0,696.0,570.0,506.0,443.0,Front,1,Top Runner
+evo,Ten Million Horsepower!!!,千万バリキ！！！,,394.0,433.0,355.0,315.0,276.0,Late,1,"15,000,000 CC"
+evo,Full Power Santa Claus,全力サンタクロース,,633.0,,,,,,1,In Body and Mind
+evo,Full-Power Pitch,全力投球,,633.0,,,,,,1,In Body and Mind
+evo,All-Out Excitement!!,全・力・ワク・ワク！！,,633.0,696.0,570.0,506.0,443.0,Medium,1,Elated
+evo,滄海を超えしフーガ,,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,創生の一頁,,,633.0,696.0,570.0,506.0,443.0,Pace,1,To the Stage of Dreams
+evo,Exactly As Planned,想定通り、余裕十分,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Sky-Striding Ráfaga,蒼天を駆けるラーファガ,,394.0,433.0,355.0,315.0,276.0,Medium,1,Further Than Anyone
+evo,Three-Star Cornering,即席三ツ星コーナリング,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Lightning Slash
+evo,End of Sky,空の果てまで,,633.0,,,,,,1,Beeline Burst
+evo,Turf Protagonist,ターフの主人公,,508.0,,,,,Turf,1,Firm Course Menace
+evo,Keep Up with Turbo!,ターボについてこーい！,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Easygoing Grand Voyage,大航海、飄々と,,633.0,766.0,570.0,506.0,443.0,Medium/Front,1,1000% Output!
+evo,Nature's Rhythm,大自然の鼓動,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Ground-Shaking Geyser,大地轟く大噴湯,,633.0,,,,,Dirt,1,Earthshaker
+evo,The Dazzling Umadol's Here★,大注目のウマドル参上★,,394.0,,,,,,1,Center Stage
+evo,Earth-Shaking Dash,大地を揺るがす疾走,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,In Body and Mind
+evo,Big Comeback,大どんでんがえし,,633.0,696.0,570.0,506.0,443.0,Medium,1,From the Brink
+evo,One-On-One Obsession,タイマンにかける執念,,633.0,696.0,570.0,506.0,443.0,Medium,1,Unyielding
+evo,Large-Petaled Resolution,大輪の決意,,394.0,433.0,355.0,315.0,276.0,Pace,1,Determined Descent
+evo,高嶺の艷笑,,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Ascendance
+evo,Falcon Eyes,鷹ノ目,,394.0,433.0,355.0,315.0,276.0,Medium,1,Clairvoyance
+evo,Stirring Flame,昂る焔,,633.0,,,,,,1,It's On!
+evo,It's Getting Exciting!!,高まってきたぜぇ！！,,633.0,696.0,570.0,506.0,443.0,Long,1,Elated
+evo,Cultivation Sprint!,耕せ！開墾スプリント,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Turbo Sprint
+evo,Now I'm Hyped!!,たぎってきたぁ～～っ！！,,633.0,,,,,Dirt,1,It's On!
+evo,Phantom Technician,巧みなるファントム,,394.0,476.0,320.0,252.0,193.0,Medium/Pace,1,Technician
+evo,The Fierce Beast Howls at the Sun,猛き獣は太陽に吼える,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Monster
+evo,Taking Center Stage!,立ち位置ゼロ番！,,461.0,,,,,,1,Concentration
+evo,Operation Escape,脱出大作戦,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,奪目の宙返り,,,634.0,697.0,571.0,507.0,444.0,Medium/Long,1,Seamless
+evo,Traveler's Knowledge,旅の心得,,633.0,766.0,513.0,405.0,310.0,Long/Late,1,Curiosity
+evo,Soul Guide,魂の導き手,,633.0,,,,,,1,Swinging Maestro
+evo,Tireless Effort,たゆまぬ努力,,394.0,433.0,355.0,315.0,276.0,Late,1,Hard Worker
+evo,Untold Vow,誰にも告げぬ誓い,,758.0,834.0,682.0,606.0,531.0,Medium,1,Unshackled Passion
+evo,ダンス・デ・レペ,,,633.0,696.0,570.0,506.0,443.0,Medium,1,Refraction Arc
+evo,Strike of an Oath,誓いの一振り,,633.0,766.0,513.0,405.0,310.0,Medium/End,1,Unrivaled Wits
+evo,Beyond the Horizon,地平の彼方まで,,633.0,696.0,570.0,506.0,443.0,Medium,1,Miraculous Step
+evo,Charm Magic,チャームマジック,,633.0,696.0,570.0,506.0,443.0,End,1,Petrifying Gaze
+evo,Let's Get Cracking!,ちゃちゃっと始めんで！,,633.0,696.0,570.0,506.0,443.0,Late,1,Fast & Furious
+evo,Faithful Veillantif,忠心のヴェイヤンティフ,,633.0,696.0,570.0,506.0,443.0,End,1,Undivided Focus
+evo,Super Express Submission!,超特急入稿！,,633.0,,,,,,1,It's On!
+evo,Guidance of the Sea Breeze,潮風の導き,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Ascendance
+evo,Collecting Little Joys,ちょっといいこと、集めて,,633.0,696.0,570.0,506.0,443.0,Late,1,Thousand-Mile Journey
+evo,Red-hot Rush! Bakushin Road!,猪突猛進！バクシンロード！,,633.0,696.0,570.0,506.0,443.0,Sprint,1,In High Spirits
+evo,Reminiscent Träumerei,追想のトロイメライ,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Plunge into the Northern Sea,突き進め北の海,,633.0,696.0,570.0,506.0,443.0,Pace,1,Stamp on the Ground
+evo,Undying Flame,尽きぬ炎,,633.0,696.0,570.0,506.0,443.0,Mile/Long,1,Fruits of Labor
+evo,The Art of Photobombing,辻映りの妙技,,633.0,766.0,513.0,405.0,310.0,Sprint/Front,1,Quick Work
+evo,Connecting Elation,繋がる高揚感,,633.0,696.0,570.0,506.0,443.0,Medium,1,Elated
+evo,Pursuing Greater Brilliance,常に最たる輝きを,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Lightning Speed
+evo,Tiara Dive!,ティアラ・ダイブ！,,394.0,433.0,355.0,315.0,276.0,Pace,1,Determined Descent
+evo,Teio Step,帝王ステップ,,461.0,507.0,415.0,369.0,323.0,Medium,1,Lightning Step
+evo,Delightful Memory,ディライトフルメモリー,,633.0,766.0,513.0,405.0,310.0,Medium/Pace,1,Speed Star
+evo,できる範囲で頑張ろ～！,,,633.0,696.0,570.0,506.0,443.0,Late,1,Relax
+evo,Desert Jewel's Allure,デザートジュエルに魅せられ,,633.0,696.0,570.0,506.0,443.0,Medium,1,Brilliant Mind
+evo,Hot-blooded Gambler,鉄火のギャンブラー,,633.0,,,,,,1,Gambler
+evo,Red-Hot Spark,鉄火花,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Keep Going!
+evo,Bred in the Bone,徹骨徹髄,,633.0,766.0,513.0,405.0,310.0,Sprint/Pace,1,Battle-Hardened
+evo,Thorough Planning,徹底管理プラン,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Race Planner
+evo,Beckoning Sugar Lantern,手招きシュガーランタン,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Don't Blink!
+evo,Pump It Up,テンアゲスタイル,,633.0,696.0,570.0,506.0,443.0,Long,1,Vanguard Spirit
+evo,Decisive Battle,天下分け目,,633.0,696.0,570.0,506.0,443.0,Late,1,Dauntless
+evo,Sky Drop,天空落とし,,394.0,433.0,355.0,315.0,276.0,Pace,1,Determined Descent
+evo,Electrifying Sweep,電撃の撫で切り,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Blinding Flash
+evo,Genius Technique,天才的技巧,,394.0,433.0,355.0,315.0,276.0,Pace,1,Technician
+evo,Unparalleled Bomber Runner,天上天下唯我爆走,,633.0,696.0,570.0,506.0,443.0,Medium,1,Surging Beat
+evo,Advent of the Legends,伝説降臨,,758.0,,,,,,1,Unpredecented Prodigy
+evo,Let Your Name Shake Heaven and Earth,天地を揺らせ君の名で,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Monster
+evo,Angelic Garment,天女の羽衣,,394.0,476.0,320.0,252.0,193.0,Mile/Front,1,Big-Sisterly
+evo,Gifted Grace,天賦の身ごなし,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Heavenly Little Sister,天来のリトルシスター,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Supreme Downhiller
+evo,Demon of Tokyo,闘叫の鬼,,633.0,696.0,570.0,506.0,443.0,Medium,1,Surging Beat
+evo,Refueled Fighting Spirit,闘魂注入,,394.0,,,,,,1,Big-Sisterly
+evo,Fiery Cake-Cutting!,闘魂入刀！,,633.0,766.0,513.0,405.0,310.0,Medium/End,1,Unrivaled Wits
+evo,Revived For Moe!,尊みを求めてふっかーーつ！,,633.0,,,,,Dirt,1,Redoubled Efforts
+evo,Dono di Flora!,ドーノ・ディ・フローラ！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Blooming
+evo,Gluttonous Regimen,ドカ食い養生,,633.0,696.0,570.0,506.0,443.0,Pace,1,Gourmand
+evo,Dazzling☆Wild Girl,ドキッ☆じゃじゃウマ娘！,,633.0,696.0,570.0,506.0,443.0,Front,1,Restless
+evo,Gale Rush!,突風一駆！,,633.0,766.0,513.0,405.0,310.0,Sprint/Front,1,Gale Flash
+evo,Top Princess!,トップ・オブ・ザ・姫！,,633.0,696.0,570.0,506.0,443.0,Late,1,Top Gear
+evo,Tempestuous Attack,怒涛の出陣,,633.0,696.0,570.0,506.0,443.0,Long,1,Overwhelming Pressure
+evo,Tempestuous Speed,怒涛のスピード,,633.0,696.0,570.0,506.0,443.0,Pace,1,Speed Star
+evo,Tempestuous Ultra Luck Power!,怒涛の超幸運パワー！,,633.0,696.0,570.0,506.0,443.0,Long,1,Overwhelming Pressure
+evo,Tempestuous Pororoca,怒濤のポロロッカ,,633.0,696.0,570.0,506.0,443.0,End,1,Sturm und Drang
+evo,Lucky Mad Rush!,怒涛のラッキー大猛進！,,633.0,696.0,570.0,506.0,443.0,Long,1,Overwhelming Pressure
+evo,"Sheepy, Go!",飛び出せSheepy!,,633.0,696.0,570.0,506.0,443.0,Pace,1,Breakaway!
+evo,Feast of Tomakomai,苫小牧グルメで舌鼓！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Trionfo,トライアンフ,,633.0,696.0,570.0,506.0,443.0,Late,1,Dignified
+evo,Trick & Treat,トリック＆トリート,,633.0,,,,,,1,Tantalizing Trick
+evo,Just Do It!,とりまやったれ～！,,633.0,696.0,570.0,506.0,443.0,Mile,1,Reckless
+evo,Ahead of the Trend☆,トレンド先取り,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Trend Planner,トレンドプランナー,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Race Planner
+evo,Mud Demon Lord,泥んこ魔王様,,586.0,,,,,Dirt,1,Mud Master
+evo,Shooting Star's Trail,流れ星の軌跡,,633.0,766.0,513.0,405.0,310.0,Mile/Pace,1,Speed Star
+evo,Beach Cutey Umamusume,渚の激マブウマ娘,,633.0,766.0,513.0,405.0,310.0,Mile/Front,1,Restless
+evo,Summer Star,夏の名優,,633.0,696.0,570.0,506.0,443.0,Long,1,Headliner
+evo,Solitary Getaway,逃げっ切りの1人旅,,633.0,696.0,570.0,506.0,443.0,Front,1,Untouchable Shadow
+evo,Run~Away~♪,逃げろ～♪,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,Recognition: Trending!,認知度、急上昇！,,394.0,433.0,355.0,315.0,276.0,Pace,1,All-Out Effort
+evo,Drawing a Neon Trail,ネオンの尾を引いて,,758.0,917.0,614.0,485.0,372.0,Long/Pace,1,Ahead of the Game
+evo,Hot-blooded Riding!,熱血進化ライディング！,,633.0,696.0,570.0,506.0,443.0,Late,1,On Your Left!
+evo,Passionate Engagement!,熱烈エンゲージ！,,633.0,696.0,570.0,506.0,443.0,End,1,Daring Strike
+evo,Sharpshooting!,狙い撃ちデス！,,633.0,696.0,570.0,506.0,443.0,Mile,1,Changing Gears
+evo,Aim for the Front and Center!,狙うは最前ドセンへの道！,,519.0,571.0,467.0,415.0,363.0,Medium,1,Lead the Charge!
+evo,Noise Cancellation,ノイズキャンセリング,,586.0,645.0,527.0,469.0,410.0,Long,1,Stamina Siphon
+evo,Nox Lumina,ノクス・ルミナ,,633.0,766.0,513.0,405.0,310.0,Medium/End,1,Unrivaled Wits
+evo,Get Those Vibes Up!,ノってこ！,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,On Your Left!
+evo,Hop On ☆ Hype Train,乗っとけ☆ぶち上げペース,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Straight Heart
+evo,Rising Condor,昇りコンドル,,633.0,696.0,570.0,506.0,443.0,Late,1,Rising Dragon
+evo,Non-stop Cheer,ノンストップエール,,461.0,,,,,,1,No Stopping Me!
+evo,Non-stop Princess,ノンストッププリンセス,,461.0,,,,,,1,No Stopping Me!
+evo,Perfect Tune,パーフェクトチューン,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Perfect Boot,パーフェクトブート,,461.0,,,,,,1,Concentration
+evo,Pearl-style Dance Battle,パール流ダンスバトル,,394.0,433.0,355.0,315.0,276.0,Sprint/Mile,1,Big-Sisterly
+evo,High Society Mentality!,ハイソ・メンタリティ！,,633.0,696.0,570.0,506.0,443.0,Late,1,Dauntless
+evo,Until Only Ashes Remain,灰と化すまで,,633.0,696.0,570.0,506.0,443.0,Mile,1,Ardour
+evo,The Ashen Monster,灰の怪物,,633.0,766.0,513.0,405.0,310.0,Mile/Pace,1,Monster
+evo,Bakushin Sprint!,バクシン的スプリント！,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Turbo Sprint
+evo,Bakushin Lead!,バクシン的リード！,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Staggering Lead
+evo,Bakushin! Bakushin! Bakushiiin!,驀進！爆進！バクシーン！,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Lightning Flash
+evo,爆走猛姫✩急転直下！！,,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Supreme Downhiller
+evo,Blast Flash,爆風一閃！,,633.0,696.0,570.0,506.0,443.0,Long,1,Blast Forward
+evo,Fanservice For You☆,爆レスあげちゃう☆,,758.0,834.0,682.0,606.0,531.0,Front,1,Call & Response
+evo,ハジける風雲児,,,633.0,696.0,570.0,506.0,443.0,Pace,1,ハジける闘志
+evo,Waveriding Finale,波上のラストトリック,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,Moment of Opportunity
+evo,Hot Spring Dash,走り湯ダッシュ,,633.0,,,,,,1,See Ya Later!
+evo,Lucky Race Charm,走る縁起物,,508.0,,,,,Dirt,1,Exchange Races Demon
+evo,Supple Land,弾む大地,,633.0,696.0,570.0,506.0,443.0,End,1,Encroaching Shadow
+evo,Unstoppable Muscles,破竹の筋肉,,633.0,696.0,570.0,506.0,443.0,Mile,1,Full of Vigor
+evo,Unrivaled Strides,抜群の豪脚,,633.0,696.0,570.0,506.0,443.0,Mile,1,Furious Feat
+evo,Hakkeyoi!,はっけよい！,,633.0,766.0,513.0,405.0,310.0,Sprint/Pace,1,Gourmand
+evo,"First Sky, Flower Feast",初空高く、花宴,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Stout-Hearted
+evo,First-hand Rising Fortune!,ばっちり開運体験！,,633.0,696.0,570.0,506.0,443.0,Long,1,Innate Experience
+evo,Starboard Till the End,果てへの面舵,,508.0,,,,,,1,Right-Handed Demon
+evo,Dope Stuff!,パないっしょ？,,633.0,,,,,,1,See Ya Later!
+evo,Chasing Mother's Likeness,母の面影を追って,,633.0,696.0,570.0,506.0,443.0,Medium,1,Elated
+evo,Hungry Commander,はらぺこ大将,,633.0,696.0,570.0,506.0,443.0,Pace,1,Gourmand
+evo,When the Clock Hands Cross,針が交わる時,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,Curiosity
+evo,Spring Awakened: Lumière,春めき、Lumière,,633.0,766.0,513.0,405.0,310.0,Long/Late,1,Hot Pursuit
+evo,Barrel Roll,バレルロール,,633.0,,,,,,1,Swinging Maestro
+evo,Playful Revelry,盤楽遊嬉,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Thousand Mile Cheer!,万里飛び越えソイヤッ！,,633.0,766.0,513.0,405.0,310.0,Long/Front,1,"One Sky, One Goal"
+evo,Thousand Mile Shout,万哩へ響け大歓声,,633.0,,,,,Turf,1,Carefree Stride
+evo,Scarlet Radiance,緋色の光となって,,633.0,766.0,513.0,405.0,310.0,Long/Front,1,Restless
+evo,Shining Sword,光輝く剣,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Refraction Arc
+evo,Firefighter's Hashigo-nori,火消の梯子登り,,633.0,,,,,,1,Tail Nine
+evo,Subject Observation,被験体観察,,633.0,,,,,,1,Superstan
+evo,"Give Your All, Star of Tomakomai!",ひた走れ！苫小牧の星,,633.0,,,,,Dirt,1,Trending in the Charts!
+evo,Single-Minded Santa Claus,ひたむきサンタクロース,,633.0,696.0,570.0,506.0,443.0,Pace,1,Single-Minded
+evo,Special Move! Explosive Sprint!,必殺！爆速スプリント！,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Turbo Sprint
+evo,Special Move: Lightning Kiiick!,必殺・雷電キーック！,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Blinding Flash
+evo,Victory Pitch-Up,必勝のピッチアップ,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Preamble of Victory!,必勝の前口上！,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Secret Onsen Power,秘湯より湧くチカラ,,633.0,696.0,570.0,506.0,443.0,Late/End,1,Proven Mettle
+evo,Let's Bloom in the Moment!,一花咲かせましょう！,,633.0,766.0,513.0,405.0,310.0,Long/Late,1,In One Fell Swoop
+evo,Guts of the Rising Sun,日之本一のド根性,,633.0,696.0,570.0,506.0,443.0,Long,1,Best in Japan
+evo,#Beauty Sprint,＃ビューティースプリント,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Turbo Sprint
+evo,Melting of the Icy Star,氷星融解,,633.0,696.0,570.0,506.0,443.0,Medium,1,Tension and Release
+evo,Door of Dreams,開かれる夢の扉,,633.0,696.0,570.0,506.0,443.0,Front,1,Untouchable Shadow
+evo,Fast Retrieve,ファストリトリーブ,,633.0,696.0,570.0,506.0,443.0,Long,1,Vanguard Spirit
+evo,To the Finale's Forefront,フィナーレの先頭へ,,633.0,696.0,570.0,506.0,443.0,Late,1,On Your Left!
+evo,Flurry Dash,風花疾走,,633.0,,,,,,1,Beeline Burst
+evo,Gateway To Discipline,風紀の登龍門,,633.0,696.0,570.0,506.0,443.0,Late,1,Rising Dragon
+evo,Noble Hardships,風霜高潔,,508.0,,,,,,1,Fall Frenzy
+evo,Indomitable Dame,不屈のお嬢様,,633.0,,,,,,1,Indomitable
+evo,Unyielding Survivalist Spirit,不屈のサバイバル魂,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Never Give Up
+evo,Proof of Indomitability,不屈の証明,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Unyielding Tenacity
+evo,Dormant Dragon's Rise,伏竜は目覚めて,,633.0,766.0,513.0,405.0,310.0,Medium/Front,1,The Fight's Not Over Yet!
+evo,Conviction,不退転の意思,,633.0,696.0,570.0,506.0,443.0,Late,1,On Your Left!
+evo,When Our Promise Comes True,ふたりの約束、とどく時,,633.0,696.0,570.0,506.0,443.0,End,1,Mettlesome
+evo,I'll Leave You in the Dust!,ぶっ差してやるぜ！,,461.0,,,,,,1,No Stopping Me!
+evo,Indomitable Limit Breaker,不撓のLimit Breaker,,633.0,696.0,570.0,506.0,443.0,End,1,Complete Combustion
+evo,Indomitable Queen,不撓不屈の女王,,633.0,696.0,633.0,633.0,633.0,Mile,1,Never Give Up
+evo,Behold My Courageous Advance,踏み出す勇気をご覧あれ,,633.0,,,,,,1,Supreme Downhiller
+evo,ブラッシュアップ！,,,633.0,696.0,570.0,506.0,443.0,Front,1,インスピレーション
+evo,Geyser Spirit,噴泉スピリット,,633.0,696.0,570.0,506.0,443.0,Pace,1,Surging Spirit
+evo,Thunderclap,霹靂閃電,,633.0,766.0,513.0,405.0,310.0,Mile/Late,1,Lightning Speed
+evo,Doing My Best!,ベストを尽くして！,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,In Body and Mind
+evo,Whack Them Silly!,ベッコベコに凹ます！,,633.0,,,,,Dirt,1,Stamp on the Ground
+evo,After-School Magical Girl,放課後魔法少女,,633.0,696.0,570.0,506.0,443.0,End,1,Go-Home Specialist
+evo,Bono-style Gluttony,ボーノな健啖家,,633.0,696.0,570.0,506.0,443.0,Pace,1,Gourmand
+evo,I Won't Fall Behind!,ボクは遅れずにやってくる！,,633.0,696.0,570.0,506.0,443.0,Long,1,Headliner
+evo,Betting My Pride,誇りを懸けて,,633.0,,,,,,1,In Body and Mind
+evo,Positive Smile,ポジティブスマイル,,633.0,696.0,570.0,506.0,443.0,Late,1,Lie in Wait
+evo,Crossing the Sea of Stars,星の海を駆けて,,633.0,696.0,570.0,506.0,443.0,Medium,1,Luminescence
+evo,Surging Crescent Moon,迸る月流星,,633.0,696.0,570.0,506.0,443.0,Medium,1,Refraction Arc
+evo,"'kay then, let's get movin'!",ほな、行くで！,,633.0,,,,,,1,It's On!
+evo,En l'Air,邁進アン・レール,,633.0,,,,,,1,Never Give Up
+evo,マイル神、爆✩誕,,,633.0,696.0,570.0,506.0,443.0,Mile,1,Mile Maven
+evo,I Don't Want to Lose!,負けたくない！,,633.0,696.0,570.0,506.0,443.0,Medium,1,Burning Soul
+evo,I Won't Lose!,まけないからね！,,633.0,,,,,,1,Indomitable
+evo,Big Comeback Time!?,まさかここから大逆転！？,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,From the Brink
+evo,Hella Vibes Up!,マジ爆上げっしょ！,,633.0,696.0,570.0,506.0,443.0,Mile,1,Changing Gears
+evo,Constant Refinement,磨穿鉄硯,,633.0,,,,,,1,Never Give Up
+evo,Not Done Yet!,まだまだだよ！,,633.0,,,,,,1,Iron Will
+evo,Muscle Anthem,マッスルアンセム,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Festival Shout!,祭りだワッショイ！,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Midsummer Resolution,真夏の思い切り,,633.0,696.0,570.0,506.0,443.0,Late,1,Fast & Furious
+evo,Midsummer Commander,真夏の総大将,,633.0,,,,,,1,It's On!
+evo,Marine Blue Liner,マリンブルー・ライナー,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Send It Flying!
+evo,Clockwise Rondo,右回りの輪舞曲,,508.0,,,,,,1,Right-Handed Demon
+evo,Riding the Mistral,ミストラルに乗って,,633.0,696.0,570.0,506.0,443.0,Sprint/Mile,1,Rushing Gale!
+evo,I'll Show You!,見せつけてやる！,,633.0,696.0,570.0,506.0,443.0,End,1,Breakthrough
+evo,Fuel Up ☆ Pumpkin Power!,満たせ☆ぱんぷきんパワー！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Trials into the Unknown,未知へのトライアル,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,Long Haul
+evo,Seeking the Unknown,『未知』を求めて,,633.0,,,,,Dirt,1,Pioneer of the Sands
+evo,Keep Your Eyes on Me,『見ていて、くださいね』,,633.0,696.0,570.0,506.0,443.0,Pace,1,Breaking Free
+evo,"Look At Me, Look!",見てて見てて！,,394.0,,,,,,1,Center Stage
+evo,Captivating Cornering,見惚れるコーナリング,,633.0,,,,,,1,Tantalizing Trick
+evo,Unfinished Journey,見果てぬ旅路,,758.0,834.0,682.0,606.0,531.0,Late,1,To the Far Beyond
+evo,Trajectory to the Future,未来へ続く放物線,,633.0,696.0,570.0,506.0,443.0,Mile,1,Corner Connoisseur
+evo,Leap Towards The Future!,未来へ飛び立ちましょう！,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,Pioneering the Future!,未来を拓け！,,633.0,696.0,570.0,506.0,443.0,Mile,1,Reckless
+evo,Million Card,ミリオンカード,,633.0,696.0,570.0,506.0,443.0,Medium,1,From the Brink
+evo,Charming Cynical Girl,魅惑のシニカルガール,,633.0,696.0,570.0,506.0,443.0,Medium,1,Mystifying Murmur
+evo,Charming Mummy Whisper,魅惑のマミーウィスパー,,633.0,696.0,570.0,506.0,443.0,Medium,1,Mystifying Murmur
+evo,Realm of No-Self,無我の境地,,633.0,766.0,513.0,405.0,310.0,Long/Late,1,Lose Yourself
+evo,Limitless,無極,,633.0,696.0,570.0,506.0,443.0,Pace,1,Unstoppable
+evo,Musica Scintillante,ムジカ・シンティッランテ,,633.0,696.0,570.0,506.0,443.0,Medium,1,Luminescence
+evo,Peerless Pursuit,無双の追撃,,633.0,696.0,570.0,506.0,443.0,Pace/Late,1,Hot Pursuit
+evo,#Go Crazy♪,＃夢中になっちゃえ♪,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Adored by All
+evo,Reckless Passion,無二の情熱,,633.0,696.0,570.0,506.0,443.0,Mile,1,Reckless
+evo,Star's Composure,名優の余裕,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Goddess' Dust Bath,女神の砂浴び,,633.0,,,,,Dirt,1,Leisurely Dust Bath
+evo,Aim for the Leading Role!,目指せ！主人公！,,633.0,696.0,570.0,506.0,443.0,Late,1,All-Seeing Eyes
+evo,Mejiro's Wisdom,メジロの心得,,633.0,696.0,570.0,506.0,443.0,Long,1,Vanguard Spirit
+evo,Merry☆Christmas↑Party,メリ☆クリ↑パーリー,,758.0,917.0,614.0,485.0,372.0,Long/Front,1,Seriously☆Good↑Vibes
+evo,目を逸らしちゃダメだよ✩,,,394.0,,,,,,1,Center Stage
+evo,Fangs of Ferocity,猛襲の牙,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,Blitzing Spirit
+evo,One More Push!,もうひとけっぱり！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Unstoppable
+evo,Now I'm Fired Up!!,燃えてきたッ！！,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,It's On!
+evo,I Want To Be More Adventurous!,もっと冒険してみたい！,,633.0,696.0,570.0,506.0,443.0,Late,1,Dauntless
+evo,Story Weaver,物語を紡ぐ者,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,Pump-Up Pro,盛り上げ上手,,633.0,766.0,513.0,405.0,310.0,Medium/Late,1,On Your Left!
+evo,Morrígan's Spear,モリガンの矛戟,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Monster Machine,モンスターマシン,,633.0,766.0,513.0,405.0,310.0,Long/Pace,1,Monster
+evo,Layered Determination,八重の向こう意気,,633.0,696.0,570.0,506.0,443.0,Medium,1,Unyielding
+evo,Watch Me Do It!,やってみせるんだ！！,,633.0,,,,,,1,Reckless
+evo,Oopsy-Doopsy,やばしやばし！,,633.0,696.0,570.0,506.0,443.0,Medium,1,From the Brink
+evo,Yamato Nadeshiko,大和撫子,,633.0,696.0,570.0,506.0,443.0,Medium,1,Dominator
+evo,Conjuring Courage,勇気の魔法,,633.0,696.0,570.0,506.0,443.0,Late,1,Relax
+evo,Mystic Flame,幽玄の灯火,,633.0,696.0,570.0,506.0,443.0,Pace,1,Indomitable
+evo,Brave Advance,勇船直往,,633.0,696.0,570.0,506.0,443.0,Front/Pace,1,Furious Sprint
+evo,Heroic Radiance,勇躍閃々,,633.0,696.0,570.0,506.0,443.0,Pace,1,Valiant Flash
+evo,Seasoned Sledder's Swoop,雪国仕込みの直滑降,,394.0,433.0,355.0,315.0,276.0,Pace,1,Determined Descent
+evo,Smiling Behind Snowy Dusk,雪暗れに微笑む,,633.0,766.0,513.0,405.0,310.0,Long/End,1,Clean Sweep
+evo,Bathe in Moderation,湯に入りて湯に入らざれ,,633.0,,,,,,1,Exquisite Timing
+evo,Granting Dream-fulfilling Determination,夢叶える決意を授けましょう,,394.0,433.0,355.0,315.0,276.0,Pace,1,Determined Descent
+evo,Dream-fulfilling Sprint,夢叶える末脚,,633.0,,,,,,1,In Body and Mind
+evo,Trending Towards Your Dreams!,夢に向かって急上昇！,,633.0,,,,,Dirt,1,Trending in the Charts!
+evo,Pioneer of Dreams,夢の先駆者,,394.0,433.0,355.0,315.0,276.0,Front,1,Taking the Lead
+evo,Trance,夢見心地,,633.0,696.0,570.0,506.0,443.0,End,1,Manipulation
+evo,Unwavering Aster,揺るがぬアスター,,633.0,696.0,570.0,506.0,443.0,Medium,1,Come What May
+evo,"Imbibe in Ecstasy, World!",酔い痴れよ、世界,,633.0,696.0,570.0,506.0,443.0,Mile/Medium,1,Cloud Dragon's Metamorphosis
+evo,Blessing of Yodo,淀の祝福,,508.0,,,,,,1,Yodo Invicta
+evo,Queen of Yodo,淀の女王,,508.0,,,,,,1,Yodo Invicta
+evo,Awakened Desire,呼び覚まされし願い,,758.0,834.0,682.0,606.0,531.0,Mile/Medium,1,Unshackled Passion
+evo,Flawless Performance,余裕のパフォーマンス,,633.0,696.0,570.0,506.0,443.0,Pace,1,Calm and Collected
+evo,Rising Bulk Up,ライジングバルクアップ,,633.0,696.0,570.0,506.0,443.0,Late,1,Rising Dragon
+evo,Stormstrider,雷騰雲奔,,633.0,696.0,570.0,506.0,443.0,Late,1,Fast & Furious
+evo,I've Got a Rival After All!,ライバルがいるから！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Love Me ☆ Parade,ラブミー☆パレード,,633.0,696.0,570.0,506.0,443.0,Medium,1,Killer Tunes
+evo,Laplace's Demon,ラプラスの悪魔,,508.0,615.0,411.0,325.0,249.0,Medium/Pace,1,Singularity
+evo,Star of the Runway,ランウェイの主役,,633.0,696.0,570.0,506.0,443.0,Late,1,On Your Left!
+evo,Recovery Sequence,リカバリーシーケンス,,758.0,834.0,682.0,606.0,531.0,Medium/Long,1,Chain Reaction
+evo,Ideal-Seeking Determination,理想へ向かう覚悟,,633.0,696.0,570.0,506.0,443.0,Pace,1,Neck and Neck
+evo,Limiter Release,リミッター解除,,633.0,696.0,570.0,506.0,443.0,Medium/Long,1,In Body and Mind
+evo,Dragon and Tiger's Battle,龍虎相搏,,633.0,766.0,513.0,405.0,310.0,Mile/Late,1,Rising Dragon
+evo,Run as the River Flows,流水流走,,633.0,696.0,570.0,506.0,443.0,Pace,1,Unstoppable
+evo,Like Riding a Dragon's Cloud,竜の雲を得る如し,,633.0,696.0,570.0,506.0,443.0,Late,1,Rising Dragon
+evo,Surging Ley Lines,龍脈の波濤,,508.0,,,,,Dirt,1,Outstanding Step
+evo,Lose Myself,,,633.0,696.0,570.0,506.0,443.0,End,1,Moonlit Flash
+evo,Luminous Spectrum,ルミナス・スペクトラム,,633.0,696.0,570.0,506.0,443.0,Medium,1,Luminescence
+evo,Lapis Lazuli Escape,瑠璃色エスケイプ,,633.0,696.0,570.0,506.0,443.0,Front,1,Escape Artist
+evo,Racing Genius,レースの天才,,633.0,696.0,570.0,506.0,443.0,Pace,1,Race Planner
+evo,Record Runner,レコードランナー,,633.0,696.0,570.0,506.0,443.0,Front,1,Top Runner
+evo,Break Through the Red Zone,レッドゾーンを突き抜けて,,633.0,696.0,570.0,506.0,443.0,Mile,1,Step on the Gas!
+evo,Royal Star,ロイヤルスター,,633.0,696.0,570.0,506.0,443.0,Pace,1,Speed Star
+evo,Wild at Heart,ワイルドアットハート,,633.0,696.0,570.0,506.0,443.0,Medium,1,Elated
+evo,My Will is Divine,我が意、即ち天の理なり,,633.0,696.0,570.0,506.0,443.0,End,1,Reign
+evo,My Clan's Code of Honor,我が一族の玉条を胸に,,633.0,696.0,570.0,506.0,443.0,Sprint,1,Dignified
+evo,Exciting☆Marvelous Zone,ワクワク☆マーベラスゾーン,,633.0,696.0,570.0,506.0,443.0,Medium,1,Elated
+evo,I Wanna Win Too!!,わたしだって、勝ちたい！！！,,633.0,696.0,570.0,506.0,443.0,Pace,1,Unwavering Ambition
+evo,Taking Every Chance!,ワンチャンまくったる！,,633.0,696.0,570.0,506.0,443.0,Medium,1,From the Brink
+purple,Right-Handed ×,右回り×|Right Turns ×,Right-Handed ×,-129.0,,,,,,0,
+purple,Left-Handed ×,左回り×|Left Turns ×,Left-Handed ×,-129.0,,,,,,0,
+purple,Tokyo Racecourse ×,東京レース場×|Tokyo Racetrack ×,Tokyo Racecourse ×,-129.0,,,,,,0,
+purple,Nakayama Racecourse ×,中山レース場×|Nakayama Racetrack ×,Nakayama Racecourse ×,-129.0,,,,,,0,
+purple,Hanshin Racecourse ×,阪神レース場×|Hanshin Racetrack ×,Hanshin Racecourse ×,-129.0,,,,,,0,
+purple,Kyoto Racecourse ×,京都レース場×|Kyoto Racetrack ×,Kyoto Racecourse ×,-129.0,,,,,,0,
+purple,Chukyo Racecourse ×,中京レース場×|Chukyo Racetrack ×,Chukyo Racecourse ×,-129.0,,,,,,0,
+purple,Sapporo Racecourse ×,札幌レース場×|Sapporo Racetrack ×,Sapporo Racecourse ×,-129.0,,,,,,0,
+purple,Hakodate Racecourse ×,函館レース場×|Hakodate Racetrack ×,Hakodate Racecourse ×,-129.0,,,,,,0,
+purple,Fukushima Racecourse ×,福島レース場×|Fukushima Racetrack ×,Fukushima Racecourse ×,-129.0,,,,,,0,
+purple,Niigata Racecourse ×,新潟レース場×|Niigata Racetrack ×,Niigata Racecourse ×,-129.0,,,,,,0,
+purple,Kokura Racecourse ×,小倉レース場×|Kokura Racetrack ×,Kokura Racecourse ×,-129.0,,,,,,0,
+purple,Standard Distance ×,根幹距離×|Core Distances ×,Standard Distance ×,-129.0,,,,,,0,
+purple,Non-Standard Distance ×,非根幹距離×|Non-Core Distances ×,Non-Standard Distance ×,-129.0,,,,,,0,
+purple,Firm Conditions ×,良バ場×|Good Track Condition ×,Firm Conditions ×,-129.0,,,,,,0,
+purple,Wet Conditions ×,道悪×|Bad Track Condition ×,Wet Conditions ×,-129.0,,,,,,0,
+purple,Spring Runner ×,春ウマ娘×|Spring Girl ×,Spring Runner ×,-129.0,,,,,,0,
+purple,Summer Runner ×,夏ウマ娘×|Summer Girl ×,Summer Runner ×,-129.0,,,,,,0,
+purple,Fall Runner ×,秋ウマ娘×|Autumn Girl ×,Fall Runner ×,-129.0,,,,,,0,
+purple,Winter Runner ×,冬ウマ娘×|Winter Girl ×,Winter Runner ×,-129.0,,,,,,0,
+purple,Rainy Days ×,雨の日×,Rainy Days ×,-129.0,,,,,,0,
+purple,Corner Adept ×,コーナー巧者×|Clever Cornerer ×,Corner Adept ×,-262.0,,,,,,0,
+purple,Corner Acceleration ×,コーナー加速×|Corner Accel ×,Corner Acceleration ×,-262.0,,,,,,0,
+purple,Corner Recovery ×,コーナー回復×,Corner Recovery ×,-262.0,,,,,,0,
+purple,Oi Racecourse ×,大井レース場×|Ooi Racetrack ×,Oi Racecourse ×,-129.0,,,,,,0,
+purple,Kawasaki Racetrack ×,川崎レース場×,,-129.0,,,,,,0,
+purple,Funabashi Racetrack ×,船橋レース場×,,-129.0,,,,,,0,
+purple,Morioka Racetrack ×,盛岡レース場×,,-129.0,,,,,,0,
+purple,Nocturnal ×,ナイター×,,-129.0,,,,,,0,
+purple,Tight Turns ×,小回り×,,-129.0,,,,,,0,
+purple,Exchange Races ×,交流重賞×,,-129.0,,,,,,0,
+purple,Dust Bath ×,砂浴び×,,-262.0,,,,,,0,
+purple,Mud Play ×,泥遊び×,,-129.0,,,,,,0,
+purple,Longchamp Racetrack ×,ロンシャンレース場×,,-129.0,,,,,,0,
+purple,Straight Course ×,直線コース×,,-129.0,,,,,,0,
+purple,Santa Anita Racetrack ×,サンタアニタパークレース場×,,-129.0,,,,,,0,
+purple,Del Mar Racetrack ×,デルマーレース場×,,-129.0,,,,,,0,
+purple,Inner Post Averseness,内枠苦手|Inner Gate Affinity ×,Inner Post Averseness,-129.0,,,,,,0,
+purple,Outer Post Averseness,外枠苦手|Outer Gate Affinity ×,Outer Post Averseness,-129.0,,,,,,0,
+purple,Wallflower,引っ込み思案|Introverted,Wallflower,-129.0,,,,,,0,
+purple,G1 Averseness,GⅠ苦手|G1 Dislike,G1 Averseness,-129.0,,,,,,0,
+purple,Paddock Fright,小心者|Timid,Paddock Fright,-129.0,,,,,,0,
+purple,Ramp Revulsion,坂苦手|Hill Dislike,Ramp Revulsion,-262.0,,,,,,0,
+purple,Packphobia,バ群嫌い|Crowd Hater,Packphobia,-262.0,,,,,,0,
+purple,Defeatist,あきらめ癖|Resignation,Defeatist,-262.0,,,,,,0,
+purple,Reckless,手抜き癖|Negligence,Reckless,-262.0,,,,,,0,
+purple,Running Idle,空回り,Running Idle,-262.0,,,,,,0,
+purple,♡ 3D Nail Art,凸凹ネイル|Uneven Nail,♡ 3D Nail Art,-129.0,,,,,,0,
+purple,Gatekept,ゲート難|Gate Trouble,Gatekept,-174.0,,,,,,0,
+purple,Creeping Anxiety,拡がる恐れ|Spreading Fear,Creeping Anxiety,-129.0,,,,,,0,
+purple,99 Problems,99 Problems,99 Problems,-129.0,,,,,,0,

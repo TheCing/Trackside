@@ -56,6 +56,33 @@ To uninstall: delete the files.
 - **Game speed** — speeds up the game's UI / story animations (menu opens, transitions,
   event text). Slider **1x–10x**.
 
+### Skill Optimizer  (end of career)
+Maximizes your final **rating** when buying skills at the end of a career — a native port of
+UmaLauncher's skill recommender, upgraded with live game data.
+
+Open the end-of-career **Learn Skills** screen, press **Insert → Gameplay → Optimizer**, and a
+dedicated window shows:
+
+- **Current rating, live** — a big animated readout with your rank emblem and an
+  **animated progress bar to the next rank**. It reacts in real time: tap **+ / −** on skills
+  in the game and watch the rating, rank progress and SP bars glide to match.
+- **The optimal buy set** — a knapsack optimizer picks the skill purchases that add the most
+  rating for your SP, aware of **upgrade chains** (○→◎ costs), **hint discounts**,
+  **Fast Learner** (auto-detected), and your **aptitudes** (a mile skill is worth less to a
+  sprinter). The list mirrors the whole shop in the game's own order — bright rows are
+  recommended buys, dim rows were considered and skipped.
+- **Filters** — restrict to a distance, running style, or a **Champions Meeting preset**
+  (only skills that can trigger under that race's conditions). Changing a filter recomputes
+  instantly.
+- **APPLY OPTIMAL** — one click selects every recommended skill on the game's own list
+  (upgrade chains get their double-press automatically), then **you** press the game's
+  **Decide** to confirm. Nothing is ever bought without your confirmation.
+
+The optimizer reads the game's **actual offered list** live from the screen — inherited
+skills from your parents, event-only skills and unhinted upgrades are all included, and the
+skill costs match the shop to the point. After each career it checks its own math against
+the game's official rating and reports any drift.
+
 ### Race Director (races)
 A broadcast-style overlay for watching and casting races — a free camera plus a live, TV-grade
 telemetry suite. Read-only: it never changes the race.
@@ -90,6 +117,9 @@ Full step-by-step guide (controls, presets, reading the HUD): **[race-director.m
 - **Frame rate** — master **Cap FPS** toggle, a **1–300** slider, and **Unlimited**
   (renders as fast as possible, vSync forced off). Shows the **real measured FPS** (a true
   frames-per-second counter, not an estimate).
+- **V-Sync** — cycle **Off / On / Half** under *Performance → Frame rate*. **On** removes
+  screen tearing by syncing to your monitor's refresh (and overrides the FPS cap — the two
+  are mutually exclusive by nature); **Half** targets half refresh for cooler/quieter play.
 - **Cloth physics** — uncap the character's hair / cloth physics so they stay smooth at
   high frame rates instead of the default frame-skipping.
 - **Graphics** — force the **max 3D model quality** beyond the in-game cap, plus enhanced
@@ -171,11 +201,34 @@ without loading any external DLLs. All toggles live under **Gameplay → Compani
 - **Companion feed (CarrotBlender)** — serves the game's decrypted responses to companion
   overlays (such as UmaOverlay-lite) over a local connection, so those overlays work without a
   separate plugin.
+  - **Works with UmaLauncher (Global)** too — no CarrotBlender.dll or Hachimi needed: in
+    UmaLauncher's settings set **CarrotBlender Port** to **17229** (Trackside's feed port)
+    and its training analytics, event helper and race logging run straight off Trackside.
 
 These replicate the race/veterans dump previously provided by the **horseACT** plugin and the
 response feed provided by **CarrotBlender**, natively in-process. Included in the original
 project with the kind permission of **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT))
 and **qwcan** ([CarrotBlender](https://github.com/qwcan/CarrotBlender)) — thank you both.
+
+---
+
+## Game icons  *(optional but pretty)*
+
+The race HUD and the Skill Optimizer show real in-game art — skill icons, character
+portraits and rating-rank emblems — when a **`trackside-icons/`** folder sits next to the
+DLL (included in release zips). Without it everything still works with clean text
+fallbacks.
+
+Rebuilding or extending the set (from source):
+
+```
+python fetch_icons.py          # skill icons + portraits (downloads from GameTora by id)
+```
+
+Rank emblems and any art not hosted publicly can be ripped from your own game: in-game,
+press **Insert → About → Diagnostics → Dump loaded icon textures** while the art is on
+screen (e.g. the career-complete screen for rank emblems). Raw textures land in
+`trackside-icons/_dump/`; `curate_rank_icons.py` cuts the rank atlas into the final files.
 
 ---
 
@@ -271,6 +324,17 @@ cargo build --release        # -> proxy/target/release/version.dll
 
 The custom-intro media (`intro_full.bin` / `intro_song.ogg`) is not part of the build —
 supply your own (see the Custom intro section above).
+
+**Skill data maintenance:** the optimizer's skill tables (`data/*.json`) are baked into the
+DLL and regenerated straight from your local game database. After a game update adds skills:
+
+```
+python refresh_skill_data.py   # re-exports skill data/chains/roles/ranks from master.mdb
+cd native && cargo build --release
+```
+
+**UI iteration without the game:** `Preview-Trackside.ps1` opens the overlay in a
+standalone window (menu, themes, the optimizer with mock data via `TRACKSIDE_SKOPT_MOCK=1`).
 
 ---
 
