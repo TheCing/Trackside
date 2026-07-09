@@ -309,6 +309,47 @@ Prefer to update by hand? The **Releases** page has every version as a zip:
 
 ---
 
+## Troubleshooting
+
+### Where the logs are
+
+Trackside writes everything to a **`trackside-logs`** folder next to the game — the same
+folder as `UmamusumePrettyDerby.exe` and `trackside.dll`
+(usually `.\steamapps\common\UmamusumePrettyDerby\trackside-logs\`).
+
+| File | What it's for |
+|------|---------------|
+| `trackside-crash.log` | **The first thing to check after a crash.** On a crash it records the fault type, which module it happened in (Trackside vs the game vs another mod), and the last thing Trackside was doing. If it only contains "crash detector armed" lines with no `=== CRASH ===` block, the crash was outside Trackside (another mod, a driver, or the game itself). |
+| `trackside-native.log` | The startup log — which features loaded and any that failed to resolve after a game update. |
+| `trackside-diag.txt` | A full one-shot report (version, build, what's loaded, detected other mods, current settings). **Generate it from the menu: About → Diagnostics → Save diagnostic report**, then send that file. |
+| `trackside-proxy.log` | The loader's log — useful if Trackside doesn't start at all (nothing else appears). |
+
+**Reporting a crash?** Send `trackside-crash.log` and `trackside-diag.txt`. Together they
+usually pinpoint the cause.
+
+### Common problems
+
+- **Game crashes on launch / boot-loops.** This is almost always a conflict with **another
+  mod that also hooks the graphics layer** — most often **ReShade** (`dxgi.dll`) or another
+  overlay. Temporarily remove/disable the other tool and launch again: if it starts, that
+  tool and Trackside are colliding during graphics startup. Fixes: update the other tool to
+  its latest version, update your GPU driver, or pick one. (For anti-aliasing you don't need
+  ReShade — Trackside has built-in MSAA under **Performance → Graphics**.)
+- **The overlay doesn't show up.** Use **Windowed** or **Borderless** mode, not exclusive
+  fullscreen — the overlay can't draw over exclusive fullscreen. Also confirm the menu key
+  (default **Insert**; check **Interface → Layout**).
+- **A feature stopped working after a game update.** Nothing is hard-coded to game addresses,
+  so an update never crashes the build — a renamed game method just makes that one feature
+  show a status-line error instead. Grab a diagnostic report (above) and open an issue.
+- **Windows Defender / antivirus flags `version.dll`.** Expected false positive for an
+  in-game overlay loader — see the note in **Install**. The full source is in
+  [`proxy/`](proxy/) if you'd rather build it yourself.
+
+Still stuck? Open an issue with your `trackside-crash.log` + `trackside-diag.txt`:
+**https://github.com/TheCing/Trackside/issues**
+
+---
+
 ## Build from source
 
 The full source lives in this repository: the overlay in [`native/`](native/), the loader
