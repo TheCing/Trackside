@@ -8,9 +8,9 @@
     into the Umamusume game folder (next to UmamusumePrettyDerby.exe), so the
     inner loop is just: edit -> run this script -> launch the game -> press Insert.
 
-    Only trackside.dll is touched. The proxy loaders (version.dll /
-    heaven_version.dll) and Hachimi must already be installed once from a release
-    zip; after that you never replace them again.
+    Only trackside.dll is touched. The proxy (version.dll), its forward target
+    (trackside_version.dll), and — if used — Hachimi must already be installed once
+    from a release zip; after that you never replace them again.
 
     The DLL is locked while the game runs, so the script refuses to copy if the
     game is open (use -Kill to close it first). It can optionally relaunch the
