@@ -6,10 +6,11 @@
 .DESCRIPTION
     The mods are chained off a single proxy DLL:
 
-        version.dll        = Trackside's proxy  -> loads trackside.dll
-                                              -> forwards to heaven_version.dll
-        heaven_version.dll  = Hachimi's proxy -> reads hachimi\config.json
-        hachimi\             = Hachimi config + the plugins it load_libraries:
+        version.dll           = Trackside's proxy  -> loads trackside.dll
+                                                  -> forwards version APIs to trackside_version.dll
+        trackside_version.dll = the genuine Windows version.dll (standalone),
+                                OR Hachimi's proxy when running Hachimi (reads hachimi\config.json)
+        hachimi\              = Hachimi config + the plugins it load_libraries:
                                   horseACT.dll  (Hakuraku exporter)
                                   CarrotBlender.dll (Uma Launcher bridge)
 
@@ -52,10 +53,10 @@ $GameExe = 'UmamusumePrettyDerby.exe'
 # The whole hachimi\ folder moves as one unit, taking Hachimi's config plus the
 # horseACT (Hakuraku) and CarrotBlender plugins with it.
 $Items = @(
-    'version.dll',          # Trackside proxy (master loader)
-    'trackside.dll',   # Trackside overlay
-    'heaven_version.dll',   # Hachimi proxy (Trackside forwards here)
-    'hachimi'               # Hachimi config + horseACT/Hakuraku + CarrotBlender
+    'version.dll',            # Trackside proxy (master loader)
+    'trackside.dll',          # Trackside overlay
+    'trackside_version.dll',  # genuine version.dll (standalone) OR Hachimi's proxy (Trackside forwards here)
+    'hachimi'                 # Hachimi config + horseACT/Hakuraku + CarrotBlender
 )
 
 $DisabledDirName = '_mods_disabled'

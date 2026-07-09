@@ -17,19 +17,31 @@ by Night DC (nighty3333)** - fully open source under MIT, with every feature in 
 ## Install
 
 1. Close the game.
-2. Copy these files into the game folder, next to `UmamusumePrettyDerby.exe`
-   (usually `.\steamapps\common\UmamusumePrettyDerby\`):
-   - `version.dll`  (the Trackside loader proxy - source in [`proxy/`](proxy/))
-   - `trackside.dll`  (the overlay)
-3. **Running Hachimi too?** Keep (or add) `heaven_version.dll` as Hachimi's proxy in the
-   same folder - Trackside's loader detects it and chains to it automatically, so both
-   mods boot in the right order.
+2. Download the right zip from the [Releases](https://github.com/TheCing/Trackside/releases)
+   page:
+   - **`Trackside.zip`** — the standard build (what most people want).
+   - **`Trackside+Hachimi.zip`** — only if you also run **Hachimi** (see below).
+3. Extract it into the game folder, next to `UmamusumePrettyDerby.exe`
+   (usually `.\steamapps\common\UmamusumePrettyDerby\`). `Trackside.zip` contains three
+   files - **all three must be in the folder**:
+   - `version.dll` — the Trackside loader proxy (source in [`proxy/`](proxy/)).
+   - `trackside.dll` — the overlay itself.
+   - `trackside_version.dll` — a copy of Windows' own `version.dll`, which the proxy
+     forwards the version APIs to. Without it the game won't start.
 4. Launch the game. Trackside loads itself - press **Insert** to show/hide the menu.
    Use **Windowed / Borderless** so the overlay is visible (not exclusive fullscreen).
 
-> **Upgrading from Heaven?** Drop in the two files above and delete the old
-> `heaven_overlay.dll`. Your settings, saved teams, pins and hunt targets are migrated
-> automatically to the new `trackside-*` file names on first launch.
+> **Running Hachimi too?** Use **`Trackside+Hachimi.zip`** (its `trackside.dll` is the
+> Hachimi-compatible build). It ships `version.dll` + `trackside.dll`; instead of a plain
+> `trackside_version.dll`, put **Hachimi's own proxy DLL there** (rename Hachimi's
+> `version.dll` to `trackside_version.dll`) and keep its `hachimi\` folder. Trackside's
+> proxy then forwards into Hachimi, so both boot in the right order. The included
+> `Toggle-TracksideStack.ps1` can enable/disable the whole stack at once.
+
+> **Upgrading from Heaven?** Extract the zip over your install (it brings the three files
+> above, including `trackside_version.dll`) and delete the old `heaven_overlay.dll`. Your
+> settings, saved teams, pins and hunt targets are migrated automatically to the new
+> `trackside-*` file names on first launch.
 
 > **Antivirus note:** `version.dll` is a *proxy loader* (a normal technique for in-game
 > overlays). Windows Defender or some antivirus may flag it as a **false positive**
