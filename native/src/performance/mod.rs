@@ -25,6 +25,7 @@ pub fn apply(s: &crate::settings::Settings) {
     cyspring::set_enabled(s.cyspring_uncap);
     graphics::set_quality_unlocked(s.gfx_quality);
     graphics::set_extras_enabled(s.gfx_extras);
+    graphics::set_antialiasing(s.aa);
     display::set_block_minimize(s.block_minimize);
     display::set_display_mode(s.display_mode);
     display::set_render_scale(s.render_scale);

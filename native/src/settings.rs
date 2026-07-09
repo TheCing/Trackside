@@ -47,6 +47,9 @@ pub struct Settings {
     // vSync: 0 = off (game/cap decides), 1 = on (tear-free, sync to refresh), 2 = half.
     #[serde(default)]
     pub vsync: i32,
+    // Anti-aliasing (MSAA sample count): 0 = off, 2 / 4 / 8.
+    #[serde(default)]
+    pub aa: i32,
     #[serde(default = "default_ui_tempo")]
     pub ui_tempo: f32,
     pub rail_right: bool,
@@ -230,6 +233,7 @@ impl Default for Settings {
             race_result: cfg!(feature = "races_on"),
             fps: 0,
             vsync: 0,
+            aa: 0,
             ui_tempo: 1.0,
             rail_right: true,
             energy_x: 60.0,
@@ -570,6 +574,18 @@ pub fn set_vsync(mode: i32) {
     crate::performance::fps::set_vsync(mode);
     if let Ok(mut c) = cache().lock() {
         c.vsync = mode;
+        write_file(&c);
+    }
+}
+
+/// Anti-aliasing (MSAA sample count): 0 = off, 2 / 4 / 8.
+pub fn aa() -> i32 {
+    cache().lock().map(|c| c.aa).unwrap_or(0)
+}
+pub fn set_aa(samples: i32) {
+    crate::performance::graphics::set_antialiasing(samples);
+    if let Ok(mut c) = cache().lock() {
+        c.aa = samples;
         write_file(&c);
     }
 }

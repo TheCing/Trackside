@@ -203,9 +203,28 @@ pub fn set_target(t: usize) {
 pub fn whitelist() -> Vec<Pin> {
     store().lock().map(|s| s.whitelist.clone()).unwrap_or_default()
 }
+
+/// Case/whitespace-insensitive name compare (unicode-aware — trainer names may be Japanese).
+fn name_eq(a: &str, b: &str) -> bool {
+    a.trim().to_lowercase() == b.trim().to_lowercase()
+}
+
+/// Is a follower whitelisted? An id-pin (viewer_id != 0, from the preview) matches by id; a
+/// name-pin (viewer_id == 0, added manually) matches by name — so you can protect a trainer
+/// up front without ever seeing them in the cull list.
+pub fn is_whitelisted(wl: &[Pin], viewer_id: i64, name: &str) -> bool {
+    wl.iter().any(|p| {
+        if p.viewer_id != 0 {
+            p.viewer_id == viewer_id
+        } else {
+            name_eq(&p.name, name)
+        }
+    })
+}
+
 pub fn pin(viewer_id: i64, name: &str) {
     if let Ok(mut s) = store().lock() {
-        if !s.whitelist.iter().any(|p| p.viewer_id == viewer_id) {
+        if !s.whitelist.iter().any(|p| p.viewer_id == viewer_id && viewer_id != 0) {
             s.whitelist.push(Pin { viewer_id, name: to_owned_trim(name) });
             save_to_disk(&s);
         }
@@ -215,9 +234,33 @@ pub fn pin(viewer_id: i64, name: &str) {
         c.retain(|f| f.viewer_id != viewer_id);
     }
 }
-pub fn unpin(viewer_id: i64) {
+
+/// Manually whitelist a trainer by NAME (no viewer_id needed) — protects anyone by name,
+/// even players not currently near the cull threshold.
+pub fn whitelist_name(name: &str) {
+    let name = to_owned_trim(name);
+    if name.is_empty() {
+        return;
+    }
+    let lname = name.to_lowercase();
     if let Ok(mut s) = store().lock() {
-        s.whitelist.retain(|p| p.viewer_id != viewer_id);
+        // Dedup against existing name-pins (case-insensitive).
+        if !s.whitelist.iter().any(|p| p.viewer_id == 0 && p.name.to_lowercase() == lname) {
+            s.whitelist.push(Pin { viewer_id: 0, name });
+            save_to_disk(&s);
+        }
+    }
+    // Drop any pending dry-run entries that now match the new name-pin.
+    if let Ok(mut c) = candidates_buf().lock() {
+        c.retain(|f| f.name.trim().to_lowercase() != lname);
+    }
+}
+
+/// Remove one exact whitelist entry (id + name), so unpinning a name-pin can't wipe others
+/// that share `viewer_id == 0`.
+pub fn unpin_entry(viewer_id: i64, name: &str) {
+    if let Ok(mut s) = store().lock() {
+        s.whitelist.retain(|p| !(p.viewer_id == viewer_id && name_eq(&p.name, name)));
         save_to_disk(&s);
     }
 }
@@ -347,7 +390,7 @@ fn do_preview() {
             let want = (all.len() - tgt).min(MAX_REMOVALS_PER_RUN);
             let picked: Vec<Follower> = all
                 .into_iter()
-                .filter(|f| !wl.iter().any(|p| p.viewer_id == f.viewer_id))
+                .filter(|f| !is_whitelisted(&wl, f.viewer_id, &f.name))
                 .take(want)
                 .collect();
             let n = picked.len();

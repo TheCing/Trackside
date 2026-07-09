@@ -1194,14 +1194,10 @@ impl HeavenOverlay {
                 let _sp_is = ui.push_style_var(StyleVar::ItemSpacing([8.0 * s, 7.0 * s]));
                 let _sp_fp = ui.push_style_var(StyleVar::FramePadding([9.0 * s, 5.0 * s]));
                 let pmax = [p0[0] + wsz[0], p0[1] + wsz[1]];
-                // Tileable background texture over the whole window, dimmed with a scrim so the
-                // content cards stay readable. Shows through the page margins between cards.
-                #[cfg(feature = "banner")]
-                if let Some(bg) = BG_TEX.with(|c| c.get()) {
-                    let dl = ui.get_window_draw_list();
-                    dl.add_image(bg, p0, pmax).col([1.0, 1.0, 1.0, 0.16]).build();
-                    dl.add_rect(p0, pmax, [0.082, 0.078, 0.110, 0.62]).filled(true).rounding(10.0).build();
-                }
+                let _ = pmax;
+                // Background image removed for now — plain PANEL_BG window. The tileable
+                // constellation texture (BG_TEX / assets/background.rgba) is still loaded, so
+                // restoring it is just re-adding the add_image + scrim draw here.
                 // Darker sidebar strip on the left (rounded only on the left to match the window).
                 ui.get_window_draw_list()
                     .add_rect(p0, [p0[0] + sbw, p0[1] + wsz[1]], SIDEBAR_BG)
@@ -1514,6 +1510,9 @@ impl HeavenOverlay {
                             let glyph = sec.icon.to_string();
                             card(ui, cw, sec.title, first, last, || {
                                 use crate::menu_model::{Ctrl, Custom};
+                                // Wrap ALL text in this card at the content edge — plain
+                                // text_colored (blurbs, notes, values) otherwise bleeds off.
+                                let _wrap = ui.push_text_wrap_pos();
                                 section(ui, icon_font, &glyph, &title_up);
                                 if !sec.blurb.is_empty() {
                                     ui.text_colored(DIM, sec.blurb);
@@ -1878,6 +1877,8 @@ impl HeavenOverlay {
                             continue;
                         }
                         for sec in &t.sections {
+                            // Wrap all descriptive text at the content edge (classic renderer).
+                            let _wrap = ui.push_text_wrap_pos();
                             ui.text_colored(DIM, sec.title);
                             for c in &sec.controls {
                                 match c {
@@ -2738,20 +2739,51 @@ fn draw_followers(ui: &Ui, w: f32) {
     }
 
     // ── whitelist ──
+    // Add anyone by name up front (protects them even if they never reach the cull list).
+    ui.dummy([0.0, 8.0]);
+    text_wrapped_colored(ui, DIM, "Always keep (whitelist by name):");
+    ui.dummy([0.0, 2.0]);
+    thread_local! {
+        static WL_NAME: std::cell::RefCell<String> = std::cell::RefCell::new(String::new());
+    }
+    let add = || {
+        let name = WL_NAME.with(|b| b.borrow().clone());
+        if !name.trim().is_empty() {
+            pruner::whitelist_name(&name);
+            WL_NAME.with(|b| b.borrow_mut().clear());
+        }
+    };
+    let submit = WL_NAME.with(|b| {
+        let mut s = b.borrow_mut();
+        ui.set_next_item_width(w * 0.62);
+        ui.input_text("##prwlname", &mut s)
+            .hint("trainer name")
+            .enter_returns_true(true)
+            .build()
+    });
+    if submit {
+        add();
+    }
+    ui.same_line();
+    if btn_primary(ui, "##prwladd", "Add") {
+        add();
+    }
+
     let pins = pruner::whitelist();
     if !pins.is_empty() {
-        ui.dummy([0.0, 8.0]);
+        ui.dummy([0.0, 6.0]);
         text_wrapped_colored(ui, DIM, &format!("Pinned ({}) — never pruned:", pins.len()));
         ui.dummy([0.0, 2.0]);
         for (i, p) in pins.iter().enumerate() {
             ui.text_colored(TEXT, &format!("\u{00b7} {}", clamp(&p.name)));
             ui.same_line();
-            ui.text_colored(DIM, &format!("({})", p.viewer_id));
+            // id-pins show their viewer id; name-pins (id 0) are labelled as manual.
+            ui.text_colored(DIM, if p.viewer_id != 0 { format!("({})", p.viewer_id) } else { "(by name)".into() }.as_str());
             ui.same_line();
             let cur = ui.cursor_pos();
             ui.set_cursor_pos([(w - 32.0).max(cur[0] + 8.0), cur[1] - 4.0]);
             if icon_btn(ui, &format!("##prunpin{i}"), "\u{E74D}", "Unpin", true) {
-                pruner::unpin(p.viewer_id);
+                pruner::unpin_entry(p.viewer_id, &p.name);
             }
         }
     }

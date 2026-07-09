@@ -115,6 +115,24 @@ fn cycle_vsync() {
     crate::settings::set_vsync((crate::settings::vsync() + 1) % 3);
 }
 
+// Anti-aliasing: Off → 2× → 4× → 8× MSAA → Off.
+fn aa_label() -> &'static str {
+    match crate::settings::aa() {
+        2 => "2x MSAA",
+        4 => "4x MSAA",
+        8 => "8x MSAA",
+        _ => "Off",
+    }
+}
+fn cycle_aa() {
+    crate::settings::set_aa(match crate::settings::aa() {
+        0 => 2,
+        2 => 4,
+        4 => 8,
+        _ => 0,
+    });
+}
+
 // Silk colour theme: cycling picks a fixed silk (and turns off randomize); the label
 // shows whichever silk is live right now, so a random roll is visible too.
 fn theme_label() -> &'static str {
@@ -280,7 +298,8 @@ pub fn model() -> Vec<Tab> {
                 controls: vec![
                     Ctrl::Toggle { id: "gq", label: "Max 3D quality", get: crate::settings::gfx_quality, set: crate::settings::set_gfx_quality },
                     Ctrl::Toggle { id: "ge", label: "Enhanced textures & shadows", get: crate::settings::gfx_extras, set: crate::settings::set_gfx_extras },
-                    Ctrl::Note("Applies on the next scene / character load."),
+                    Ctrl::Cycle { id: "aa", label: "Anti-aliasing", label_of: aa_label, next: cycle_aa },
+                    Ctrl::Note("Anti-aliasing smooths jagged edges (in-engine MSAA). Applies on the next scene / character load."),
                 ],
             },
             Section {

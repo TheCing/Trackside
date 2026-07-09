@@ -38,6 +38,10 @@ const LOD_BIAS: f32 = 2.0; // >1 keeps higher-detail LODs in use
 static QUALITY_ON: AtomicBool = AtomicBool::new(false);
 static EXTRAS_ON: AtomicBool = AtomicBool::new(false);
 static LOW_SPEC: AtomicBool = AtomicBool::new(false);
+// Forced MSAA sample count: 0 = leave the game's value, 2/4/8 = force that many samples.
+// Anti-aliasing done in-engine (QualitySettings.antiAliasing) — a native replacement for
+// an external post-process injector, so no second D3D hook to conflict with.
+static AA: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
 
 static TR_AGQ: AtomicUsize = AtomicUsize::new(0);
 static D_AGQ: OnceLock<RawDetour> = OnceLock::new();
@@ -61,6 +65,20 @@ pub fn set_quality_unlocked(on: bool) {
 
 pub fn set_extras_enabled(on: bool) {
     EXTRAS_ON.store(on, Ordering::Relaxed);
+}
+
+pub fn antialiasing() -> i32 {
+    AA.load(Ordering::Relaxed)
+}
+/// Force MSAA. 0 = off (game decides), 2/4/8 = sample count. Applies now (the game's next
+/// quality pass re-asserts it via the hook, so it sticks).
+pub fn set_antialiasing(samples: i32) {
+    AA.store(samples, Ordering::Relaxed);
+    unsafe {
+        if samples > 0 {
+            set_i32(&QS_ANTIALIAS, samples);
+        }
+    }
 }
 
 pub fn low_spec() -> bool {
@@ -126,17 +144,28 @@ unsafe extern "C" fn on_apply_quality(this: *mut c_void, quality: i32, force: bo
     let orig: unsafe extern "C" fn(*mut c_void, i32, bool, *mut c_void) = std::mem::transmute(t);
     if LOW_SPEC.load(Ordering::Relaxed) {
         orig(this, 0, true, method); // force the lowest toon tier (Toon1280)
-        apply_low();
+        apply_low(); // (forces AA off too — potato mode)
     } else if QUALITY_ON.load(Ordering::Relaxed) {
         orig(this, QUALITY_FULL, true, method); // force the full-quality tier
         if EXTRAS_ON.load(Ordering::Relaxed) {
             apply_extras();
         }
+        apply_aa();
     } else {
         orig(this, quality, force, method);
         if EXTRAS_ON.load(Ordering::Relaxed) {
             apply_extras();
         }
+        apply_aa();
+    }
+}
+
+/// Re-assert the forced MSAA (if any) after the game's quality pass. Independent of the
+/// extras toggle — anti-aliasing is its own control.
+unsafe fn apply_aa() {
+    let a = AA.load(Ordering::Relaxed);
+    if a > 0 {
+        set_i32(&QS_ANTIALIAS, a);
     }
 }
 
