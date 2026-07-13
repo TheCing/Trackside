@@ -423,9 +423,10 @@ pub fn model() -> Vec<Tab> {
         icon: '\u{E90F}',
         blurb: "Generate a report to debug problems (yours or another player's).",
         controls: vec![
-            Ctrl::Toggle { id: "diag", label: "Verbose diagnostics", get: crate::diag::enabled, set: crate::diag::set_enabled },
+            Ctrl::Toggle { id: "diag", label: "Verbose logging", get: crate::diag::enabled, set: crate::diag::set_enabled },
+            Ctrl::Note("ON adds detailed per-event traces to trackside-logs/trackside-native.log. Turn on, reproduce the problem, then send that log."),
             Ctrl::Button { id: "diagdump", label: "Save diagnostic report", action: crate::diag::dump_action },
-            Ctrl::Note("Writes trackside-logs/trackside-diag.txt next to the game — send that file."),
+            Ctrl::Note("Writes a one-shot trackside-logs/trackside-diag.txt (version, hooks, settings) — send that file."),
             // Icon ripper — reachable from ANY screen (rank emblems show on career profile,
             // veteran list, home…), not just the optimizer's skill-screen footer.
             #[cfg(feature = "banner")]

@@ -211,6 +211,7 @@ unsafe extern "C" fn on_clear_selected(this: *mut c_void, mi: *mut c_void) {
 unsafe extern "C" fn on_setup(this: *mut c_void, mi: *mut c_void) {
     INSTANCE.store(this as usize, Ordering::Relaxed);
     clear_selection_state();
+    crate::tools::debug("[skill_buyer] learn screen opened (Setup) — instance captured");
     let t = SETUP_TRAMP.load(Ordering::Relaxed);
     if t != 0 {
         let orig: unsafe extern "C" fn(*mut c_void, *mut c_void) = std::mem::transmute(t);
@@ -237,25 +238,24 @@ pub fn install() -> String {
         return "view class not found (game update? re-scan)".into();
     }
     let mut ok = 0;
-    unsafe {
-        if il2cpp::hook_method(k, "Setup", 0, on_setup as *const (), &SETUP_TRAMP, &SETUP_DETOUR).is_ok() {
-            ok += 1;
+    // Per-hook outcome logging — a partial failure here means a silently degraded feature
+    // (e.g. clicks not tracked), so name exactly which method didn't resolve.
+    let mut hook = |name: &str, argc: i32, det: *const (), tr: &AtomicUsize, d: &OnceLock<retour::RawDetour>| {
+        match unsafe { il2cpp::hook_method(k, name, argc, det, tr, d) } {
+            Ok(()) => {
+                ok += 1;
+                crate::tools::debug(&format!("[skill_buyer] hooked {name}"));
+            }
+            Err(e) => crate::tools::warn(&format!("[skill_buyer] hook {name} FAILED: {e}")),
         }
-        if il2cpp::hook_method(k, "PlayOutView", 0, on_playout as *const (), &OUT_TRAMP, &OUT_DETOUR).is_ok() {
-            ok += 1;
-        }
-        // Selection tracking: + / − / Reset all pass through these (player taps AND our
-        // Apply driver) — they drive the reactive rating in the optimizer window.
-        if il2cpp::hook_method(k, "OnClickPlusListItem", 1, on_click_plus as *const (), &PLUS_TRAMP, &PLUS_DETOUR).is_ok() {
-            ok += 1;
-        }
-        if il2cpp::hook_method(k, "OnClickMinusListItem", 1, on_click_minus as *const (), &MINUS_TRAMP, &MINUS_DETOUR).is_ok() {
-            ok += 1;
-        }
-        if il2cpp::hook_method(k, "ClearSelected", 0, on_clear_selected as *const (), &CLEARSEL_TRAMP, &CLEARSEL_DETOUR).is_ok() {
-            ok += 1;
-        }
-    }
+    };
+    hook("Setup", 0, on_setup as *const (), &SETUP_TRAMP, &SETUP_DETOUR);
+    hook("PlayOutView", 0, on_playout as *const (), &OUT_TRAMP, &OUT_DETOUR);
+    // Selection tracking: + / − / Reset all pass through these (player taps AND our Apply
+    // driver) — they drive the reactive rating in the optimizer window.
+    hook("OnClickPlusListItem", 1, on_click_plus as *const (), &PLUS_TRAMP, &PLUS_DETOUR);
+    hook("OnClickMinusListItem", 1, on_click_minus as *const (), &MINUS_TRAMP, &MINUS_DETOUR);
+    hook("ClearSelected", 0, on_clear_selected as *const (), &CLEARSEL_TRAMP, &CLEARSEL_DETOUR);
     format!("OK ({ok}/5 hooks; live capture + selection tracking)")
 }
 
@@ -315,6 +315,7 @@ pub fn pump() {
             // stomping the recommendation right after every Recommend (the un-rerunnable bug).
             ids.sort_unstable();
             ids.dedup();
+            let n = ids.len();
             let changed = offered()
                 .lock()
                 .map(|mut g| {
@@ -327,6 +328,7 @@ pub fn pump() {
                 })
                 .unwrap_or(false);
             if changed {
+                crate::tools::debug(&format!("[skill_buyer] offered list changed -> {n} skills; recomputing"));
                 // Real set change (first capture / skill bought) → recompute seamlessly
                 // instead of leaving a cleared result behind.
                 crate::skill_advisor::request_recommend();
@@ -387,11 +389,13 @@ const APPLY_GAP_FRAMES: i32 = 6; // ~100ms at 60fps — smooth, game keeps up
 
 fn run_apply() {
     let ids = pending().lock().map(|g| g.clone()).unwrap_or_default();
+    crate::tools::debug(&format!("[skill_buyer] Apply Optimal: {} recommended tier ids", ids.len()));
     if ids.is_empty() {
         set_status("Nothing to apply.");
         return;
     }
     if !driver_ready() {
+        crate::tools::warn("[skill_buyer] Apply aborted — learn-screen controller not resolved");
         set_status("Learn-screen controller not resolved (game update? re-scan).");
         return;
     }
@@ -415,9 +419,11 @@ fn run_apply() {
         }
     }
     if queue.is_empty() {
+        crate::tools::warn(&format!("[skill_buyer] Apply: none of {} recommended skills are on the live list", ids.len()));
         set_status("None of the recommended skills are on the live list right now.");
         return;
     }
+    crate::tools::debug(&format!("[skill_buyer] Apply: queued {} clicks across item indices {:?}", queue.len(), queue));
     if let Ok(mut q) = APPLY_QUEUE.get_or_init(|| Mutex::new(Vec::new())).lock() {
         *q = queue;
     }

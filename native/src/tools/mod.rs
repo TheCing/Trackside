@@ -11,5 +11,5 @@
 pub mod log;
 pub mod time;
 
-pub use log::{log, log_to};
+pub use log::{debug, debug_enabled, error, log, log_to, warn};
 pub use time::{clock, now_ms};

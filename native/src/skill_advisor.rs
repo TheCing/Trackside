@@ -1013,6 +1013,17 @@ fn recommend(info: &CharaInfo, only_distance: &str, only_style: &str, preset_id:
         vb.partial_cmp(&va).unwrap_or(std::cmp::Ordering::Equal)
     });
     let projected = compute_rating_breakdown(info, rating_gain);
+    // Verbose: the whole decision in one line — filters, candidate pool, what got bought,
+    // SP used, and the rating swing. Answers "why did it pick these / miss that".
+    if crate::tools::debug_enabled() {
+        crate::tools::debug(&format!(
+            "[advisor] recommend: budget={budget}SP offered={} pool={pool_size} filt(dist='{only_distance}',style='{only_style}',preset={preset_id}) -> buy {} spend {spent}SP, rating {} -> {} (+{rating_gain})",
+            offered_ids.len(),
+            selected.len(),
+            current.total,
+            projected.total,
+        ));
+    }
     RecommendResult {
         selected,
         skipped,

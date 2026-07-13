@@ -59,6 +59,17 @@ unsafe fn on_response(ret: *mut c_void) {
     if !has_race && !has_cont && !has_chara && !has_event && !has_trained {
         return;
     }
+    // Verbose: which packet types this response carried + its size. The single most useful
+    // trace for "did Trackside even see my data" questions.
+    if crate::tools::debug_enabled() {
+        let mut kinds: Vec<&str> = Vec::new();
+        if has_race { kinds.push("race"); }
+        if has_cont { kinds.push("continues"); }
+        if has_chara { kinds.push("chara_info"); }
+        if has_event { kinds.push("event"); }
+        if has_trained { kinds.push("trained_chara"); }
+        crate::tools::debug(&format!("[response] {} bytes -> [{}]", len, kinds.join(", ")));
+    }
     let bytes = slice.to_vec();
     if has_race {
         parse_race(&bytes);

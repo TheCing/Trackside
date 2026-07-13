@@ -40,8 +40,12 @@ pub fn spawn() {
         return; // already booted this process
     }
     std::thread::spawn(|| {
-        log("==== Trackside native engine starting ====");
-        log("Trackside — a fork of Heaven (by Night DC)");
+        log("======== Trackside native engine starting ========");
+        log(&format!(
+            "Trackside v{} (fork of Heaven by Night DC) — verbose logging: {}",
+            env!("CARGO_PKG_VERSION"),
+            if crate::diag::enabled() { "ON" } else { "off (enable in About > Diagnostics for detail)" }
+        ));
         ipc::set_status("waiting for GameAssembly…");
 
         // 1) Wait for GameAssembly.dll.

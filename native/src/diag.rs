@@ -168,6 +168,6 @@ pub fn dump() -> Result<String, String> {
 pub fn dump_action() {
     match dump() {
         Ok(p) => log_line(&format!("[diag] report saved: {p}")),
-        Err(e) => log_line(&format!("[diag] report save FAILED: {e}")),
+        Err(e) => crate::tools::error(&format!("[diag] report save FAILED: {e}")),
     }
 }
