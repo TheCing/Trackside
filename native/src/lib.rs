@@ -68,8 +68,6 @@ mod il2cpp_json;
 mod race_export;
 mod reset;
 mod umas;
-mod breeding_trace;
-mod player_state;
 // The single Gallop.HttpHelper::DecompressResponse hook: player-id (race-result gate) + race
 // retries + companion-bridge fan-out + full-build extras.
 mod response_hook;
