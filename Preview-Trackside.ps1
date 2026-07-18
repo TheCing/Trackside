@@ -40,7 +40,10 @@ param(
     [switch]$SkipBuild,
     [switch]$DebugBuild,
     [switch]$NoBanner,
-    [string]$Features = ''
+    [string]$Features = '',
+    # Open a window prepopulated with fabricated data for visual iteration (no game needed).
+    # One of: 'skopt' (Skill Optimizer). Empty = none.
+    [string]$Mock = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -92,6 +95,10 @@ if ($code -ne 0) { Fail "host build failed (cargo exit $code)." }
 
 $exe = Join-Path $hostDir 'target\release\trackside-preview-host.exe'
 if (-not (Test-Path -LiteralPath $exe)) { Fail "host exe not found at $exe." }
+
+# --- mock data (read by the DLL at load; inherited by the host process) -----
+if ($Mock -eq 'skopt') { $env:TRACKSIDE_SKOPT_MOCK = '1' }
+if ($Mock) { Write-Host "  Mock: $Mock" -ForegroundColor Magenta }
 
 # --- launch -----------------------------------------------------------------
 $dllFull = (Resolve-Path -LiteralPath $dll).Path

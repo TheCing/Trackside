@@ -48,3 +48,28 @@ pub fn find_key<'a>(v: &'a Value, key: &str, out: &mut Vec<&'a Value>) {
 pub fn contains(hay: &[u8], needle: &[u8]) -> bool {
     needle.len() <= hay.len() && hay.windows(needle.len()).any(|w| w == needle)
 }
+
+/// rmpv → serde_json, verbatim (map keys stringified). For packet subtrees exported as JSON
+/// files (the UmaExtractor-format veterans dump). Binaries/exts become null (none in our data).
+pub fn to_json(v: &Value) -> serde_json::Value {
+    use serde_json::Value as J;
+    match v {
+        Value::Nil => J::Null,
+        Value::Boolean(b) => J::Bool(*b),
+        Value::String(s) => J::String(s.as_str().unwrap_or_default().to_string()),
+        Value::F32(f) => serde_json::Number::from_f64(*f as f64).map(J::Number).unwrap_or(J::Null),
+        Value::F64(f) => serde_json::Number::from_f64(*f).map(J::Number).unwrap_or(J::Null),
+        Value::Integer(_) => v
+            .as_i64()
+            .map(|x| J::Number(x.into()))
+            .or_else(|| v.as_u64().map(|x| J::Number(x.into())))
+            .unwrap_or(J::Null),
+        Value::Array(a) => J::Array(a.iter().map(to_json).collect()),
+        Value::Map(m) => J::Object(
+            m.iter()
+                .map(|(k, val)| (k.as_str().map(|s| s.to_string()).unwrap_or_else(|| format!("{k}")), to_json(val)))
+                .collect(),
+        ),
+        _ => J::Null,
+    }
+}

@@ -40,6 +40,8 @@ mod intro_player;
 // build's captured D3D11 device for the staging readback.
 #[cfg(feature = "banner")]
 mod icon_dump;
+#[cfg(feature = "banner")]
+mod png;
 mod htt;
 mod htt_il2cpp;
 mod hunter;
@@ -66,12 +68,16 @@ mod il2cpp_json;
 mod race_export;
 mod reset;
 mod umas;
+mod breeding_trace;
+mod player_state;
 // The single Gallop.HttpHelper::DecompressResponse hook: player-id (race-result gate) + race
 // retries + companion-bridge fan-out + full-build extras.
 mod response_hook;
 mod selfupdate;
 mod settings;
 mod skill_advisor;
+// Event title lookup (story_id → title) for the SuperSkip event breadcrumb.
+mod event_titles;
 // Apply Optimal: drives the skill-learn screen to select the advisor's picks (scaffold —
 // finished against the first in-game scan; see skill_buyer.rs header).
 mod skill_buyer;
@@ -108,7 +114,7 @@ impl HeavenOverlay {
         // boot) so the intro can draw over the splash logos within ~1 s of launch.
         #[cfg(feature = "banner")]
         intro_player::spawn_capture();
-        // Preview-host design aid (no-op unless TRACKSIDE_SKOPT_MOCK is set).
+        // Preview-host design aids (no-op unless the matching TRACKSIDE_*_MOCK env var is set).
         skill_advisor::mock_for_preview();
         HeavenOverlay::new()
     }

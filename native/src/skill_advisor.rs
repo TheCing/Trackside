@@ -272,7 +272,7 @@ fn normalize_name(name: &str) -> String {
     name.trim().to_lowercase()
 }
 
-fn skill_name(id: i32) -> String {
+pub fn skill_name(id: i32) -> String {
     SKILL_META
         .get(&id.to_string())
         .and_then(|v| v.get("name"))

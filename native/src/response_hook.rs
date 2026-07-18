@@ -35,6 +35,34 @@ static DETOUR: OnceLock<RawDetour> = OnceLock::new();
 type DecompStaticFn = unsafe extern "C" fn(*mut c_void, *const c_void) -> *mut c_void;
 type DecompInstFn = unsafe extern "C" fn(*mut c_void, *mut c_void, *const c_void) -> *mut c_void;
 
+/// Size ceiling for the "capture" markers (breeding rentals + player_state). Real
+/// Team-Trials and career-start responses are a few hundred KB; the master-data /
+/// resource responses the game pulls at first launch are many MB. See `gate_captures`.
+const CAPTURE_SIZE_CAP: usize = 4 * 1024 * 1024;
+
+/// Decide whether the two capture parsers should run for this response — pure so the size
+/// gate (the fix for the first-launch "Download Error") is unit-tested below.
+///
+/// `parse_rentals` / `parse_player_state` clone and fully msgpack-decode the WHOLE response.
+/// Their markers are short, generic byte strings ("rp_info", "total_score_info", …) that
+/// occur incidentally inside the large master-data blobs downloaded at first launch. Before
+/// this gate, matching one defeated the cheap early-return and made us decode a multi-MB blob
+/// on the game's network thread, stalling the response until its download step timed out.
+/// A large response is never one of ours, so above the cap we report neither — restoring the
+/// old build's cheap early-return for those responses. Fails safe: a real payload somehow
+/// over the cap is only *missed*, never a stall.
+fn gate_captures(slice: &[u8], len: usize, pstate_on: bool) -> (bool, bool) {
+    if len >= CAPTURE_SIZE_CAP {
+        return (false, false);
+    }
+    let rentals = contains(slice, b"succession_trained_chara_data");
+    let pstate = pstate_on
+        && crate::player_state::ENDPOINTS
+            .iter()
+            .any(|(_, key)| contains(slice, key.as_bytes()));
+    (rentals, pstate)
+}
+
 unsafe fn on_response(ret: *mut c_void) {
     if ret.is_null() {
         return;
@@ -53,10 +81,17 @@ unsafe fn on_response(ret: *mut c_void) {
     let has_chara = contains(slice, b"chara_info") && !contains(slice, b"limited_shop_info");
     let has_event = contains(slice, b"choice_array") || contains(slice, b"choice_reward_array");
     // Career complete: the freshly-registered trained chara carries the game's OFFICIAL
-    // rank_score — the calibration oracle for the advisor's rating model.
+    // rank_score — the calibration reference for the advisor's rating model.
     let has_trained = contains(slice, b"add_trained_chara_array");
+    // Veteran roster (UmaExtractor-format data.json export). NOTE: this byte-scan also matches
+    // "add_trained_chara_array" — parse_veterans uses exact key matching, so that's harmless.
+    let has_vets = contains(slice, b"trained_chara_array");
+    // Career start (pre_single_mode/index): friends' BORROWABLE parents — the rental half of
+    // the dashboard's Breed Optimizer. Team Trials player state ("Your status"): four responses
+    // identified by a key only each carries. Both go through the size-gated helper below.
+    let (has_rentals, has_pstate) = gate_captures(slice, len, crate::player_state::enabled());
 
-    if !has_race && !has_cont && !has_chara && !has_event && !has_trained {
+    if !has_race && !has_cont && !has_chara && !has_event && !has_trained && !has_vets && !has_rentals && !has_pstate {
         return;
     }
     // Verbose: which packet types this response carried + its size. The single most useful
@@ -68,6 +103,9 @@ unsafe fn on_response(ret: *mut c_void) {
         if has_chara { kinds.push("chara_info"); }
         if has_event { kinds.push("event"); }
         if has_trained { kinds.push("trained_chara"); }
+        if has_vets { kinds.push("veterans"); }
+        if has_rentals { kinds.push("rentals"); }
+        if has_pstate { kinds.push("player_state"); }
         crate::tools::debug(&format!("[response] {} bytes -> [{}]", len, kinds.join(", ")));
     }
     let bytes = slice.to_vec();
@@ -82,6 +120,148 @@ unsafe fn on_response(ret: *mut c_void) {
     }
     if has_trained {
         parse_trained(&bytes);
+    }
+    if has_event {
+        parse_event(&bytes);
+    }
+    if has_vets {
+        parse_veterans(&bytes);
+    }
+    if has_rentals {
+        parse_rentals(&bytes);
+    }
+    if has_pstate {
+        parse_player_state(&bytes);
+    }
+}
+
+/// Training-event breadcrumb: name every event as it appears in `unchecked_event_array`, so a
+/// crash-truncated log shows which event SuperSkip's SkipStory fired on, and arm the
+/// confirm-flow crash guard for the acupuncturist-type events.
+fn parse_event(bytes: &[u8]) {
+    let mut cur = std::io::Cursor::new(bytes);
+    let val = match rmpv::decode::read_value(&mut cur) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    let mut hits: Vec<&Value> = Vec::new();
+    find_key(&val, "unchecked_event_array", &mut hits);
+    for arr in hits {
+        let Some(list) = as_arr(arr) else { continue };
+        for ev in list {
+            if !ev.is_map() {
+                continue;
+            }
+            // ALWAYS-ON breadcrumb: name every event as it appears, so a crash-truncated log shows
+            // which event SuperSkip's SkipStory fired on right before a hang/crash. This is the
+            // passive capture for the "Just an Acupuncturist" choice-of-reward crash (a rare event
+            // that can't be reproduced on demand) — correlate this line with the next [event]
+            // SkipStory() line and the point the log ends.
+            let sid = map_get(ev, "story_id").and_then(|v| v.as_i64()).unwrap_or(0);
+            let eid = map_get(ev, "event_id").and_then(|v| v.as_i64()).unwrap_or(0);
+            let n_choices = map_get(ev, "event_contents_info")
+                .and_then(|c| map_get(c, "choice_array"))
+                .and_then(as_arr)
+                .map(|a| a.len())
+                .unwrap_or(0);
+            let title = crate::event_titles::event_title(sid);
+            crate::tools::log(&format!(
+                "[event] appeared: story={sid} event={eid} choices={n_choices} title=\"{title}\""
+            ));
+            // Arm the confirm-flow crash guard (suppresses event-skip for the acupuncturist-type
+            // event that crashes on "go back"). No-op for ordinary events.
+            crate::skip::event::note_event_appeared(sid);
+        }
+    }
+}
+
+/// Veteran roster capture (UmaExtractor-format export): find the EXACT `trained_chara_array`
+/// key (the byte-scan gate also matches add_trained_chara_array — find_key does not), take the
+/// largest array in the packet, and hand it to umas as pretty-printed verbatim JSON.
+fn parse_veterans(bytes: &[u8]) {
+    let mut cur = std::io::Cursor::new(bytes);
+    let val = match rmpv::decode::read_value(&mut cur) {
+        Ok(v) => v,
+        Err(_) => return,
+    };
+    let mut hits: Vec<&Value> = Vec::new();
+    find_key(&val, "trained_chara_array", &mut hits);
+    let Some(arr) = hits.iter().filter_map(|v| as_arr(v)).max_by_key(|a| a.len()) else { return };
+    if arr.is_empty() {
+        return;
+    }
+    let json_arr: Vec<serde_json::Value> = arr.iter().map(crate::msgpack::to_json).collect();
+    // Same entries feed the Breed Optimizer's "mine" half — the dashboard's own
+    // data.json import hands these in as `trained_chara`, so the shape already fits.
+    crate::breeding_trace::set_mine(json_arr.clone());
+    if let Ok(json) = serde_json::to_string_pretty(&json_arr) {
+        crate::umas::set_veterans_snapshot(json, arr.len());
+    }
+}
+
+/// Friends' BORROWABLE parents from the career-start response. `succession_trained_chara_data`
+/// holds `succession_trained_chara_array` (the parents) + `summary_user_info_array` (their
+/// owners' names); the dashboard reads both, so we pass the block through verbatim.
+fn parse_rentals(bytes: &[u8]) {
+    // ALWAYS-ON breadcrumb: this packet is rare (career start only) and we can only
+    // listen for it — unlike upstream, which called pre_single_mode/index outright. So
+    // name it whenever the marker hits, to tell "the screen was never opened" apart
+    // from "the screen was opened but we failed to read it".
+    let mut cur = std::io::Cursor::new(bytes);
+    let Ok(val) = rmpv::decode::read_value(&mut cur) else {
+        crate::tools::log("[breeding] career-start packet seen but msgpack decode failed");
+        return;
+    };
+    let mut hits: Vec<&Value> = Vec::new();
+    find_key(&val, "succession_trained_chara_data", &mut hits);
+    if hits.is_empty() {
+        crate::tools::log(
+            "[breeding] career-start packet seen but no succession_trained_chara_data key \
+             (byte-marker matched something else — dump with Verbose on)",
+        );
+        return;
+    }
+    // Pick the richest block — the packet can carry trimmed copies nested elsewhere.
+    let Some(blk) = hits
+        .into_iter()
+        .filter(|v| v.is_map())
+        .max_by_key(|v| {
+            map_get(v, "succession_trained_chara_array")
+                .and_then(as_arr)
+                .map(|a| a.len())
+                .unwrap_or(0)
+        })
+    else {
+        crate::tools::log("[breeding] succession_trained_chara_data present but not a map");
+        return;
+    };
+    let n = map_get(blk, "succession_trained_chara_array")
+        .and_then(as_arr)
+        .map(|a| a.len())
+        .unwrap_or(0);
+    if n == 0 {
+        // Real case, not a bug: the career-start flow has more than one step, and the
+        // early ones carry the block with an empty parent list.
+        crate::tools::log("[breeding] career-start packet seen, borrowable list empty (0 parents)");
+        return;
+    }
+    crate::breeding_trace::set_rentals(crate::msgpack::to_json(blk));
+}
+
+/// Team Trials player state. The endpoint name isn't in the body, so each of the four
+/// responses is identified by a key only it carries (see `player_state::ENDPOINTS`). We hand
+/// over the whole `data` map — the dashboard owns the field list.
+fn parse_player_state(bytes: &[u8]) {
+    let mut cur = std::io::Cursor::new(bytes);
+    let Ok(val) = rmpv::decode::read_value(&mut cur) else { return };
+    // The response is {data: {...}, data_headers: {...}} — the extractors' paths are relative
+    // to `data`. Fall back to the root if this response isn't wrapped.
+    let data = map_get(&val, "data").filter(|v| v.is_map()).unwrap_or(&val);
+    for (endpoint, key) in crate::player_state::ENDPOINTS {
+        // Exact key match at the data level — the byte-scan that got us here is only a prefilter.
+        if map_get(data, key).is_some() {
+            crate::player_state::record(endpoint, crate::msgpack::to_json(data));
+        }
     }
 }
 
@@ -380,5 +560,67 @@ pub fn install() {
             }
             Err(e) => log(&format!("[response] detour failed: {e}")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::gate_captures;
+
+    /// Place `needle` inside a buffer of `size` bytes (all else zero).
+    fn buf_with(size: usize, needle: &[u8]) -> Vec<u8> {
+        let mut v = vec![0u8; size];
+        let at = size / 2;
+        v[at..at + needle.len()].copy_from_slice(needle);
+        v
+    }
+
+    // THE REGRESSION: a first-launch download blob that merely CONTAINS a marker byte-string
+    // must not trigger capture. This is what stalled the network thread and timed out the
+    // game's download ("Download Error").
+    #[test]
+    fn large_response_with_pstate_key_is_ignored() {
+        let b = buf_with(5 * 1024 * 1024, b"rp_info");
+        assert_eq!(gate_captures(&b, b.len(), true), (false, false));
+    }
+
+    #[test]
+    fn large_response_with_rentals_key_is_ignored() {
+        let b = buf_with(8 * 1024 * 1024, b"succession_trained_chara_data");
+        assert_eq!(gate_captures(&b, b.len(), true), (false, false));
+    }
+
+    // Real payloads (a few hundred KB) still capture.
+    #[test]
+    fn small_response_with_pstate_key_is_captured() {
+        let b = buf_with(300 * 1024, b"total_score_info");
+        assert_eq!(gate_captures(&b, b.len(), true), (false, true));
+    }
+
+    #[test]
+    fn small_response_with_rentals_key_is_captured() {
+        let b = buf_with(500 * 1024, b"succession_trained_chara_data");
+        assert_eq!(gate_captures(&b, b.len(), true), (true, false));
+    }
+
+    // The player_state toggle still gates its half; rentals is independent of it.
+    #[test]
+    fn pstate_respects_enabled_flag() {
+        let b = buf_with(1000, b"rp_info");
+        assert_eq!(gate_captures(&b, b.len(), false), (false, false));
+    }
+
+    // A response with no marker at all — cheap ignore, both false.
+    #[test]
+    fn unrelated_response_matches_nothing() {
+        let b = buf_with(2 * 1024 * 1024, b"race_horse_data");
+        assert_eq!(gate_captures(&b, b.len(), true), (false, false));
+    }
+
+    // Exactly at the cap is treated as "large" (>= cap → ignored).
+    #[test]
+    fn boundary_at_cap_is_ignored() {
+        let b = buf_with(super::CAPTURE_SIZE_CAP, b"rp_info");
+        assert_eq!(gate_captures(&b, b.len(), true), (false, false));
     }
 }

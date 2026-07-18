@@ -839,6 +839,12 @@ impl ImguiRenderLoop for HeavenOverlay {
             self.frame_dt = dt.min(0.1);
         }
         self.last_frame = Some(now);
+        // Publish the frame delta for the draw-list animation helpers (anim_step /
+        // advance_flow_phase) BEFORE any window draws. This used to happen after the
+        // menu-closed early-return, so the Optimizer window (which draws with the menu
+        // closed) animated on a STALE delta — i.e. a fixed step per FRAME, making every ease
+        // and sheen speed scale with fps (very visible when skip mode uncorks the frame rate).
+        FRAME_DT.with(|c| c.set(self.frame_dt));
 
         // Native intro-video player. It auto-starts as soon as the D3D device is captured —
         // which happens on hudhook's first rendered frame, ~1 s into launch, LONG before the
@@ -1161,7 +1167,8 @@ impl HeavenOverlay {
             self.prev_tab = self.tab;
         }
         let tab = &mut self.tab;
-        FRAME_DT.with(|c| c.set(self.frame_dt));
+        // (FRAME_DT is published at the top of render — see the wall-clock block — so windows
+        // that draw with the menu CLOSED animate in real time too.)
         let icon_font = ICON_FONT.with(|c| c.get());
         #[cfg(feature = "banner")]
         let banner_tex = self.banner_tex;
@@ -1760,6 +1767,9 @@ impl HeavenOverlay {
                                         Ctrl::Custom(Custom::SkillAdvisor) => {
                                             crate::skill_advisor::draw_panel(ui, cw);
                                         }
+                                        Ctrl::Custom(Custom::UmaExtract) => {
+                                            draw_uma_extract(ui);
+                                        }
                                         Ctrl::Custom(Custom::IconDump) => {
                                             draw_icon_dump_panel(ui);
                                         }
@@ -2071,6 +2081,9 @@ impl HeavenOverlay {
                                     Ctrl::Custom(Custom::SkillAdvisor) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         crate::skill_advisor::draw_panel(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::UmaExtract) => {
+                                        draw_uma_extract(ui);
                                     }
                                     Ctrl::Custom(Custom::IconDump) => {
                                         draw_icon_dump_panel(ui);
@@ -3291,6 +3304,25 @@ fn draw_icon_dump_panel(ui: &Ui) {
     {
         let _ = ui;
     }
+}
+
+/// Veterans data.json export (UmaExtractor format): button + LIVE status line. The roster is
+/// captured from the Veteran List response packet; the button writes it verbatim.
+fn draw_uma_extract(ui: &Ui) {
+    let _wrap = ui.push_text_wrap_pos();
+    if btn_primary(ui, "##umaextract", "Export veterans (data.json)") {
+        crate::umas::export_data_json();
+    }
+    let st = crate::umas::extract_status();
+    if !st.is_empty() {
+        text_wrapped_colored(ui, GOOD, &st);
+    }
+    text_wrapped_colored(
+        ui,
+        DIM,
+        "UmaExtractor-format dump: open the game's Veteran List once (the roster is captured \
+         automatically), then press — writes trackside_umas\\data.json.",
+    );
 }
 
 /// Silk-themed widget palette for the optimizer window. It draws BEFORE the menu's global

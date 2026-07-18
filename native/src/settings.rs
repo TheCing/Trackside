@@ -159,6 +159,15 @@ pub struct Settings {
     // Export trained "veteran" umas to heaven_umas/veterans.json (Hakuraku format).
     #[serde(default)]
     pub umas_export: bool,
+    // Feed the Trackside Dashboard's Breed Optimizer: writes a breeding trace (your umas +
+    // friends' borrowable parents) straight into its data folder. Passive read of packets the
+    // game already sends. Default ON.
+    #[serde(default = "default_true")]
+    pub breeding_trace: bool,
+    // Feed the dashboard's "Your status" panel: captures the four Team Trials responses it
+    // reads player name / class / rank / RP / opponent / result from. Default ON (passive).
+    #[serde(default = "default_true")]
+    pub player_state: bool,
     // CarrotBlender-style companion feed (uma_bridge → companion overlays). Default ON (passive).
     #[serde(default = "default_true")]
     pub companion_bridge: bool,
@@ -278,6 +287,8 @@ impl Default for Settings {
             win: std::collections::HashMap::new(),
             race_export: false,
             umas_export: false,
+            breeding_trace: true,
+            player_state: true,
             companion_bridge: true,
             rd_keys: default_rd_keys(),
             skill_filter_distance: String::new(),
@@ -324,6 +335,8 @@ pub fn apply_on_boot() {
     crate::race_export::apply(&s);
     crate::friendlyplugins::apply(&s);
     crate::umas::apply(&s);
+    crate::breeding_trace::apply(&s);
+    crate::player_state::apply(&s);
     if let Ok(mut c) = cache().lock() {
         *c = s;
     }

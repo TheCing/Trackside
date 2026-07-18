@@ -19,6 +19,13 @@ use crate::http;
 /// This build's version (from Cargo.toml). Releases are tagged `v<this>`.
 const CURRENT: &str = env!("CARGO_PKG_VERSION");
 
+/// True for locally-built DEV builds — `Build-Trackside.ps1` sets `TRACKSIDE_DEV=1` before the
+/// cargo build, so this bakes in only for dev iterations. A dev DLL's hash never matches the
+/// published release asset's, which otherwise fires a spurious "hotfix available" popup every
+/// session; dev builds skip the same-tag hotfix check. Release builds (built without the env
+/// var, by the release tool) leave it false, so genuine re-uploaded-DLL hotfixes still surface.
+const IS_DEV_BUILD: bool = option_env!("TRACKSIDE_DEV").is_some();
+
 const REPO: &str = "TheCing/Trackside";
 
 /// The loose DLL asset the release must carry for one-click updates (uploaded alongside the zips
@@ -256,6 +263,11 @@ fn run_check(force: bool) {
 /// `<dll>.hash` asset) with ours. If they differ, a fixed DLL was re-uploaded under the same number →
 /// offer it, showing only the changelog lines that changed since we last saw them.
 fn check_same_tag_hotfix(arr: &[Value]) {
+    // Dev builds always differ from the published DLL by hash — don't nag about a "hotfix".
+    if IS_DEV_BUILD {
+        clear_pending();
+        return set_status("Up to date (dev build)");
+    }
     let cur = format!("v{CURRENT}");
     let Some(rel) = arr.iter().find(|r| {
         let t = r.get("tag_name").and_then(|v| v.as_str()).unwrap_or("");

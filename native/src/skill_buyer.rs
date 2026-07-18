@@ -147,7 +147,7 @@ fn clear_selection_state() {
 /// Translate the per-item click counts into pending tier skill_ids. Main thread only —
 /// only touches item pointers while the screen is live (cleared on PlayOutView).
 unsafe fn rebuild_selected() {
-    if INSTANCE.load(Ordering::Relaxed) == 0 {
+    if live_instance().is_null() {
         return;
     }
     let counts: Vec<(usize, i32)> = clicks()
@@ -276,7 +276,7 @@ unsafe fn item_skill_id(item: *mut c_void, get_skill_id: il2cpp::Method) -> i32 
 
 /// Walk the live `_itemList` and return the offered skill ids. Main thread only.
 unsafe fn read_offered() -> Vec<i32> {
-    let inst = INSTANCE.load(Ordering::Relaxed) as *mut c_void;
+    let inst = live_instance();
     if inst.is_null() {
         return Vec::new();
     }
@@ -307,7 +307,10 @@ unsafe fn read_offered() -> Vec<i32> {
 
 pub fn pump() {
     // Refresh the offered snapshot each frame we're on the screen (cheap: ~50 int calls).
-    if INSTANCE.load(Ordering::Relaxed) != 0 {
+    // live_instance() validates INSTANCE is still a live learn-screen object before ANY deref,
+    // so a stale/freed pointer can't crash the pump (the 0xf4 use-after-free).
+    let inst = unsafe { live_instance() };
+    if !inst.is_null() {
         let mut ids = unsafe { read_offered() };
         if !ids.is_empty() {
             // Sorted set compare: the game rebinds/reorders _itemList entries as you interact
@@ -337,14 +340,11 @@ pub fn pump() {
         // Live reactive snapshot: RemainingPoint (SP left) drives the SP-spent bar in real
         // time as the player clicks + / −. Budget = remaining at first sight (nothing picked
         // yet is the common case; if they've already spent, it self-corrects upward on −).
-        let inst = INSTANCE.load(Ordering::Relaxed) as *mut c_void;
-        if !inst.is_null() {
-            let rem = unsafe { rd_i32(inst, 0x58) };
-            REMAINING.store(rem, Ordering::Relaxed);
-            let prev_budget = BUDGET_SP.load(Ordering::Relaxed);
-            if rem > prev_budget {
-                BUDGET_SP.store(rem, Ordering::Relaxed);
-            }
+        let rem = unsafe { rd_i32(inst, 0x58) };
+        REMAINING.store(rem, Ordering::Relaxed);
+        let prev_budget = BUDGET_SP.load(Ordering::Relaxed);
+        if rem > prev_budget {
+            BUDGET_SP.store(rem, Ordering::Relaxed);
         }
     } else {
         REMAINING.store(i32::MIN, Ordering::Relaxed);
@@ -486,9 +486,36 @@ unsafe fn group_index_for(sid: &i32, index_of: &std::collections::HashMap<i32, i
         .map(|(_, &idx)| idx)
 }
 
+/// INSTANCE, but only if it STILL points at a live `SingleModeSkillLearningViewController`.
+///
+/// The learn-screen controller is captured on Setup and meant to be cleared on PlayOutView,
+/// but if that clear is ever missed (e.g. the screen tears down via a path we don't hook, or
+/// a game update shifts the method), INSTANCE dangles. The per-frame pump then walks a freed
+/// object graph and derefs a garbage list-item → the `0xc0000005` read @0xf4 use-after-free
+/// crash. Guard: every IL2CPP object stores its `Il2CppClass*` at offset 0, so compare it to
+/// the resolved view class; on mismatch the pointer is stale/reused → clear it and bail. Cheap
+/// (one pointer read + compare) and runs before any deeper deref.
+unsafe fn live_instance() -> *mut c_void {
+    let inst = INSTANCE.load(Ordering::Relaxed) as *mut c_void;
+    if inst.is_null() {
+        return std::ptr::null_mut();
+    }
+    let k = il2cpp::class(VIEW_CLASS_NAME);
+    if k.is_null() {
+        return std::ptr::null_mut();
+    }
+    // klass pointer at offset 0 of the object; a live controller's matches the view class.
+    if rd_ptr(inst, 0) != k as *mut c_void {
+        INSTANCE.store(0, Ordering::Relaxed);
+        clear_selection_state();
+        return std::ptr::null_mut();
+    }
+    inst
+}
+
 /// Resolve the live `_itemList[index]` object pointer (or null if out of range).
 unsafe fn item_at(index: i32) -> *mut c_void {
-    let inst = INSTANCE.load(Ordering::Relaxed) as *mut c_void;
+    let inst = live_instance();
     if inst.is_null() || index < 0 {
         return std::ptr::null_mut();
     }

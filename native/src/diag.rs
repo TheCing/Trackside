@@ -50,14 +50,40 @@ fn log_line(msg: &str) {
 }
 
 // Minimal kernel32 import so module detection works in EVERY build (the `windows` crate is only
-// linked in `banner` builds). Returns null if the module isn't loaded in this process.
+// linked in `banner` builds).
 extern "system" {
     fn GetModuleHandleA(name: *const u8) -> *mut c_void;
+    fn GetModuleFileNameA(module: *mut c_void, filename: *mut u8, size: u32) -> u32;
 }
-fn module_loaded(name: &str) -> bool {
+
+/// Full on-disk path of a loaded module (by base name), or None if it isn't loaded.
+fn module_path(name: &str) -> Option<String> {
     let mut bytes = name.as_bytes().to_vec();
     bytes.push(0); // NUL-terminate for the ANSI Win32 call
-    unsafe { !GetModuleHandleA(bytes.as_ptr()).is_null() }
+    unsafe {
+        let h = GetModuleHandleA(bytes.as_ptr());
+        if h.is_null() {
+            return None;
+        }
+        let mut buf = [0u8; 512];
+        let n = GetModuleFileNameA(h, buf.as_mut_ptr(), buf.len() as u32);
+        if n == 0 {
+            return None;
+        }
+        Some(String::from_utf8_lossy(&buf[..n as usize]).into_owned())
+    }
+}
+
+/// True when `path`'s directory is the game root (where the proxy loaders live). This is what
+/// separates a real injector/proxy from the genuine same-named DLL: proxy-hijack DLLs sit in the
+/// game root, whereas the genuine `dxgi.dll`/`winhttp.dll` load from System32 and the genuine
+/// `cri_mana_vpx.dll` loads from `UmamusumePrettyDerby_Data\Plugins\x86_64`. Case-insensitive.
+fn in_game_root(path: &str) -> bool {
+    let root = crate::paths::dll_dir();
+    std::path::Path::new(path)
+        .parent()
+        .map(|p| p.to_string_lossy().to_lowercase() == root.to_string_lossy().to_lowercase())
+        .unwrap_or(false)
 }
 
 fn build_kind() -> &'static str {
@@ -94,34 +120,51 @@ pub fn report() -> String {
     feats.push("races_on");
     s.push_str(&format!("Features       : {}\n", feats.join(", ")));
 
-    // Runtime / IL2CPP
+    // Runtime / IL2CPP. IMPORTANT: `report()` is invoked from the MENU, i.e. the render thread —
+    // so it must use only render-SAFE probes. `game_loaded()` is GetModuleHandle and `ready()`
+    // is an OnceLock check; both are inert. The old `il2cpp::domain()` here was a LIVE
+    // `il2cpp_domain_get()` runtime call: calling it off the game main thread registered the
+    // render thread with the GC, and the next collection then blocked forever waiting for that
+    // thread to reach a managed safepoint (it never does — it's in D3D/imgui) → whole-process
+    // freeze a few seconds after toggling Verbose logging on. Never call live IL2CPP from here.
     s.push_str("\n--- Runtime ---\n");
     s.push_str(&format!("GameAssembly loaded : {}\n", il2cpp::game_loaded()));
-    s.push_str(&format!("IL2CPP domain ready : {}\n", !il2cpp::domain().is_null()));
+    s.push_str(&format!("IL2CPP API ready    : {}\n", il2cpp::ready()));
 
-    // Other mods / loaders that can collide with Heaven's hooks.
-    s.push_str("\n--- Other loaders / mods detected ---\n");
-    let known = [
-        ("cri_mana_vpx.dll", "Hachimi (cri_mana_vpx loader)"),
-        ("hachimi.dll", "Hachimi"),
-        ("version.dll", "version.dll proxy (Trackside or other)"),
-        ("UnityPlayer.dll", "UnityPlayer (game / Hachimi proxy)"),
+    // Other loaders / proxies. Only DLLs loaded FROM THE GAME ROOT count — that's the proxy-
+    // hijack slot. A same-named DLL loaded from System32 (dxgi/winhttp) or the Unity plugins
+    // folder (cri_mana_vpx is the genuine CRI video codec) is NOT a mod and is skipped, so this
+    // section stops crying wolf about every system DLL the game happens to load.
+    s.push_str("\n--- Loaders / proxies in the game folder ---\n");
+    let suspects = [
+        ("version.dll", "version.dll proxy"),
         ("winhttp.dll", "winhttp proxy"),
-        ("dxgi.dll", "dxgi proxy"),
+        ("dxgi.dll", "dxgi proxy (ReShade / other injector)"),
         ("dinput8.dll", "dinput8 proxy"),
+        ("cri_mana_vpx.dll", "Hachimi (active cri_mana_vpx proxy in game root)"),
+        ("hachimi.dll", "Hachimi"),
     ];
     let mut any = false;
-    for (dll, desc) in known {
-        if module_loaded(dll) {
-            s.push_str(&format!("  [present] {dll}  ({desc})\n"));
-            any = true;
+    for (dll, desc) in suspects {
+        match module_path(dll) {
+            Some(p) if in_game_root(&p) => {
+                // version.dll in the root is OUR proxy — expected, not a conflict.
+                let note = if dll.eq_ignore_ascii_case("version.dll") {
+                    "Trackside proxy — expected"
+                } else {
+                    desc
+                };
+                s.push_str(&format!("  [game-root] {dll}  ({note})\n"));
+                any = true;
+            }
+            _ => {}
         }
     }
     if !any {
-        s.push_str("  (none of the known proxy/mod DLLs detected)\n");
+        s.push_str("  (no proxy/injector DLLs loaded from the game folder)\n");
     }
     s.push_str(
-        "NOTE: if another mod is present it may hook the same methods FIRST and Trackside yields —\n      such a hook shows as 'already detoured (skipped)' in the install results below.\n",
+        "NOTE: another IN-ROOT proxy may hook the same methods FIRST and Trackside yields — that\n      shows as 'already detoured (skipped)' in the install results below.\n",
     );
 
     // Hook install results — the core of the report.

@@ -26,16 +26,26 @@ use windows::Win32::Graphics::Direct3D11::{
     D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
 };
 use windows::Win32::Graphics::Dxgi::Common::{
-    DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, DXGI_FORMAT_BC1_TYPELESS,
-    DXGI_FORMAT_BC1_UNORM, DXGI_FORMAT_BC1_UNORM_SRGB, DXGI_FORMAT_BC3_TYPELESS,
-    DXGI_FORMAT_BC3_UNORM, DXGI_FORMAT_BC3_UNORM_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM,
-    DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+    DXGI_FORMAT_B8G8R8A8_TYPELESS, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
+    DXGI_FORMAT_BC1_TYPELESS, DXGI_FORMAT_BC1_UNORM, DXGI_FORMAT_BC1_UNORM_SRGB,
+    DXGI_FORMAT_BC3_TYPELESS, DXGI_FORMAT_BC3_UNORM, DXGI_FORMAT_BC3_UNORM_SRGB,
+    DXGI_FORMAT_R8G8B8A8_TYPELESS, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 };
 
 use crate::il2cpp;
 use crate::tools::log_to;
 
 const LOG: &str = "trackside-icon-dump.txt";
+
+/// FNV-1a 64-bit — content hash for winner-render filenames (idempotent dedupe).
+fn fnv1a(bytes: &[u8]) -> u64 {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for &b in bytes {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    h
+}
 
 /// Name substrings worth pulling pixels for (broad on purpose — curation is offline).
 /// Inventories so far: `tex_team_rank_icon_030`, `trained_chr_icon_*`, and the emblem
@@ -151,10 +161,11 @@ pub fn pump() {
         }
         let (find_all_m, find_all_ic) = resolve_find_all();
         let get_name = il2cpp::method(obj_k, "get_name", 0);
-        let get_w = il2cpp::method(tex_k, "get_width", 0);
-        let get_h = il2cpp::method(tex_k, "get_height", 0);
-        // GetNativeTexturePtr lives on UnityEngine.Texture (base class); icall as fallback.
+        // width/height/GetNativeTexturePtr all live on the base UnityEngine.Texture, so resolving
+        // there works for Texture2D AND RenderTexture.
         let texture_k = il2cpp::class("UnityEngine.Texture");
+        let get_w = il2cpp::method(texture_k, "get_width", 0);
+        let get_h = il2cpp::method(texture_k, "get_height", 0);
         let get_native = il2cpp::method(texture_k, "GetNativeTexturePtr", 0);
         let native_ic = if get_native.is_null() {
             il2cpp::resolve_icall("UnityEngine.Texture::GetNativeTexturePtr")
@@ -185,50 +196,68 @@ pub fn pump() {
             set_status("Resolution failed — details in trackside-logs/trackside-icon-dump.txt");
             return;
         }
-        let type_obj = il2cpp::type_object(tex_k);
-        if type_obj.is_null() {
-            set_status("typeof(Texture2D) unavailable (dump aborted)");
-            return;
-        }
-        let arr = if !find_all_m.is_null() {
-            il2cpp::runtime_invoke(find_all_m, std::ptr::null_mut(), &mut [type_obj])
-        } else {
-            let f: extern "C" fn(*mut c_void) -> *mut c_void = std::mem::transmute(find_all_ic);
-            f(type_obj)
-        };
-        if arr.is_null() {
-            set_status("FindObjectsOfTypeAll returned null");
-            return;
-        }
-        // IL2CPP array: max_length @0x18, elements @0x20 (8-byte refs).
-        let count = *((arr as usize + 0x18) as *const i32);
-        let mut inv = format!("==== TEXTURE INVENTORY ({count} loaded) ====\n");
+        let mut inv = String::from("==== TEXTURE INVENTORY ====\n");
         let mut queued = 0;
-        for i in 0..count.clamp(0, 65536) as usize {
-            let tex = *((arr as usize + 0x20 + i * 8) as *const *mut c_void);
-            if tex.is_null() {
+        // Two passes: Texture2D (icon patterns only) and RenderTexture (rip ALL — these are the
+        // game's live render captures, e.g. the Twinkle Monthly Extra winner photo, few in number
+        // and often unnamed, so we can't filter by name). RenderTexture is a SIBLING of Texture2D
+        // under UnityEngine.Texture, so a Texture2D-only enumeration never sees it.
+        for (cname, rip_all) in [("UnityEngine.Texture2D", false), ("UnityEngine.RenderTexture", true)] {
+            let k = il2cpp::class(cname);
+            if k.is_null() {
+                inv.push_str(&format!("\n-- {cname}: class not found --\n"));
                 continue;
             }
-            let name = obj_name(tex, get_name);
-            if name.is_empty() {
+            let type_obj = il2cpp::type_object(k);
+            if type_obj.is_null() {
                 continue;
             }
-            let w = call_i32(tex, get_w) as u32;
-            let h = call_i32(tex, get_h) as u32;
-            inv.push_str(&format!("{name}\t{w}x{h}\n"));
-            let lname = name.to_lowercase();
-            if WANT.iter().any(|p| lname.contains(p)) && w > 0 && h > 0 && w <= 2048 && h <= 2048 {
-                let native = if !get_native.is_null() {
-                    call_ptr(tex, get_native)
-                } else {
-                    // Instance icall ABI: plain native fn taking `this`.
-                    let f: extern "C" fn(*mut c_void) -> usize = std::mem::transmute(native_ic);
-                    f(tex)
-                };
-                if native != 0 {
-                    if let Ok(mut q) = QUEUE.lock() {
-                        q.push((name, w, h, native));
-                        queued += 1;
+            let arr = if !find_all_m.is_null() {
+                il2cpp::runtime_invoke(find_all_m, std::ptr::null_mut(), &mut [type_obj])
+            } else {
+                let f: extern "C" fn(*mut c_void) -> *mut c_void = std::mem::transmute(find_all_ic);
+                f(type_obj)
+            };
+            if arr.is_null() {
+                continue;
+            }
+            // IL2CPP array: max_length @0x18, elements @0x20 (8-byte refs).
+            let count = *((arr as usize + 0x18) as *const i32);
+            inv.push_str(&format!("\n-- {cname} ({count}) --\n"));
+            for i in 0..count.clamp(0, 65536) as usize {
+                let tex = *((arr as usize + 0x20 + i * 8) as *const *mut c_void);
+                if tex.is_null() {
+                    continue;
+                }
+                let mut name = obj_name(tex, get_name);
+                // Skip unnamed Texture2Ds (asset noise); KEEP unnamed RenderTextures (the winner
+                // capture is often unnamed) — give them a filesystem-safe placeholder.
+                if name.is_empty() {
+                    if !rip_all {
+                        continue;
+                    }
+                    name = format!("RenderTexture_{i}");
+                }
+                let w = call_i32(tex, get_w) as u32;
+                let h = call_i32(tex, get_h) as u32;
+                inv.push_str(&format!("{name}\t{w}x{h}{}\n", if rip_all { "\t[RT]" } else { "" }));
+                // RTs: rip all (generous cap — a screenshot is bigger than an icon). Texture2Ds:
+                // only the icon patterns.
+                let max = if rip_all { 8192 } else { 2048 };
+                let want = rip_all || WANT.iter().any(|p| name.to_lowercase().contains(p));
+                if want && w > 0 && h > 0 && w <= max && h <= max {
+                    let native = if !get_native.is_null() {
+                        call_ptr(tex, get_native)
+                    } else {
+                        // Instance icall ABI: plain native fn taking `this`.
+                        let f: extern "C" fn(*mut c_void) -> usize = std::mem::transmute(native_ic);
+                        f(tex)
+                    };
+                    if native != 0 {
+                        if let Ok(mut q) = QUEUE.lock() {
+                            q.push((name, w, h, native));
+                            queued += 1;
+                        }
                     }
                 }
             }
@@ -352,6 +381,14 @@ pub fn render_pump() {
             let src: ID3D11Texture2D = std::mem::transmute_copy(&native);
             let mut desc = D3D11_TEXTURE2D_DESC::default();
             src.GetDesc(&mut desc);
+            // Multisampled render targets can't be CopyResource'd to a non-MSAA staging texture.
+            // Rare for a display capture (usually already resolved), so log & skip rather than add
+            // a resolve pass for now — the log tells us if we ever need one.
+            if desc.SampleDesc.Count > 1 {
+                log_to(LOG, &format!("SKIP {name} — MSAA x{} (needs resolve)", desc.SampleDesc.Count));
+                std::mem::forget(src);
+                continue;
+            }
             // Plain 32-bit reads directly; BC1/BC3 (the game's usual UI compression) decode
             // on the CPU. Anything else (BC7 etc.) is logged so we know what to add.
             #[derive(Clone, Copy, PartialEq)]
@@ -362,8 +399,10 @@ pub fn render_pump() {
                 Bc3,
             }
             let fmt = match desc.Format {
-                DXGI_FORMAT_R8G8B8A8_UNORM | DXGI_FORMAT_R8G8B8A8_UNORM_SRGB => Fmt::Rgba,
-                DXGI_FORMAT_B8G8R8A8_UNORM | DXGI_FORMAT_B8G8R8A8_UNORM_SRGB => Fmt::Bgra,
+                // TYPELESS variants are the same byte layout as UNORM — RenderTextures report
+                // these (the game's camera captures come through as R8G8B8A8_TYPELESS).
+                DXGI_FORMAT_R8G8B8A8_UNORM | DXGI_FORMAT_R8G8B8A8_UNORM_SRGB | DXGI_FORMAT_R8G8B8A8_TYPELESS => Fmt::Rgba,
+                DXGI_FORMAT_B8G8R8A8_UNORM | DXGI_FORMAT_B8G8R8A8_UNORM_SRGB | DXGI_FORMAT_B8G8R8A8_TYPELESS => Fmt::Bgra,
                 DXGI_FORMAT_BC1_UNORM | DXGI_FORMAT_BC1_UNORM_SRGB | DXGI_FORMAT_BC1_TYPELESS => Fmt::Bc1,
                 DXGI_FORMAT_BC3_UNORM | DXGI_FORMAT_BC3_UNORM_SRGB | DXGI_FORMAT_BC3_TYPELESS => Fmt::Bc3,
                 _ => {
@@ -412,7 +451,33 @@ pub fn render_pump() {
                 };
                 context.Unmap(&staging, 0);
                 let safe: String = name.chars().map(|c| if c.is_alphanumeric() || c == '_' || c == '-' { c } else { '_' }).collect();
+                // .rgba feeds the rank-icon curation script (which expects the raw bottom-up D3D
+                // rows); .png is for eyeballing, so flip it top-down here.
                 let _ = std::fs::write(dir.join(format!("{safe}_{w}x{h}.rgba")), &out);
+                let stride = (w * 4) as usize;
+                let mut flipped = Vec::with_capacity(out.len());
+                for row in (0..h as usize).rev() {
+                    flipped.extend_from_slice(&out[row * stride..row * stride + stride]);
+                }
+                let png = crate::png::encode_rgba(w as u32, h as u32, &flipped);
+                let _ = std::fs::write(dir.join(format!("{safe}_{w}x{h}.png")), &png);
+                // Champions Meeting "Twinkle Monthly Extra" winner render: the game composites
+                // it into an 816x862 RenderTarget. Copy that one, full-size, to a clean
+                // trackside-winners/ folder. The game double-buffers it (several identical RTs
+                // per dump), so name by content hash → the dupes collapse to one file and each
+                // distinct winner is preserved across dumps. If the render size ever changes on
+                // another device, widen this check.
+                if w == 816 && h == 862 {
+                    let wdir = crate::paths::local_dir_migrated("trackside-winners", "trackside-winners");
+                    if std::fs::create_dir_all(&wdir).is_ok() {
+                        let hash = fnv1a(&flipped);
+                        let wpath = wdir.join(format!("winner_{hash:016x}.png"));
+                        if !wpath.exists() {
+                            let _ = std::fs::write(&wpath, &png);
+                            log_to(LOG, &format!("WINNER saved -> trackside-winners/winner_{hash:016x}.png"));
+                        }
+                    }
+                }
             }
             // `src` was conjured from a raw pointer the game owns — never release it.
             std::mem::forget(src);

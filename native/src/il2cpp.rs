@@ -189,6 +189,11 @@ pub fn ready() -> bool {
 
 // ── High-level helpers ──────────────────────────────────────────────────────
 
+/// The IL2CPP domain. This is a LIVE runtime call — only call it on the game main thread (or a
+/// thread you've `attach_current_thread`'d for the call's duration). Calling it from the render
+/// thread registers that thread with the GC and the next collection deadlocks the process
+/// waiting for it to hit a managed safepoint it never reaches. For a render-safe "is IL2CPP up?"
+/// check use [`ready`] instead.
 pub fn domain() -> Domain {
     unsafe { (api().domain_get)() }
 }
@@ -628,6 +633,51 @@ pub fn class_fields(klass: Class) -> Vec<(String, usize, String)> {
                 if p.is_null() { "?".to_string() } else { cstr_to_string(p) }
             };
             out.push((name, off, tn));
+        }
+    }
+    out
+}
+
+/// Enum constants as (name, value) for an enum class — best-effort, for RE/scan tooling.
+/// Empty when the class isn't an enum or the value export is unavailable. Read-only reflection:
+/// it boxes each constant's default value, a GC allocation on the calling thread, so this is
+/// MAIN-THREAD ONLY like the rest of the scan tooling. Never mutates game state.
+pub fn enum_constants(klass: Class) -> Vec<(String, i64)> {
+    let mut out = Vec::new();
+    if klass.is_null() {
+        return out;
+    }
+    let Some((fields_fn, fname_fn, _, _)) = introspect_api() else {
+        return out;
+    };
+    let m = game_module();
+    if m.is_null() {
+        return out;
+    }
+    type FnGetDef = unsafe extern "C" fn(Field) -> *mut c_void;
+    let getdef: FnGetDef = match unsafe { resolve::<FnGetDef>(m, b"il2cpp_field_get_default_value_object\0") } {
+        Some(f) => f,
+        None => return out, // export absent → names-only scan still works
+    };
+    unsafe {
+        let mut iter: *mut c_void = std::ptr::null_mut();
+        loop {
+            let f = (fields_fn)(klass, &mut iter);
+            if f.is_null() {
+                break;
+            }
+            let name = cstr_to_string((fname_fn)(f));
+            if name == "value__" {
+                continue; // the underlying storage field, not a constant
+            }
+            let obj = (getdef)(f);
+            if obj.is_null() {
+                continue; // non-literal field (no default) → skip
+            }
+            // Boxed primitive: the value sits right after the Il2CppObject header (klass +
+            // monitor = 0x10 on 64-bit). Enum underlying is int32-sized for our categories.
+            let val = *((obj as usize + 0x10) as *const i32) as i64;
+            out.push((name, val));
         }
     }
     out

@@ -70,6 +70,31 @@ pub(crate) unsafe extern "C" fn on_goal_complete_begin(this: *mut c_void, m: *mu
     call_orig(&TR_GOALBEGIN, this, m);
 }
 
+// ── Confirm-flow event crash guard (UNCONFIRMED — reported, not yet reproduced) ──
+// "Just an Acupuncturist" (story 501xxx720, all charas) is a choice-OF-REWARD event with a
+// select → "confirm your choice" → "check other options"(go back) gate. A user reported that with
+// event-skip on, going back crashes the run to title — the SAME failure shape as the Goal-Complete
+// freeze above (SkipStory corrupting a confirm/dialog stack). The event is random/rare, so rather
+// than wait for an on-demand repro we suppress event-skip while such an event is live: this BOTH
+// mitigates the crash AND confirms the mechanism (if the crash stops with skip suppressed here, it
+// was SkipStory). Time-based so it can never stick; keyed off the event packet (response_hook).
+static CONFIRM_EVENT_UNTIL: AtomicU64 = AtomicU64::new(0);
+
+/// True if `story_id` is a known choice-of-reward "confirm/go-back" event (crash risk under skip).
+fn is_confirm_flow_event(story_id: i64) -> bool {
+    // 501xxx720 = "Just an Acupuncturist, No Worries!" across every chara variant.
+    story_id / 1_000_000 == 501 && story_id % 1000 == 720
+}
+
+/// Called from response_hook when an event packet arrives. Arms the suppression for confirm-flow
+/// events so the following SkipStory is skipped.
+pub(crate) fn note_event_appeared(story_id: i64) {
+    if is_confirm_flow_event(story_id) {
+        CONFIRM_EVENT_UNTIL.store(now_ms() + 60_000, Ordering::Relaxed);
+        rr_log(&format!("[event] confirm-flow event {story_id} -> event-skip suppressed 60s (crash guard)"));
+    }
+}
+
 // ── EVENTS: SkipStory on OnStartPlayingTimeline (guarded + debounced). ──────
 static LAST_EVENT_SKIP_MS: AtomicU64 = AtomicU64::new(0);
 fn try_event_skip(this: *mut c_void) {
@@ -79,6 +104,11 @@ fn try_event_skip(this: *mut c_void) {
     // Never SkipStory during the Goal-Complete window (it hangs the game — see above).
     if now_ms() < GOAL_COMPLETE_UNTIL.load(Ordering::Relaxed) {
         rr_log("[event] SkipStory SUPPRESSED (Goal Complete freeze guard)");
+        return;
+    }
+    // Never SkipStory during a choice-of-reward confirm event (crash-on-go-back guard — see above).
+    if now_ms() < CONFIRM_EVENT_UNTIL.load(Ordering::Relaxed) {
+        rr_log("[event] SkipStory SUPPRESSED (confirm-flow crash guard)");
         return;
     }
     let now = clock().elapsed().as_millis() as u64;

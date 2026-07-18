@@ -160,10 +160,16 @@ Write-Host ""
 
 Push-Location $nativeDir
 try {
+    # Mark this as a DEV build so the self-updater skips the same-tag hotfix check (a locally
+    # built DLL never matches the published release hash → otherwise a spurious "update
+    # available" popup every session). The release tool builds WITHOUT this, keeping real
+    # hotfix detection intact.
+    $env:TRACKSIDE_DEV = '1'
     & cargo @cargoArgs
     $code = $LASTEXITCODE
 } finally {
     Pop-Location
+    Remove-Item Env:\TRACKSIDE_DEV -ErrorAction SilentlyContinue
 }
 if ($code -ne 0) { Fail "cargo exited with code $code." }
 

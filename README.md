@@ -210,6 +210,10 @@ without loading any external DLLs. All toggles live under **Gameplay → Compani
   file that the [Hakuraku](https://hakuraku.moe/veterans) site reads. The next time your
   trained-uma roster loads in-game, Trackside writes `trackside_umas/veterans.json` next to the
   game; upload that file to Hakuraku.
+- **Export veterans (data.json / UmaExtractor)** — the same roster in the format
+  [UmaExtractor](https://github.com/xancia/UmaExtractor) produces, for tools that read its
+  `data.json`. Open the game's **Veteran List** once (the roster is captured automatically),
+  then press **Export veterans (data.json)** — no separate extractor or memory scanning needed.
 - **Companion feed (CarrotBlender)** — serves the game's decrypted responses to companion
   overlays (such as UmaOverlay-lite) over a local connection, so those overlays work without a
   separate plugin.

@@ -71,6 +71,78 @@ unsafe extern "C" fn veteran_hook(this: *mut RawObject, arr: *mut RawObject, met
     save(arr as usize, count);
 }
 
+// ── UmaExtractor stand-in (packet-driven) ─────────────────────────────────────
+// xancia/UmaExtractor memory-scans the game for the `trained_chara_array` msgpack and dumps it
+// as data.json (the decoded array, verbatim server field names, 2-space indent). The same array
+// flows through our DecompressResponse hook when the Veteran List loads — response_hook captures
+// it (largest roster wins, like MAX_COUNT above) and the menu button writes the identical format.
+
+use std::sync::Mutex;
+
+static VET_SNAPSHOT: OnceLock<Mutex<Option<(String, usize)>>> = OnceLock::new();
+static VET_STATUS: OnceLock<Mutex<String>> = OnceLock::new();
+
+fn vet_slot() -> &'static Mutex<Option<(String, usize)>> {
+    VET_SNAPSHOT.get_or_init(|| Mutex::new(None))
+}
+fn vet_status_slot() -> &'static Mutex<String> {
+    VET_STATUS.get_or_init(|| Mutex::new(String::new()))
+}
+
+/// Called by response_hook whenever a packet carries `trained_chara_array`. Largest roster wins
+/// (partial lists flow from picker screens), matching the veterans.json hook's guard above.
+pub fn set_veterans_snapshot(json: String, count: usize) {
+    if count == 0 {
+        return;
+    }
+    if let Ok(mut g) = vet_slot().lock() {
+        let prev = g.as_ref().map(|(_, c)| *c).unwrap_or(0);
+        if count >= prev {
+            *g = Some((json, count));
+            ulog(&format!("[umas] veterans snapshot captured ({count} umas)"));
+        }
+    }
+}
+
+/// Live status line for the menu ("N veterans captured" / hint to open the list).
+pub fn extract_status() -> String {
+    let captured = vet_slot().lock().ok().and_then(|g| g.as_ref().map(|(_, c)| *c)).unwrap_or(0);
+    let last = vet_status_slot().lock().map(|s| s.clone()).unwrap_or_default();
+    if !last.is_empty() {
+        last
+    } else if captured > 0 {
+        format!("{captured} veterans captured — ready to export.")
+    } else {
+        String::new()
+    }
+}
+
+/// Menu button: write the captured roster as `trackside_umas/data.json` (UmaExtractor format).
+pub fn export_data_json() {
+    let snap = vet_slot().lock().ok().and_then(|g| g.clone());
+    let msg = match snap {
+        None => "No veterans captured yet — open the game's Veteran List first.".into(),
+        Some((json, count)) => {
+            let dir = crate::paths::local_dir_migrated("trackside_umas", "heaven_umas");
+            if std::fs::create_dir_all(&dir).is_err() {
+                "Could not create trackside_umas folder.".to_string()
+            } else {
+                let path = dir.join("data.json");
+                match std::fs::write(&path, json.as_bytes()) {
+                    Ok(_) => {
+                        ulog(&format!("[umas] data.json exported ({count} umas, {} bytes)", json.len()));
+                        format!("Exported {count} veterans to trackside_umas\\data.json")
+                    }
+                    Err(e) => format!("Write failed: {e}"),
+                }
+            }
+        }
+    };
+    if let Ok(mut s) = vet_status_slot().lock() {
+        *s = msg;
+    }
+}
+
 fn save(arr_addr: usize, count: usize) {
     if count == 0 {
         return; // empty array — ignore (never blank out the file)

@@ -67,6 +67,7 @@ pub enum Custom {
     Followers,       // Follower pruner — preview + paced removal of oldest-inactive followers
     RoomFinder,      // Room Match finder — auto-refresh the room list until a room matches the filters
     SkillAdvisor,    // End-of-career skill buy optimizer (manual Gameplay tab)
+    UmaExtract,      // Veterans data.json export (UmaExtractor format) — button + live status
     IconDump,        // In-process icon ripper — button + live status (About → Diagnostics)
     Affinity,        // Legacy Select succession-affinity numbers — enable + drag-to-place + size
     Intro,           // intro status + replay button
@@ -395,6 +396,9 @@ pub fn model() -> Vec<Tab> {
                 Ctrl::Toggle { id: "rex", label: "Export races (horseACT)", get: crate::settings::race_export, set: crate::settings::set_race_export },
                 Ctrl::Toggle { id: "vex", label: "Export veterans (Hakuraku)", get: crate::settings::umas_export, set: crate::settings::set_umas_export },
                 Ctrl::Toggle { id: "cbr", label: "Companion feed (CarrotBlender)", get: crate::friendlyplugins::bridge_enabled, set: crate::friendlyplugins::set_bridge_enabled },
+                Ctrl::Toggle { id: "btr", label: "Feed Breed Optimizer (Dashboard)", get: crate::breeding_trace::enabled, set: crate::breeding_trace::set_enabled },
+                Ctrl::Note("Sends your umas and your friends' borrowable parents to the Trackside Dashboard's Breed Optimizer as you play — open the Veteran List once, then a career start screen. Nothing to import."),
+                Ctrl::Custom(Custom::UmaExtract),
             ],
         }],
     });
