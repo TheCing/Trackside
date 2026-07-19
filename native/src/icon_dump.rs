@@ -62,8 +62,32 @@ const WANT: [&str; 8] = [
 ];
 
 static DUMP_REQUESTED: AtomicBool = AtomicBool::new(false);
-static QUEUE: Lazy<Mutex<Vec<(String, u32, u32, usize)>>> = Lazy::new(|| Mutex::new(Vec::new()));
+// (name, width, height, native ptr, is_render_texture)
+static QUEUE: Lazy<Mutex<Vec<(String, u32, u32, usize, bool)>>> = Lazy::new(|| Mutex::new(Vec::new()));
 static STATUS: Lazy<Mutex<String>> = Lazy::new(|| Mutex::new(String::new()));
+// Winner content-hashes saved THIS process. We dedup against this, NOT the filesystem — a stale
+// winner_<hash>.png left over from an earlier build/manual export must never shadow a real save.
+static WINNER_SEEN: Lazy<Mutex<std::collections::HashSet<u64>>> =
+    Lazy::new(|| Mutex::new(std::collections::HashSet::new()));
+
+/// Does this RenderTexture look like the Champions Meeting winner photo? The winner composites into
+/// a large, near-square, NON-power-of-two RenderTarget (816x862 on the reference device). We match
+/// that shape rather than a hardcoded size so a different resolution/screen doesn't silently miss —
+/// while excluding the power-of-two scratch/temp RTs (1024x1024, 256x256, 2048x2048…) and the
+/// wide/tall screenshot RTs (1920x1080, 1440x1920, 720x960…).
+fn is_winner_like(w: u32, h: u32, is_rt: bool) -> bool {
+    if !is_rt || w < 700 || h < 700 {
+        return false;
+    }
+    let (lo, hi) = if w <= h { (w, h) } else { (h, w) };
+    // Near-square: long side no more than 1.25x the short side (816x862 = 1.056; a full-screen
+    // portrait like 1440x1920 = 1.33 is excluded).
+    if hi * 100 > lo * 125 {
+        return false;
+    }
+    // Exclude power-of-two squares (scratch/temp buffers are almost always pow2).
+    !(w == h && w.is_power_of_two())
+}
 
 pub fn status() -> String {
     STATUS.lock().map(|s| s.clone()).unwrap_or_default()
@@ -255,7 +279,8 @@ pub fn pump() {
                     };
                     if native != 0 {
                         if let Ok(mut q) = QUEUE.lock() {
-                            q.push((name, w, h, native));
+                            // `rip_all` is the RenderTexture pass — the winner is an RT.
+                            q.push((name, w, h, native, rip_all));
                             queued += 1;
                         }
                     }
@@ -359,7 +384,7 @@ fn decode_bc_surface(data: *const u8, row_pitch: u32, w: u32, h: u32, bc3: bool)
 /// Render-thread pump: staging-copy queued textures and write raw pixels to disk.
 /// A few per frame keeps the frame-time hit invisible.
 pub fn render_pump() {
-    let batch: Vec<(String, u32, u32, usize)> = {
+    let batch: Vec<(String, u32, u32, usize, bool)> = {
         let Ok(mut q) = QUEUE.lock() else { return };
         if q.is_empty() {
             return;
@@ -376,7 +401,7 @@ pub fn render_pump() {
     };
     let dir = crate::paths::local_dir_migrated("trackside-icons", "heaven-icons").join("_dump");
     let _ = std::fs::create_dir_all(&dir);
-    for (name, w, h, native) in batch {
+    for (name, w, h, native, is_rt) in batch {
         unsafe {
             let src: ID3D11Texture2D = std::mem::transmute_copy(&native);
             let mut desc = D3D11_TEXTURE2D_DESC::default();
@@ -461,22 +486,37 @@ pub fn render_pump() {
                 }
                 let png = crate::png::encode_rgba(w as u32, h as u32, &flipped);
                 let _ = std::fs::write(dir.join(format!("{safe}_{w}x{h}.png")), &png);
-                // Champions Meeting "Twinkle Monthly Extra" winner render: the game composites
-                // it into an 816x862 RenderTarget. Copy that one, full-size, to a clean
-                // trackside-winners/ folder. The game double-buffers it (several identical RTs
-                // per dump), so name by content hash → the dupes collapse to one file and each
-                // distinct winner is preserved across dumps. If the render size ever changes on
-                // another device, widen this check.
-                if w == 816 && h == 862 {
-                    let wdir = crate::paths::local_dir_migrated("trackside-winners", "trackside-winners");
-                    if std::fs::create_dir_all(&wdir).is_ok() {
-                        let hash = fnv1a(&flipped);
-                        let wpath = wdir.join(format!("winner_{hash:016x}.png"));
-                        if !wpath.exists() {
-                            let _ = std::fs::write(&wpath, &png);
-                            log_to(LOG, &format!("WINNER saved -> trackside-winners/winner_{hash:016x}.png"));
+                // Champions Meeting "Twinkle Monthly Extra" winner render: the game composites it
+                // into a large, near-square, non-power-of-two RenderTarget (816x862 on the reference
+                // device). Copy those, full-size, to a clean trackside-winners/ folder. The game
+                // double-buffers it (several identical RTs per dump), so we dedup by content hash —
+                // but against WINNER_SEEN (this process), NOT the filesystem, so a stale/manual
+                // winner_<hash>.png can never shadow a real save. Every winner-like RT is logged with
+                // its save/skip decision, so a dump is self-diagnosing.
+                if is_winner_like(w, h, is_rt) {
+                    let hash = fnv1a(&flipped);
+                    let fresh = WINNER_SEEN.lock().map(|mut s| s.insert(hash)).unwrap_or(true);
+                    if fresh {
+                        let wdir = crate::paths::local_dir_migrated("trackside-winners", "trackside-winners");
+                        if std::fs::create_dir_all(&wdir).is_ok() {
+                            let wpath = wdir.join(format!("winner_{hash:016x}.png"));
+                            // Unconditional write (filename is the content hash, so this is
+                            // idempotent) — overwrites any stale file of the same name with the
+                            // correct pixels instead of skipping it.
+                            match std::fs::write(&wpath, &png) {
+                                Ok(()) => log_to(LOG, &format!("WINNER saved -> trackside-winners/winner_{hash:016x}.png ({name} {w}x{h})")),
+                                Err(e) => log_to(LOG, &format!("WINNER write FAILED ({name} {w}x{h}): {e}")),
+                            }
+                        } else {
+                            log_to(LOG, &format!("WINNER dir create FAILED for {name} {w}x{h}"));
                         }
+                    } else {
+                        log_to(LOG, &format!("winner-like {name} {w}x{h} — dupe of one already saved this session, skipped"));
                     }
+                } else if is_rt && w >= 700 && h >= 700 {
+                    // Large RT that DIDN'T qualify — log why, so if a real winner is ever missed we
+                    // can see its actual shape and adjust is_winner_like().
+                    log_to(LOG, &format!("RT {name} {w}x{h} not winner-like (aspect/pow2 filtered)"));
                 }
             }
             // `src` was conjured from a raw pointer the game owns — never release it.
