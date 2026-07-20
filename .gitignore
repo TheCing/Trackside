@@ -32,3 +32,4 @@ proxy/_*.py
 # Internal architecture docs + session handoff notes — local only, never published
 docs-internal/
 session-context.json
+Deploy-Trackside.ps1
