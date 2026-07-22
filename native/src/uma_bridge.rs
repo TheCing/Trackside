@@ -1,6 +1,6 @@
 //! uma_bridge — Heaven's native, in-process replacement for the CarrotBlender companion plugin.
 //!
-//! It feeds the game's decrypted responses (and the raw requests) to companion tools over UDP 17229,
+//! It feeds the game's decrypted responses (and the raw requests) to companion tools over UDP 17230,
 //! byte-for-byte compatible with CarrotBlender, so those tools work with Heaven directly — no external
 //! plugin (and no Hachimi) needed. It stays working after game updates that broke the standalone plugin
 //! because we read the response at `Gallop.HttpHelper.DecompressResponse` (AFTER decrypt + lz4-decompress
@@ -28,7 +28,7 @@ use crate::htt_il2cpp as h;
 
 type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
 
-const UL_ADDR: &str = "127.0.0.1:17229";
+const UL_ADDR: &str = "127.0.0.1:17230";
 /// Matches CarrotBlender's default `max_partial_message_size`.
 const PARTIAL: usize = 30000;
 const CHUNK_DELAY_MS: u64 = 50;
