@@ -71,6 +71,10 @@ mod umas;
 // The single Gallop.HttpHelper::DecompressResponse hook: player-id (race-result gate) + race
 // retries + companion-bridge fan-out + full-build extras.
 mod response_hook;
+// Independent/Idle Training Career (SingleModeAutoPlay) capture — persists setup/result packages
+// to <game>/trackside-idle/ for offline analysis. Fed from response_hook (results) + uma_bridge
+// (setups). Auth tokens stripped from setups; local files only.
+mod jp_idle;
 mod selfupdate;
 mod settings;
 mod skill_advisor;

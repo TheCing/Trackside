@@ -47,6 +47,9 @@ unsafe fn on_response(ret: *mut c_void) {
     let slice = std::slice::from_raw_parts(data, len);
     // Feed the plain response to the companion-overlay bridge (all responses, before our filter).
     crate::uma_bridge::send_response(slice);
+    // Independent/Idle Training Career results (carry `progress_log_info`). Cheap content check;
+    // only writes on an actual idle result (rare — once per career claim).
+    crate::jp_idle::note_response(slice);
 
     let has_race = contains(slice, b"race_horse_data");
     let has_cont = contains(slice, b"available_continue_num");

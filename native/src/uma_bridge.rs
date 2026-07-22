@@ -200,6 +200,9 @@ unsafe extern "C" fn on_write(
             let data = (buffer as *mut u8).add(0x20);
             let slice = std::slice::from_raw_parts(data, len);
             send_request(slice);
+            // Independent/Idle Training Career setups (carry `training_policy_param_rate_set_id`).
+            // Cheap content check; only writes on an actual idle start (rare).
+            crate::jp_idle::note_request(slice);
         }
     }
     let t = WRITE_ORIG.load(Ordering::Relaxed);
