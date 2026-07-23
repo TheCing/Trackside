@@ -47,19 +47,12 @@ fn fnv1a(bytes: &[u8]) -> u64 {
     h
 }
 
-/// Name substrings worth pulling pixels for (broad on purpose — curation is offline).
-/// Inventories so far: `tex_team_rank_icon_030`, `trained_chr_icon_*`, and the emblem
-/// ATLASES `Rank_tex` / `StatusRank_tex` — so "rank"/"grade" match plain, both orders.
-const WANT: [&str; 8] = [
-    "rank",
-    "grade",
-    "class_icon",
-    "ico_skill",
-    "skill_icon",
-    "ico_chara",
-    "chr_icon",
-    "utx_ico",
-];
+/// Names we DON'T pull pixels for — pure noise, never art. Everything else that's *named* gets
+/// dumped (curation is offline), so a new scenario like Grand Concert — whose icons are named
+/// `tx_uTex_fl_singlemode_live_*` / `SingleModeScenarioLive_tex` / `dress_*`, matching no old
+/// allow-list — comes through automatically instead of only surviving as a whole-screen RenderTexture.
+/// Currently just TextMeshPro SDF font atlases, which load in bulk and aren't images.
+const SKIP: [&str; 2] = ["sdf atlas", "sdf_atlas"];
 
 static DUMP_REQUESTED: AtomicBool = AtomicBool::new(false);
 // (name, width, height, native ptr, is_render_texture)
@@ -222,6 +215,9 @@ pub fn pump() {
         }
         let mut inv = String::from("==== TEXTURE INVENTORY ====\n");
         let mut queued = 0;
+        // FindObjectsOfTypeAll can return the same named atlas more than once; dedupe (name,size) so
+        // we don't queue/write it twice.
+        let mut seen: std::collections::HashSet<(String, u32, u32)> = std::collections::HashSet::new();
         // Two passes: Texture2D (icon patterns only) and RenderTexture (rip ALL — these are the
         // game's live render captures, e.g. the Twinkle Monthly Extra winner photo, few in number
         // and often unnamed, so we can't filter by name). RenderTexture is a SIBLING of Texture2D
@@ -265,11 +261,16 @@ pub fn pump() {
                 let w = call_i32(tex, get_w) as u32;
                 let h = call_i32(tex, get_h) as u32;
                 inv.push_str(&format!("{name}\t{w}x{h}{}\n", if rip_all { "\t[RT]" } else { "" }));
-                // RTs: rip all (generous cap — a screenshot is bigger than an icon). Texture2Ds:
-                // only the icon patterns.
-                let max = if rip_all { 8192 } else { 2048 };
-                let want = rip_all || WANT.iter().any(|p| name.to_lowercase().contains(p));
-                if want && w > 0 && h > 0 && w <= max && h <= max {
+                // Rip every named Texture2D and every RenderTexture (curation is offline), minus known
+                // noise (SDF font atlases). RTs get a bigger cap (a screen capture > an icon); the 4096
+                // Texture2D cap admits the big UI atlases (e.g. Common_tex 4096x2048) the old 2048 cap
+                // dropped.
+                let max = if rip_all { 8192 } else { 4096 };
+                let noise = {
+                    let l = name.to_lowercase();
+                    SKIP.iter().any(|p| l.contains(p))
+                };
+                if !noise && w > 0 && h > 0 && w <= max && h <= max && seen.insert((name.clone(), w, h)) {
                     let native = if !get_native.is_null() {
                         call_ptr(tex, get_native)
                     } else {
