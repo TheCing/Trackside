@@ -301,7 +301,32 @@ fn dump_sprites() {
             return;
         }
         let count = *((arr as usize + 0x18) as *const i32);
-        let mut by_atlas: std::collections::BTreeMap<String, Vec<(String, Rect)>> = Default::default();
+        let dir = crate::paths::local_dir_migrated("trackside-icons", "heaven-icons").join("_dump");
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join(SPRITE_MANIFEST);
+        // ACCUMULATE across dumps/screens: load the existing manifest, merge this screen's sprites in
+        // (keyed atlas -> sprite name, latest rect wins), write the union. So you can stack many dumps
+        // (even across game restarts — the file persists) and slice ONCE at the end. Delete
+        // sprites_manifest.json to start a fresh library.
+        let mut merged: std::collections::BTreeMap<String, std::collections::BTreeMap<String, Rect>> = Default::default();
+        if let Ok(txt) = std::fs::read_to_string(&path) {
+            if let Ok(serde_json::Value::Object(obj)) = serde_json::from_str::<serde_json::Value>(&txt) {
+                for (atlas, arr) in obj {
+                    if let serde_json::Value::Array(items) = arr {
+                        let m = merged.entry(atlas).or_default();
+                        for it in items {
+                            let nm = it.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                            if nm.is_empty() {
+                                continue;
+                            }
+                            let g = |k: &str| it.get(k).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
+                            m.insert(nm.to_string(), Rect { x: g("x"), y: g("y"), w: g("w"), h: g("h") });
+                        }
+                    }
+                }
+            }
+        }
+        let before: usize = merged.values().map(|v| v.len()).sum();
         for i in 0..count.clamp(0, 200_000) as usize {
             let sp = *((arr as usize + 0x20 + i * 8) as *const *mut c_void);
             if sp.is_null() {
@@ -330,11 +355,11 @@ fn dump_sprites() {
             if !(r.w.is_finite() && r.h.is_finite() && r.w > 0.0 && r.h > 0.0 && r.w < 1.0e5 && r.h < 1.0e5) {
                 continue;
             }
-            by_atlas.entry(atlas).or_default().push((name, r));
+            merged.entry(atlas).or_default().insert(name, r);
         }
-        // manifest: { "<atlas>": [ {name,x,y,w,h}, ... ], ... }
+        // write the union: { "<atlas>": [ {name,x,y,w,h}, ... ], ... }
         let mut js = String::from("{\n");
-        for (ai, (atlas, sprites)) in by_atlas.iter().enumerate() {
+        for (ai, (atlas, sprites)) in merged.iter().enumerate() {
             if ai > 0 {
                 js.push_str(",\n");
             }
@@ -349,11 +374,9 @@ fn dump_sprites() {
             js.push_str("  ]");
         }
         js.push_str("\n}\n");
-        let dir = crate::paths::local_dir_migrated("trackside-icons", "heaven-icons").join("_dump");
-        let _ = std::fs::create_dir_all(&dir);
-        let total: usize = by_atlas.values().map(|v| v.len()).sum();
-        match std::fs::write(dir.join(SPRITE_MANIFEST), js.as_bytes()) {
-            Ok(()) => log_to(SCAN_LOG, &format!("[sprites] {} atlas(es), {total} named sprites -> _dump/{SPRITE_MANIFEST}", by_atlas.len())),
+        let total: usize = merged.values().map(|v| v.len()).sum();
+        match std::fs::write(&path, js.as_bytes()) {
+            Ok(()) => log_to(SCAN_LOG, &format!("[sprites] +{} new this dump; manifest now {} atlas(es), {total} sprites -> _dump/{SPRITE_MANIFEST}", total.saturating_sub(before), merged.len())),
             Err(e) => log_to(SCAN_LOG, &format!("[sprites] manifest write failed: {e}")),
         }
     }
