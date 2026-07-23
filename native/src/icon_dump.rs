@@ -36,6 +36,7 @@ use crate::il2cpp;
 use crate::tools::log_to;
 
 const LOG: &str = "trackside-icon-dump.txt";
+const SCAN_LOG: &str = "trackside-scenario-scan.txt";
 
 /// FNV-1a 64-bit — content hash for winner-render filenames (idempotent dedupe).
 fn fnv1a(bytes: &[u8]) -> u64 {
@@ -45,6 +46,37 @@ fn fnv1a(bytes: &[u8]) -> u64 {
         h = h.wrapping_mul(0x0000_0100_0000_01b3);
     }
     h
+}
+
+// ── crash fix: keep a queued texture's D3D resource alive across the main→render thread hop ─────
+// pump() enumerates textures on the MAIN thread; render_pump() copies them on the RENDER thread a few
+// frames later. On a static UI screen the textures sit still, so that's safe — but a live 3D scene
+// (the Grand Concert finale) creates/destroys textures every frame, so a texture enumerated in pump()
+// could be FREED before render_pump() copies it → use-after-free on the raw pointer → crash. Fix: take
+// our own reference on the underlying D3D resource when we queue it (AddRef), and drop it after the
+// copy (Release) — so a resource Unity frees mid-dump stays valid until we're done with it. The native
+// ptr from GetNativeTexturePtr is an ID3D11Texture2D*, i.e. an IUnknown* — vtable[1]=AddRef, [2]=Release.
+unsafe fn com_addref(p: usize) {
+    if p == 0 {
+        return;
+    }
+    let vt = *(p as *const *const usize);
+    if vt.is_null() {
+        return;
+    }
+    let f: extern "system" fn(usize) -> u32 = std::mem::transmute(*vt.add(1));
+    f(p);
+}
+unsafe fn com_release(p: usize) {
+    if p == 0 {
+        return;
+    }
+    let vt = *(p as *const *const usize);
+    if vt.is_null() {
+        return;
+    }
+    let f: extern "system" fn(usize) -> u32 = std::mem::transmute(*vt.add(2));
+    f(p);
 }
 
 /// Names we DON'T pull pixels for — pure noise, never art. Everything else that's *named* gets
@@ -164,6 +196,39 @@ unsafe fn resolve_find_all() -> (il2cpp::Method, *const c_void) {
     (std::ptr::null(), std::ptr::null())
 }
 
+/// One-shot diagnostic (runs on each dump): log every class whose name hints at the Grand Concert
+/// (scenario-live) finale, so we can identify the exact ViewController to hook for the SuperSkip
+/// freeze guard — the analogue of SingleModeConfirmCompleteViewController for goal-complete. Uses
+/// il2cpp::find_classes (metadata-only, main-thread-safe); needs no particular screen to be open.
+fn log_scenario_diag() {
+    let mut s = String::from("==== SCENARIO / LIVE / FINALE CLASS SCAN ====\n");
+    for needle in ["ScenarioLive", "GrandLive", "Finale", "SingleModeScenario", "LiveViewController"] {
+        let hits = il2cpp::find_classes(needle);
+        s.push_str(&format!("\n-- '{needle}' ({} classes) --\n", hits.len()));
+        for (full, k) in &hits {
+            let parent = il2cpp::class_full_name(il2cpp::class_parent(*k));
+            s.push_str(&format!("  {full}   <- {parent}\n"));
+        }
+    }
+    // For the strongest finale-controller candidates, dump their methods so we can pick the earliest
+    // safe arm point (RegisterDownload / BeginView, like the goal-complete guard).
+    for full in [
+        "Gallop.SingleModeScenarioLiveViewController",
+        "Gallop.SingleModeScenarioLiveResultViewController",
+        "Gallop.SingleModeScenarioLiveMainViewController",
+        "Gallop.SingleModeScenarioLiveConfirmViewController",
+    ] {
+        let k = il2cpp::class(full);
+        if !k.is_null() {
+            s.push_str(&format!("\n== methods: {full} ==\n"));
+            for m in il2cpp::class_methods(k) {
+                s.push_str(&format!("   fn {m}\n"));
+            }
+        }
+    }
+    log_to(SCAN_LOG, &s);
+}
+
 /// Main-thread pump: enumerate textures, log the inventory, queue matches for readback.
 pub fn pump() {
     if !DUMP_REQUESTED.swap(false, Ordering::Relaxed) {
@@ -280,6 +345,9 @@ pub fn pump() {
                     };
                     if native != 0 {
                         if let Ok(mut q) = QUEUE.lock() {
+                            // Hold a D3D ref until render_pump copies it (see com_addref) so a
+                            // texture Unity frees before then can't be use-after-free'd.
+                            com_addref(native);
                             // `rip_all` is the RenderTexture pass — the winner is an RT.
                             q.push((name, w, h, native, rip_all));
                             queued += 1;
@@ -289,6 +357,7 @@ pub fn pump() {
             }
         }
         log_to(LOG, &inv);
+        log_scenario_diag();
         set_status(format!("{queued} textures queued \u{2014} pixels land next frames in trackside-icons/_dump/"));
     }
 }
@@ -390,13 +459,21 @@ pub fn render_pump() {
         if q.is_empty() {
             return;
         }
-        let n = q.len().min(4);
+        let n = q.len().min(8); // drain a few more per frame → shorter live-alive window
         q.drain(..n).collect()
     };
     let (Some(device), Some(context)) = (crate::intro_player::device(), crate::intro_player::context()) else {
         set_status("No captured D3D11 device (banner build required)");
-        if let Ok(mut q) = QUEUE.lock() {
-            q.clear();
+        // Release the refs we took in pump() for everything we'll never copy (batch + the rest).
+        unsafe {
+            for (_, _, _, native, _) in &batch {
+                com_release(*native);
+            }
+            if let Ok(mut q) = QUEUE.lock() {
+                for (_, _, _, native, _) in q.drain(..) {
+                    com_release(native);
+                }
+            }
         }
         return;
     };
@@ -412,8 +489,7 @@ pub fn render_pump() {
             // a resolve pass for now — the log tells us if we ever need one.
             if desc.SampleDesc.Count > 1 {
                 log_to(LOG, &format!("SKIP {name} — MSAA x{} (needs resolve)", desc.SampleDesc.Count));
-                std::mem::forget(src);
-                continue;
+                continue; // `src` drops here → releases the ref we took in pump()
             }
             // Plain 32-bit reads directly; BC1/BC3 (the game's usual UI compression) decode
             // on the CPU. Anything else (BC7 etc.) is logged so we know what to add.
@@ -433,8 +509,7 @@ pub fn render_pump() {
                 DXGI_FORMAT_BC3_UNORM | DXGI_FORMAT_BC3_UNORM_SRGB | DXGI_FORMAT_BC3_TYPELESS => Fmt::Bc3,
                 _ => {
                     log_to(LOG, &format!("SKIP {name} — format {:?}", desc.Format));
-                    std::mem::forget(src);
-                    continue;
+                    continue; // `src` drops → releases our ref
                 }
             };
             let mut sdesc = desc;
@@ -446,12 +521,10 @@ pub fn render_pump() {
             sdesc.ArraySize = 1;
             let mut staging: Option<ID3D11Texture2D> = None;
             if device.CreateTexture2D(&sdesc, None, Some(&mut staging)).is_err() {
-                std::mem::forget(src);
-                continue;
+                continue; // `src` drops → releases our ref
             }
             let Some(staging) = staging else {
-                std::mem::forget(src);
-                continue;
+                continue; // `src` drops → releases our ref
             };
             context.CopySubresourceRegion(&staging, 0, 0, 0, 0, &src, 0, None);
             let mut mapped = D3D11_MAPPED_SUBRESOURCE::default();
@@ -520,8 +593,9 @@ pub fn render_pump() {
                     log_to(LOG, &format!("RT {name} {w}x{h} not winner-like (aspect/pow2 filtered)"));
                 }
             }
-            // `src` was conjured from a raw pointer the game owns — never release it.
-            std::mem::forget(src);
+            // `src` drops at the end of this iteration → releases the ref we took in pump()
+            // (com_addref), balancing it. The game keeps its own ref while the texture is live, so
+            // the D3D resource survives until BOTH drop it.
         }
     }
     let remaining = QUEUE.lock().map(|q| q.len()).unwrap_or(0);
