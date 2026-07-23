@@ -210,20 +210,23 @@ fn log_scenario_diag() {
             s.push_str(&format!("  {full}   <- {parent}\n"));
         }
     }
-    // For the strongest finale-controller candidates, dump their methods so we can pick the earliest
-    // safe arm point (RegisterDownload / BeginView, like the goal-complete guard).
-    for full in [
-        "Gallop.SingleModeScenarioLiveViewController",
-        "Gallop.SingleModeScenarioLiveResultViewController",
-        "Gallop.SingleModeScenarioLiveMainViewController",
-        "Gallop.SingleModeScenarioLiveConfirmViewController",
+    // Dump the methods of the finale-flow classes (REAL names from the first scan) so we can pick the
+    // earliest safe arm point for the event-skip freeze guard (RegisterDownload / BeginView on a
+    // ViewController, or the open/setup on a dialog/phase).
+    let mut targets: Vec<(String, il2cpp::Class)> = Vec::new();
+    for pat in [
+        "ScenarioLiveTop",             // SingleModeScenarioLiveTopController (+ GrandLive3DController)
+        "GrandLive",                   // PhaseGrandLiveIn / PhaseGrandLive / PhaseAfterGrandLive
+        "LiveViewController",          // Gallop.LiveViewController (the live player)
+        "ScenarioLiveConfirmComplete", // DialogSingleModeScenarioLiveConfirmComplete
+        "ScenarioLiveLiveResult",      // DialogSingleModeScenarioLiveLiveResult (rewards)
     ] {
-        let k = il2cpp::class(full);
-        if !k.is_null() {
-            s.push_str(&format!("\n== methods: {full} ==\n"));
-            for m in il2cpp::class_methods(k) {
-                s.push_str(&format!("   fn {m}\n"));
-            }
+        targets.extend(il2cpp::find_classes(pat));
+    }
+    for (full, k) in targets {
+        s.push_str(&format!("\n== methods: {full} ==\n"));
+        for m in il2cpp::class_methods(k) {
+            s.push_str(&format!("   fn {m}\n"));
         }
     }
     log_to(SCAN_LOG, &s);
