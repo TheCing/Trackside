@@ -187,6 +187,15 @@ pub fn check(force: bool) {
 }
 
 fn run_check(force: bool) {
+    // Dev/private builds (TRACKSIDE_DEV=1) NEVER self-update. The update channel is the PUBLIC repo,
+    // so any offer — a newer version OR a same-tag hotfix — would replace this DLL with the public
+    // build, silently dropping the private Event Oracle build. (The old code only skipped the
+    // same-tag hotfix, so a newer public release could still clobber the private install.) Private
+    // users receive updates by re-distribution, not the in-game updater.
+    if IS_DEV_BUILD {
+        clear_pending();
+        return set_status("Self-update disabled (dev/private build)");
+    }
     set_status("Checking...");
     let url = format!("https://api.github.com/repos/{REPO}/releases?per_page=30");
     let body = match http::get_string(&url) {
