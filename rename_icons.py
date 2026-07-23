@@ -14,7 +14,9 @@ every icon with both its cleaned name and the original asset name.
 """
 import argparse, glob, html, os, re, shutil
 
+import numpy as np
 from PIL import Image
+from scipy import ndimage
 
 GAME = r"G:\SteamLibrary\steamapps\common\UmamusumePrettyDerby"
 DUMP = os.path.join(GAME, "trackside-icons", "_dump")
@@ -70,6 +72,24 @@ def is_standalone_icon(fname):
     return 0 < max(w, h) <= ICON_MAXDIM
 
 
+def cc_boxes(img, min_dim=12, max_frac=0.6, alpha_thr=16):
+    """Bounding boxes of alpha-connected islands (upright coords) — used to tell a packed sheet
+    (many islands) from a single icon, and to cut the sheet up."""
+    a = np.asarray(img)[:, :, 3] > alpha_thr
+    lbl, _ = ndimage.label(a, structure=np.ones((3, 3), int))
+    W, H = img.size
+    out = []
+    for sl in ndimage.find_objects(lbl):
+        if sl is None:
+            continue
+        ys, xs = sl
+        w, h = xs.stop - xs.start, ys.stop - ys.start
+        if w < min_dim or h < min_dim or w * h > max_frac * W * H:
+            continue
+        out.append((xs.start, ys.start, w, h))
+    return out
+
+
 def curate(atlas_filter=None):
     if os.path.isdir(CURATED):
         shutil.rmtree(CURATED)
@@ -97,8 +117,15 @@ def curate(atlas_filter=None):
                 w = h = 0
             buckets.setdefault(cat, []).append((fn, raw, atlas, f"{cat}/{fn}.png", w, h))
 
-    # standalone whole-image icons straight from _dump (already individual — not atlas sprites)
-    stand = 0
+    # standalone _dump textures: single icons kept whole; packed sheets (many alpha islands, e.g.
+    # tx_uTex_fl_footer_btn) sliced into their individual icons like an atlas.
+    def reg(cat, base):
+        os.makedirs(os.path.join(CURATED, cat), exist_ok=True)
+        key = (cat, base)
+        used[key] = used.get(key, 0) + 1
+        return base if used[key] == 1 else f"{base}_{used[key]}"
+
+    stand = sheets = 0
     if not atlas_filter:
         for f in sorted(glob.glob(os.path.join(DUMP, "*.png"))):
             fname = os.path.basename(f)
@@ -107,15 +134,22 @@ def curate(atlas_filter=None):
             raw = re.sub(r"_\d+x\d+\.png$", "", fname)
             cl = clean_name(fname[:-4])
             cat = category(cl)
-            os.makedirs(os.path.join(CURATED, cat), exist_ok=True)
-            key = (cat, cl)
-            used[key] = used.get(key, 0) + 1
-            fn = cl if used[key] == 1 else f"{cl}_{used[key]}"
-            shutil.copy2(f, os.path.join(CURATED, cat, f"{fn}.png"))
-            w, h = _dims(fname)
-            buckets.setdefault(cat, []).append((fn, raw, "(standalone)", f"{cat}/{fn}.png", w, h))
-            stand += 1
-    print(f"(+{stand} standalone icons from _dump)")
+            img = Image.open(f).convert("RGBA")
+            W, H = img.size
+            boxes = cc_boxes(img) if max(W, H) >= 384 else []
+            if len(boxes) >= 5:                              # packed sheet -> slice into its icons
+                sheets += 1
+                for j, (bx, by, bw, bh) in enumerate(sorted(boxes, key=lambda b: (b[1] // 24, b[0])), 1):
+                    fn = reg(cat, f"{cl}_{j:03d}")
+                    img.crop((bx, by, bx + bw, by + bh)).save(os.path.join(CURATED, cat, f"{fn}.png"))
+                    buckets.setdefault(cat, []).append((fn, raw, "(sheet)", f"{cat}/{fn}.png", bw, bh))
+                    stand += 1
+            else:                                            # genuine single icon — keep whole
+                fn = reg(cat, cl)
+                img.save(os.path.join(CURATED, cat, f"{fn}.png"))
+                buckets.setdefault(cat, []).append((fn, raw, "(standalone)", f"{cat}/{fn}.png", W, H))
+                stand += 1
+    print(f"(+{stand} standalone icons from _dump — {sheets} packed sheets sliced up)")
 
     _write_gallery(buckets)
     total = sum(len(v) for v in buckets.values())
