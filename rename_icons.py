@@ -17,17 +17,25 @@ import argparse, glob, html, os, re, shutil
 from PIL import Image
 
 GAME = r"G:\SteamLibrary\steamapps\common\UmamusumePrettyDerby"
+DUMP = os.path.join(GAME, "trackside-icons", "_dump")
 SLICED = os.path.join(GAME, "trackside-icons", "_sliced")
 CURATED = os.path.join(GAME, "trackside-icons", "_curated")
 
-# first token after the prefix strip -> folder/category
-CATS = {"btn": "buttons", "frm": "frames", "txt": "text", "ico": "icons",
-        "num": "numbers", "gau": "gauges", "bg": "backgrounds", "img": "images"}
+# token -> folder/category, in priority order (first matching token in the name wins)
+CAT_TOKENS = [("btn", "buttons"), ("frm", "frames"), ("txt", "text"), ("num", "numbers"),
+              ("gau", "gauges"), ("chr", "characters"), ("chara", "characters"),
+              ("ico", "icons"), ("icon", "icons"), ("badge", "icons"), ("emblem", "icons"),
+              ("skill", "skills"), ("support", "support"), ("bg", "backgrounds"), ("img", "images")]
+
+# Standalone _dump textures that are NOT icons (backgrounds, 3D/character sheets, splash, video masks).
+NON_ICON = re.compile(r"^(bg_|vertical_bg|horizontal_bg|tex_|dress_|splash|logo|cri|mask_|movie|cutt)", re.I)
+ICON_MAXDIM = 1024   # drop backgrounds / big sheets; keep icon/frame-sized single textures
 
 
 def clean_name(name):
     """utx_btn_play_main_s_00 -> btn_play_main_s ;  ..._badge_performance00_0_C -> ..._badge_performance"""
     n = name.lower()
+    n = re.sub(r"_\d+x\d+$", "", n)     # strip the _WxH size suffix carried by standalone _dump files
     for p in ("tx_utex_fl_", "tx_utex_", "utx_", "utex_"):
         if n.startswith(p):
             n = n[len(p):]
@@ -38,12 +46,28 @@ def clean_name(name):
 
 
 def category(clean):
-    head = clean.split("_", 1)[0]
-    if head in CATS:
-        return CATS[head]
-    if "_gau_" in f"_{clean}_":
-        return "gauges"
+    toks = clean.split("_")
+    for key, folder in CAT_TOKENS:
+        if key in toks:
+            return folder
     return "misc"
+
+
+def _dims(fname):
+    m = re.search(r"_(\d+)x(\d+)\.png$", fname)
+    return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+
+
+def is_standalone_icon(fname):
+    """A _dump texture that's a usable individual icon (not an atlas, render-texture, background or
+    character/3D sheet)."""
+    if "_tex_" in fname or fname.startswith("RenderTexture") or "ImageEffects" in fname:
+        return False
+    base = re.sub(r"_\d+x\d+\.png$", "", fname)
+    if NON_ICON.match(base):
+        return False
+    w, h = _dims(fname)
+    return 0 < max(w, h) <= ICON_MAXDIM
 
 
 def curate(atlas_filter=None):
@@ -72,6 +96,27 @@ def curate(atlas_filter=None):
             except Exception:
                 w = h = 0
             buckets.setdefault(cat, []).append((fn, raw, atlas, f"{cat}/{fn}.png", w, h))
+
+    # standalone whole-image icons straight from _dump (already individual — not atlas sprites)
+    stand = 0
+    if not atlas_filter:
+        for f in sorted(glob.glob(os.path.join(DUMP, "*.png"))):
+            fname = os.path.basename(f)
+            if not is_standalone_icon(fname):
+                continue
+            raw = re.sub(r"_\d+x\d+\.png$", "", fname)
+            cl = clean_name(fname[:-4])
+            cat = category(cl)
+            os.makedirs(os.path.join(CURATED, cat), exist_ok=True)
+            key = (cat, cl)
+            used[key] = used.get(key, 0) + 1
+            fn = cl if used[key] == 1 else f"{cl}_{used[key]}"
+            shutil.copy2(f, os.path.join(CURATED, cat, f"{fn}.png"))
+            w, h = _dims(fname)
+            buckets.setdefault(cat, []).append((fn, raw, "(standalone)", f"{cat}/{fn}.png", w, h))
+            stand += 1
+    print(f"(+{stand} standalone icons from _dump)")
+
     _write_gallery(buckets)
     total = sum(len(v) for v in buckets.values())
     print(f"curated {total} sprites into {len(buckets)} categories -> {CURATED}")
