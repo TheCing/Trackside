@@ -13,7 +13,7 @@ Output: <out>/<atlas>/<atlas>_<idx>_<w>x<h>.png  +  a <atlas>_sheet.png contact 
   python slice_atlas.py --all                                       # every *_tex atlas in _dump
   # tuning: --min 10 (min sprite px)  --max-frac 0.55 (skip near-full-atlas bg)  --close 0 (merge gaps)
 """
-import argparse, glob, os, re
+import argparse, glob, json, os, re
 
 import numpy as np
 from PIL import Image
