@@ -10,7 +10,7 @@
 #![allow(dead_code)]
 
 use core::ffi::c_void;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 
 use crate::il2cpp;
 
@@ -118,4 +118,51 @@ pub fn poll() {
         let soft_reset: extern "C" fn(*mut c_void, *const c_void) = std::mem::transmute(srp);
         soft_reset(inst, sr_m as *const c_void);
     }
+}
+
+// ── global soft-reset hotkey (default Ctrl+Shift+R) ──────────────────────────
+// Watched on its OWN thread with GetAsyncKeyState, so it's caught even when the game's UI is
+// soft-locked (message pump stalled). It only sets the request flag; the reset still runs on the next
+// main-thread pump (poll) — which keeps ticking during a soft-lock. (A true hard hang can't run any
+// managed reset anyway.) The combo is configurable: `vk` = main key, `mods` bitmask 1=Ctrl 2=Shift 4=Alt.
+static HOTKEY_VK: AtomicU32 = AtomicU32::new(0);
+static HOTKEY_MODS: AtomicU32 = AtomicU32::new(0);
+static WATCHER_STARTED: AtomicBool = AtomicBool::new(false);
+
+/// Set/replace the soft-reset combo (live — the watcher re-reads it each tick).
+pub fn set_hotkey(vk: u32, mods: u32) {
+    HOTKEY_VK.store(vk, Ordering::Relaxed);
+    HOTKEY_MODS.store(mods, Ordering::Relaxed);
+}
+
+/// Start the background hotkey watcher (idempotent — spawns at most one thread).
+pub fn start_hotkey_watcher() {
+    if WATCHER_STARTED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    std::thread::spawn(|| {
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
+        const VK_SHIFT: i32 = 0x10;
+        const VK_CONTROL: i32 = 0x11;
+        const VK_MENU: i32 = 0x12; // Alt
+        let down = |vk: i32| unsafe { (GetAsyncKeyState(vk) as u16 & 0x8000) != 0 };
+        let mut was_down = false;
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            let vk = HOTKEY_VK.load(Ordering::Relaxed) as i32;
+            if vk == 0 {
+                was_down = false;
+                continue;
+            }
+            let mods = HOTKEY_MODS.load(Ordering::Relaxed);
+            let combo = down(vk)
+                && (mods & 1 == 0 || down(VK_CONTROL))
+                && (mods & 2 == 0 || down(VK_SHIFT))
+                && (mods & 4 == 0 || down(VK_MENU));
+            if combo && !was_down {
+                request(); // fire once per press (rising edge)
+            }
+            was_down = combo;
+        }
+    });
 }

@@ -276,6 +276,10 @@ pub fn spawn() {
             let r = crate::reset::install();
             log(&format!("soft reset: {r}"));
             crate::diag::record_install("soft reset", &r);
+            // Global hotkey (default Ctrl+Shift+R) to fire the soft reset even if the UI is soft-locked.
+            let (vk, mods) = crate::settings::soft_reset_hotkey();
+            crate::reset::set_hotkey(vk, mods);
+            crate::reset::start_hotkey_watcher();
         }
 
         // Heaven+Hachimi variant: report which hooks Heaven owns vs ceded to a co-resident mod.

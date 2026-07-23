@@ -71,6 +71,12 @@ pub struct Settings {
     // Index into the overlay's menu-key list (which key toggles the menu). 0 = Insert.
     #[serde(default)]
     pub toggle_key: u32,
+    // Soft-reset hotkey: Win32 VK of the main key + a modifier bitmask (1=Ctrl, 2=Shift, 4=Alt).
+    // Default Ctrl+Shift+R — a global combo (watched on its own thread) to recover from a UI freeze.
+    #[serde(default = "default_soft_reset_key")]
+    pub soft_reset_key: u32,
+    #[serde(default = "default_soft_reset_mods")]
+    pub soft_reset_mods: u32,
     // Whether the first-launch "press <key> to open" hint has been seen/dismissed.
     #[serde(default)]
     pub seen_hint: bool,
@@ -219,6 +225,13 @@ fn default_true() -> bool {
     true
 }
 
+fn default_soft_reset_key() -> u32 {
+    0x52 // 'R'
+}
+fn default_soft_reset_mods() -> u32 {
+    0b011 // Ctrl | Shift
+}
+
 impl Default for Settings {
     fn default() -> Self {
         Self {
@@ -245,6 +258,8 @@ impl Default for Settings {
             show_energy: false,
             menu_centered: true,
             toggle_key: 0,
+            soft_reset_key: default_soft_reset_key(),
+            soft_reset_mods: default_soft_reset_mods(),
             seen_hint: false,
             update_skip: String::new(),
             update_seen_changelog: String::new(),
@@ -420,6 +435,21 @@ pub fn toggle_key() -> u32 {
 pub fn set_toggle_key(idx: u32) {
     if let Ok(mut c) = cache().lock() {
         c.toggle_key = idx;
+        write_file(&c);
+    }
+}
+
+/// Soft-reset hotkey as (main VK, modifier bitmask: 1=Ctrl 2=Shift 4=Alt). Default Ctrl+Shift+R.
+pub fn soft_reset_hotkey() -> (u32, u32) {
+    cache()
+        .lock()
+        .map(|c| (c.soft_reset_key, c.soft_reset_mods))
+        .unwrap_or((default_soft_reset_key(), default_soft_reset_mods()))
+}
+pub fn set_soft_reset_hotkey(vk: u32, mods: u32) {
+    if let Ok(mut c) = cache().lock() {
+        c.soft_reset_key = vk;
+        c.soft_reset_mods = mods;
         write_file(&c);
     }
 }

@@ -146,6 +146,23 @@ static SUPPRESS_TOGGLE: std::sync::atomic::AtomicBool = std::sync::atomic::Atomi
 static RESET_ARMED_AT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 // Selected index in the version-switch dropdown (updater "switch / downgrade to this version").
 static VERSION_SEL: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+// True while listening to capture a new soft-reset hotkey combo (Esc cancels).
+static SOFT_RESET_BINDING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Render a soft-reset combo (VK + mods bitmask 1=Ctrl 2=Shift 4=Alt) as e.g. "Ctrl+Shift+R".
+fn hotkey_name(vk: u32, mods: u32) -> String {
+    let mut s = String::new();
+    if mods & 1 != 0 { s.push_str("Ctrl+"); }
+    if mods & 2 != 0 { s.push_str("Shift+"); }
+    if mods & 4 != 0 { s.push_str("Alt+"); }
+    let key = match vk {
+        0x30..=0x39 | 0x41..=0x5A => (vk as u8 as char).to_string(), // 0-9, A-Z
+        0x70..=0x7B => format!("F{}", vk - 0x6F),                    // F1..F12
+        0 => "—".to_string(),
+        _ => format!("VK_{vk:02X}"),
+    };
+    format!("{s}{key}")
+}
 
 /// The soft-reset button (2-click confirm) — shared by BOTH menus. Reloads the game to the title
 /// without closing the process. A stray single tap can't fire it: the first click arms a 3s window,
@@ -176,6 +193,28 @@ fn reset_button(ui: &Ui) {
         if armed { BAD } else { DIM },
         if armed { "reloads to title" } else { "soft restart" },
     );
+
+    // Configurable global hotkey that fires the same reset even if the UI is soft-locked.
+    let (vk, mods) = crate::settings::soft_reset_hotkey();
+    let capturing = SOFT_RESET_BINDING.load(Relaxed);
+    ui.text_colored(DIM, "Freeze hotkey:");
+    ui.same_line();
+    let label = if capturing { "press combo\u{2026}".to_string() } else { hotkey_name(vk, mods) };
+    if ui.button(format!("{label}##srhk")) {
+        SOFT_RESET_BINDING.store(!capturing, Relaxed);
+    }
+    if capturing {
+        use windows_sys::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState;
+        let down = |k: i32| unsafe { (GetAsyncKeyState(k) as u16 & 0x8000) != 0 };
+        if down(0x1B) {
+            SOFT_RESET_BINDING.store(false, Relaxed); // Esc cancels
+        } else if let Some(k) = (0x30..=0x39).chain(0x41..=0x5A).chain(0x70..=0x7B).find(|&k| down(k)) {
+            let m = (down(0x11) as u32) | (down(0x10) as u32) << 1 | (down(0x12) as u32) << 2;
+            crate::settings::set_soft_reset_hotkey(k as u32, m);
+            crate::reset::set_hotkey(k as u32, m);
+            SOFT_RESET_BINDING.store(false, Relaxed);
+        }
+    }
 }
 
 /// Version-switch / downgrade dropdown — shared by BOTH menus. Lists every release that carries this
