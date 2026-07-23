@@ -105,22 +105,69 @@ def resolve(arg):
     raise SystemExit(f"not found: {arg} (looked in {DUMP})")
 
 
+def _safe(name):
+    return "".join(c if (c.isalnum() or c in "_-") else "_" for c in name) or "sprite"
+
+
+def slice_by_manifest(dump_dir, out_root, manifest=None):
+    """NAMED slicing: cut each atlas by the in-game Sprite.textureRects the dumper recorded in
+    sprites_manifest.json ({ "<atlas>": [{name,x,y,w,h}, ...] }). x/y are Unity bottom-left origin, so
+    convert to the upright (top-left) image's crop box. Atlases with no dumped .rgba are skipped."""
+    mf = manifest or os.path.join(dump_dir, "sprites_manifest.json")
+    data = json.load(open(mf, encoding="utf-8"))
+    total = 0
+    for atlas, sprites in data.items():
+        hit = glob.glob(os.path.join(dump_dir, atlas + "_*x*.rgba")) or glob.glob(os.path.join(dump_dir, atlas + "_*x*.png"))
+        if not hit:
+            print(f"{atlas}: {len(sprites)} sprites in manifest but no dumped atlas file — skipped")
+            continue
+        img = load_upright(hit[0])
+        W, H = img.size
+        out = os.path.join(out_root, atlas)
+        os.makedirs(out, exist_ok=True)
+        for f in glob.glob(os.path.join(out, "*.png")):
+            os.remove(f)
+        used, n = {}, 0
+        for sp in sprites:
+            x, y, w, h = sp["x"], sp["y"], sp["w"], sp["h"]
+            left, right = round(x), round(x + w)
+            top, bottom = round(H - (y + h)), round(H - y)   # bottom-left -> top-left
+            left, right = max(0, min(W, left)), max(0, min(W, right))
+            top, bottom = max(0, min(H, top)), max(0, min(H, bottom))
+            if right - left < 1 or bottom - top < 1:
+                continue
+            base = _safe(sp["name"])
+            used[base] = used.get(base, 0) + 1
+            fn = base if used[base] == 1 else f"{base}_{used[base]}"   # de-dup same-named sprites
+            img.crop((left, top, right, bottom)).save(os.path.join(out, f"{fn}.png"))
+            n += 1
+        print(f"{atlas}: {n} named sprites -> {out}")
+        total += n
+    print(f"done: {total} named sprites total -> {out_root}")
+    return total
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("atlas", nargs="?", help="atlas file or name (resolved in _dump)")
-    ap.add_argument("--all", action="store_true", help="slice every *_tex atlas in _dump")
+    ap.add_argument("--all", action="store_true", help="slice every *_tex atlas in _dump (alpha-CC)")
+    ap.add_argument("--manifest", nargs="?", const="", help="NAMED slicing from sprites_manifest.json "
+                    "(optional path; default _dump/sprites_manifest.json)")
     ap.add_argument("--out", default=OUT_DEFAULT)
     ap.add_argument("--min", type=int, default=10)
     ap.add_argument("--max-frac", type=float, default=0.55)
     ap.add_argument("--close", type=int, default=0)
     a = ap.parse_args()
+    if a.manifest is not None:
+        slice_by_manifest(DUMP, a.out, a.manifest or None)
+        return
     if a.all:
         targets = [p for p in glob.glob(os.path.join(DUMP, "*_tex_*.rgba"))]
         print(f"slicing {len(targets)} atlas(es) from {DUMP}")
     elif a.atlas:
         targets = [resolve(a.atlas)]
     else:
-        raise SystemExit("give an atlas name/path, or --all")
+        raise SystemExit("give an atlas name/path, --all, or --manifest")
     total = sum(slice_atlas(p, a.out, a.min, a.max_frac, a.close) for p in targets)
     print(f"done: {total} sprites total -> {a.out}")
 

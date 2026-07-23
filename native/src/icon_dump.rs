@@ -232,6 +232,133 @@ fn log_scenario_diag() {
     log_to(SCAN_LOG, &s);
 }
 
+const SPRITE_MANIFEST: &str = "sprites_manifest.json";
+
+/// UnityEngine.Rect (4 f32, x/y bottom-left origin + width/height) — the layout a boxed Rect stores.
+#[repr(C)]
+#[derive(Default, Clone, Copy)]
+struct Rect {
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+}
+
+/// Minimal JSON string literal (escape the manifest-relevant cases; sprite names can hold anything).
+fn json_str(s: &str) -> String {
+    let mut o = String::with_capacity(s.len() + 2);
+    o.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => o.push_str("\\\""),
+            '\\' => o.push_str("\\\\"),
+            '\n' => o.push_str("\\n"),
+            '\r' => o.push_str("\\r"),
+            '\t' => o.push_str("\\t"),
+            c if (c as u32) < 0x20 => o.push_str(&format!("\\u{:04x}", c as u32)),
+            c => o.push(c),
+        }
+    }
+    o.push('"');
+    o
+}
+
+/// Enumerate loaded UnityEngine.Sprite objects and record, per atlas texture, each sprite's name +
+/// textureRect — so slice_atlas.py can cut NAMED individual icons out of the dumped atlas .rgba
+/// instead of blind alpha-islands. textureRect is read via runtime_invoke (boxed Rect, unboxed at
+/// +0x10) to avoid the raw 16-byte struct-return ABI; get_texture is a plain pointer getter. Writes a
+/// manifest to _dump/sprites_manifest.json. Main-thread only (boxing allocates) — called from pump().
+fn dump_sprites() {
+    unsafe {
+        let sprite_k = il2cpp::class("UnityEngine.Sprite");
+        let obj_k = il2cpp::class("UnityEngine.Object");
+        if sprite_k.is_null() || obj_k.is_null() {
+            return;
+        }
+        let get_name = il2cpp::method(obj_k, "get_name", 0);
+        let get_texture = il2cpp::method(sprite_k, "get_texture", 0);
+        let get_rect = il2cpp::method(sprite_k, "get_textureRect", 0);
+        if get_name.is_null() || get_texture.is_null() || get_rect.is_null() {
+            log_to(SCAN_LOG, "[sprites] method resolution failed (get_name/get_texture/get_textureRect)");
+            return;
+        }
+        let get_tex_ptr = il2cpp::method_pointer(get_texture);
+        if get_tex_ptr.is_null() {
+            return;
+        }
+        let (find_all_m, find_all_ic) = resolve_find_all();
+        let type_obj = il2cpp::type_object(sprite_k);
+        if type_obj.is_null() || (find_all_m.is_null() && find_all_ic.is_null()) {
+            return;
+        }
+        let arr = if !find_all_m.is_null() {
+            il2cpp::runtime_invoke(find_all_m, std::ptr::null_mut(), &mut [type_obj])
+        } else {
+            let f: extern "C" fn(*mut c_void) -> *mut c_void = std::mem::transmute(find_all_ic);
+            f(type_obj)
+        };
+        if arr.is_null() {
+            return;
+        }
+        let count = *((arr as usize + 0x18) as *const i32);
+        let mut by_atlas: std::collections::BTreeMap<String, Vec<(String, Rect)>> = Default::default();
+        for i in 0..count.clamp(0, 200_000) as usize {
+            let sp = *((arr as usize + 0x20 + i * 8) as *const *mut c_void);
+            if sp.is_null() {
+                continue;
+            }
+            let name = obj_name(sp, get_name);
+            if name.is_empty() {
+                continue;
+            }
+            // atlas texture — plain pointer-returning getter (no struct ABI)
+            let f: extern "C" fn(*mut c_void, *const c_void) -> *mut c_void = std::mem::transmute(get_tex_ptr);
+            let tex = f(sp, get_texture as *const c_void);
+            if tex.is_null() {
+                continue;
+            }
+            let atlas = obj_name(tex, get_name);
+            if atlas.is_empty() {
+                continue;
+            }
+            // textureRect — boxed via runtime_invoke, unbox the 4 f32 after the object header (0x10)
+            let boxed = il2cpp::runtime_invoke(get_rect, sp, &mut []);
+            if boxed.is_null() {
+                continue;
+            }
+            let r = *((boxed as usize + 0x10) as *const Rect);
+            if !(r.w.is_finite() && r.h.is_finite() && r.w > 0.0 && r.h > 0.0 && r.w < 1.0e5 && r.h < 1.0e5) {
+                continue;
+            }
+            by_atlas.entry(atlas).or_default().push((name, r));
+        }
+        // manifest: { "<atlas>": [ {name,x,y,w,h}, ... ], ... }
+        let mut js = String::from("{\n");
+        for (ai, (atlas, sprites)) in by_atlas.iter().enumerate() {
+            if ai > 0 {
+                js.push_str(",\n");
+            }
+            js.push_str(&format!("  {}: [\n", json_str(atlas)));
+            for (si, (nm, r)) in sprites.iter().enumerate() {
+                js.push_str(&format!(
+                    "    {{\"name\": {}, \"x\": {}, \"y\": {}, \"w\": {}, \"h\": {}}}{}\n",
+                    json_str(nm), r.x, r.y, r.w, r.h,
+                    if si + 1 < sprites.len() { "," } else { "" }
+                ));
+            }
+            js.push_str("  ]");
+        }
+        js.push_str("\n}\n");
+        let dir = crate::paths::local_dir_migrated("trackside-icons", "heaven-icons").join("_dump");
+        let _ = std::fs::create_dir_all(&dir);
+        let total: usize = by_atlas.values().map(|v| v.len()).sum();
+        match std::fs::write(dir.join(SPRITE_MANIFEST), js.as_bytes()) {
+            Ok(()) => log_to(SCAN_LOG, &format!("[sprites] {} atlas(es), {total} named sprites -> _dump/{SPRITE_MANIFEST}", by_atlas.len())),
+            Err(e) => log_to(SCAN_LOG, &format!("[sprites] manifest write failed: {e}")),
+        }
+    }
+}
+
 /// Main-thread pump: enumerate textures, log the inventory, queue matches for readback.
 pub fn pump() {
     if !DUMP_REQUESTED.swap(false, Ordering::Relaxed) {
@@ -361,6 +488,7 @@ pub fn pump() {
         }
         log_to(LOG, &inv);
         log_scenario_diag();
+        dump_sprites();
         set_status(format!("{queued} textures queued \u{2014} pixels land next frames in trackside-icons/_dump/"));
     }
 }
