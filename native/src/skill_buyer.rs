@@ -445,6 +445,19 @@ fn drive_apply() {
         }
         q.remove(0)
     };
+    // AFFORDABILITY GUARD — OnClickPlusListItem bypasses the game's own SP gate, so if the
+    // recommendation overshoots the screen's real SP (the Grand Live "−99" bug: the budget from
+    // chara_info.skill_point exceeded the actual spendable SP), a blind click drives SP negative.
+    // Read this item's next-tier cost + the live SP (RemainingPoint) and skip the click if it doesn't
+    // fit — so Apply Optimal can never spend past 0. Only gates when we have a live SP reading.
+    let rem = REMAINING.load(Ordering::Relaxed);
+    if rem != i32::MIN && unsafe { item_cost(idx) } > rem {
+        crate::tools::debug(&format!("[skill_buyer] Apply: skip item {idx} — costs more than {rem} SP left"));
+        if APPLY_QUEUE.get_or_init(|| Mutex::new(Vec::new())).lock().map(|q| q.is_empty()).unwrap_or(true) {
+            set_status(format!("Applied what fits — {rem} SP left. Press Decide."));
+        }
+        return; // dropped from the queue; next tick tries the next (cheaper) item
+    }
     unsafe { click_plus(idx) };
     if APPLY_QUEUE.get_or_init(|| Mutex::new(Vec::new())).lock().map(|q| q.is_empty()).unwrap_or(true) {
         set_status("Applied — press the game's Decide to confirm.");
@@ -551,6 +564,18 @@ unsafe fn click_plus(index: i32) {
     }
     let f: extern "C" fn(*mut c_void, *mut c_void, *const c_void) = std::mem::transmute(p);
     f(inst, item, m as *const c_void);
+}
+
+/// This list item's current next-tier SP cost (its `_needPoint` text). Returns i32::MAX if it can't
+/// be read, so an unknown cost is treated as unaffordable — the apply guard then never overspends.
+unsafe fn item_cost(index: i32) -> i32 {
+    let item = item_at(index);
+    if item.is_null() {
+        return i32::MAX;
+    }
+    let txt = read_text_field(item, OFF_NEED_POINT);
+    let digits: String = txt.chars().filter(|c| c.is_ascii_digit()).collect();
+    digits.parse().unwrap_or(i32::MAX)
 }
 
 /// Read a `Gallop.TextCommon.get_text()` at `base + off` (best-effort; "" on any miss).
