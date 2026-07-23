@@ -539,5 +539,27 @@ pub fn install() -> (bool, bool, String) {
         }
     }
 
+    // ── GRAND CONCERT (ScenarioLive) FINALE freeze guard ── SkipStory on the Grand Finale animation
+    //    hangs the game like Goal-Complete. Arm the same end-career event-skip suppression when the
+    //    Grand Live phase machine starts. Finale-specific (ExecuteLiveStart → GotoGrandLive), so
+    //    regular concerts are unaffected. These classes are in the global namespace (no Gallop.).
+    for (cname, det, tr, keep) in [
+        ("PhaseGrandLiveIn", event::on_grandlive_in_start as *const (),
+         &event::TR_GRANDIN as &AtomicUsize, &event::D_GRANDIN as &OnceLock<RawDetour>),
+        ("PhaseGrandLiveAnimation", event::on_grandlive_anim_start as *const (),
+         &event::TR_GRANDANIM as &AtomicUsize, &event::D_GRANDANIM as &OnceLock<RawDetour>),
+    ] {
+        let k = il2cpp::class(cname);
+        if k.is_null() {
+            notes.push_str(&format!("{cname} miss; "));
+        } else {
+            unsafe {
+                if let Err(e) = install_one(k, "Start", 0, det, tr, keep) {
+                    notes.push_str(&format!("{cname}.Start: {e}; "));
+                }
+            }
+        }
+    }
+
     (training_ok, events_ok, notes)
 }

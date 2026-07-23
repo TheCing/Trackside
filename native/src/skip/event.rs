@@ -70,6 +70,26 @@ pub(crate) unsafe extern "C" fn on_goal_complete_begin(this: *mut c_void, m: *mu
     call_orig(&TR_GOALBEGIN, this, m);
 }
 
+// ── GRAND CONCERT (ScenarioLive) FINALE freeze guard ────────────────────────
+// Same failure as Goal-Complete: SkipStory on the Grand Finale intro animation hangs the game (user-
+// confirmed — turning Events off lets the finale play through to the "play concert" button). The Grand
+// Finale is a phase machine (PhaseGrandLiveIn.Start → PhaseGrandLiveAnimation.Start, the latter running
+// ShowGrandLiveUI/ShowLoading) reached ONLY via the finale path (SingleModeScenarioLiveTopController
+// .ExecuteLiveStart → GotoGrandLive; regular concerts take GotoNormalLive). So arming the SAME
+// end-career event-skip suppression on those phases' Start is precise to the finale — normal Grand
+// Concert training events still skip. Arm BEFORE call_orig so the following SkipStory is suppressed in
+// time. Time-based (120s, re-armed by both phases) + cleared at Home, so it can never stick.
+crate::skip_hook_slot!(TR_GRANDIN, D_GRANDIN);
+crate::skip_hook_slot!(TR_GRANDANIM, D_GRANDANIM);
+pub(crate) unsafe extern "C" fn on_grandlive_in_start(this: *mut c_void, m: *mut c_void) {
+    mark_goal_complete("GrandFinale/In");
+    call_orig(&TR_GRANDIN, this, m);
+}
+pub(crate) unsafe extern "C" fn on_grandlive_anim_start(this: *mut c_void, m: *mut c_void) {
+    mark_goal_complete("GrandFinale/Anim");
+    call_orig(&TR_GRANDANIM, this, m);
+}
+
 // ── Confirm-flow event crash guard (UNCONFIRMED — reported, not yet reproduced) ──
 // "Just an Acupuncturist" (story 501xxx720, all charas) is a choice-OF-REWARD event with a
 // select → "confirm your choice" → "check other options"(go back) gate. A user reported that with
