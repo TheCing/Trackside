@@ -579,6 +579,18 @@ pub fn find_classes(substr: &str) -> Vec<(String, Class)> {
     out
 }
 
+/// First loaded class whose SIMPLE name exactly equals `name`. Unlike `class()` / `class_from_name`,
+/// this finds NESTED types too (e.g. the Grand Live phases nested inside `GrandLive`). Null if none.
+pub fn find_class(name: &str) -> Class {
+    for (full, k) in find_classes(name) {
+        let simple = full.rsplit(|c| c == '.' || c == '/' || c == '+').next().unwrap_or(full.as_str());
+        if simple == name {
+            return k;
+        }
+    }
+    std::ptr::null_mut()
+}
+
 // ── field/parent introspection (RE/scan tooling) ─────────────────────────────
 // Lazily resolved like the class enumeration: absent exports just disable the feature.
 type FnClassGetFields = unsafe extern "C" fn(Class, *mut *mut c_void) -> Field;

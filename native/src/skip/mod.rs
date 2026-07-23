@@ -542,14 +542,17 @@ pub fn install() -> (bool, bool, String) {
     // ── GRAND CONCERT (ScenarioLive) FINALE freeze guard ── SkipStory on the Grand Finale animation
     //    hangs the game like Goal-Complete. Arm the same end-career event-skip suppression when the
     //    Grand Live phase machine starts. Finale-specific (ExecuteLiveStart → GotoGrandLive), so
-    //    regular concerts are unaffected. These classes are in the global namespace (no Gallop.).
+    //    regular concerts are unaffected. These phases are NESTED types (in GrandLive), so they must
+    //    be resolved with find_class — class()/class_from_name can't see nested types (the v1 miss).
     for (cname, det, tr, keep) in [
+        ("PhaseGrandLive", event::on_grandlive_phase_start as *const (),
+         &event::TR_GRANDPHASE as &AtomicUsize, &event::D_GRANDPHASE as &OnceLock<RawDetour>),
         ("PhaseGrandLiveIn", event::on_grandlive_in_start as *const (),
          &event::TR_GRANDIN as &AtomicUsize, &event::D_GRANDIN as &OnceLock<RawDetour>),
         ("PhaseGrandLiveAnimation", event::on_grandlive_anim_start as *const (),
          &event::TR_GRANDANIM as &AtomicUsize, &event::D_GRANDANIM as &OnceLock<RawDetour>),
     ] {
-        let k = il2cpp::class(cname);
+        let k = il2cpp::find_class(cname);
         if k.is_null() {
             notes.push_str(&format!("{cname} miss; "));
         } else {

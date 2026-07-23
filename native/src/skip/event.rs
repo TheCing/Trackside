@@ -79,8 +79,13 @@ pub(crate) unsafe extern "C" fn on_goal_complete_begin(this: *mut c_void, m: *mu
 // end-career event-skip suppression on those phases' Start is precise to the finale — normal Grand
 // Concert training events still skip. Arm BEFORE call_orig so the following SkipStory is suppressed in
 // time. Time-based (120s, re-armed by both phases) + cleared at Home, so it can never stick.
+crate::skip_hook_slot!(TR_GRANDPHASE, D_GRANDPHASE);
 crate::skip_hook_slot!(TR_GRANDIN, D_GRANDIN);
 crate::skip_hook_slot!(TR_GRANDANIM, D_GRANDANIM);
+pub(crate) unsafe extern "C" fn on_grandlive_phase_start(this: *mut c_void, m: *mut c_void) {
+    mark_goal_complete("GrandFinale/Phase");
+    call_orig(&TR_GRANDPHASE, this, m);
+}
 pub(crate) unsafe extern "C" fn on_grandlive_in_start(this: *mut c_void, m: *mut c_void) {
     mark_goal_complete("GrandFinale/In");
     call_orig(&TR_GRANDIN, this, m);
