@@ -79,19 +79,43 @@ pub(crate) unsafe extern "C" fn on_goal_complete_begin(this: *mut c_void, m: *mu
 // end-career event-skip suppression on those phases' Start is precise to the finale — normal Grand
 // Concert training events still skip. Arm BEFORE call_orig so the following SkipStory is suppressed in
 // time. Time-based (120s, re-armed by both phases) + cleared at Home, so it can never stick.
+// The GrandLive phases fire for EVERY Grand Live in the Grand Concert scenario — the end-of-career
+// finale AND the mid-career concert turns — so we must NOT use the goal-complete 120s window (it
+// leaks into the training turns and kills event-skip for the whole run; the "event skip broke"
+// regression). Instead: suppress only until we're back in the career main view. mark_career()
+// (ChangeMainView) clears it, so a concert is guarded but the training turn right after is not.
+// Bounded (60s) so a missed clear can't wedge event-skip off, and the clear is age-gated so a
+// ChangeMainView firing in the same breath as the arm can't cancel the guard before the finale story.
+static GRAND_LIVE_UNTIL: AtomicU64 = AtomicU64::new(0);
+const GRAND_LIVE_WINDOW_MS: u64 = 60_000;
+pub(crate) fn mark_grand_live() {
+    if GRAND_LIVE_UNTIL.swap(now_ms() + GRAND_LIVE_WINDOW_MS, Ordering::Relaxed) == 0 {
+        rr_log("[event] Grand Live detected -> event-skip suppressed until back in career (freeze guard)");
+    }
+}
+/// Cleared when we return to the career main view (mark_career / ChangeMainView). Age-gated: only
+/// clears once the live has been running a moment, so a repaint-driven ChangeMainView at arm time
+/// can't cancel it before the finale story plays.
+pub(crate) fn clear_grand_live() {
+    let until = GRAND_LIVE_UNTIL.load(Ordering::Relaxed);
+    if until != 0 && until.saturating_sub(now_ms()) < GRAND_LIVE_WINDOW_MS - 2_000 {
+        GRAND_LIVE_UNTIL.store(0, Ordering::Relaxed);
+        rr_log("[event] back in career -> Grand Live event-skip suppression cleared");
+    }
+}
 crate::skip_hook_slot!(TR_GRANDPHASE, D_GRANDPHASE);
 crate::skip_hook_slot!(TR_GRANDIN, D_GRANDIN);
 crate::skip_hook_slot!(TR_GRANDANIM, D_GRANDANIM);
 pub(crate) unsafe extern "C" fn on_grandlive_phase_start(this: *mut c_void, m: *mut c_void) {
-    mark_goal_complete("GrandFinale/Phase");
+    mark_grand_live();
     call_orig(&TR_GRANDPHASE, this, m);
 }
 pub(crate) unsafe extern "C" fn on_grandlive_in_start(this: *mut c_void, m: *mut c_void) {
-    mark_goal_complete("GrandFinale/In");
+    mark_grand_live();
     call_orig(&TR_GRANDIN, this, m);
 }
 pub(crate) unsafe extern "C" fn on_grandlive_anim_start(this: *mut c_void, m: *mut c_void) {
-    mark_goal_complete("GrandFinale/Anim");
+    mark_grand_live();
     call_orig(&TR_GRANDANIM, this, m);
 }
 
@@ -129,6 +153,12 @@ fn try_event_skip(this: *mut c_void) {
     // Never SkipStory during the Goal-Complete window (it hangs the game — see above).
     if now_ms() < GOAL_COMPLETE_UNTIL.load(Ordering::Relaxed) {
         rr_log("[event] SkipStory SUPPRESSED (Goal Complete freeze guard)");
+        return;
+    }
+    // Never SkipStory during a Grand Live (Grand Concert concert / grand finale) — it hangs the
+    // finale. Cleared the moment we're back in the career main view, so training events still skip.
+    if now_ms() < GRAND_LIVE_UNTIL.load(Ordering::Relaxed) {
+        rr_log("[event] SkipStory SUPPRESSED (Grand Live freeze guard)");
         return;
     }
     // Never SkipStory during a choice-of-reward confirm event (crash-on-go-back guard — see above).

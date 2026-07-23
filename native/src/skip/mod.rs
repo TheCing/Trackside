@@ -243,6 +243,9 @@ pub(crate) fn mark_career() {
     if LAST_CAREER_MS.swap(now_ms(), Ordering::Relaxed) == 0 {
         rr_log("[race-result] career detected (ChangeMainView) -> gate OPEN (skip may arm now)");
     }
+    // Back in the career main view → a Grand Live (concert/finale) is over, so lift its event-skip
+    // suppression immediately (it only guards the live itself, not the training turns around it).
+    event::clear_grand_live();
 }
 /// True if a career hook fired recently enough to still be in this career run (window spans a full
 /// race + the pre-race menu, so a legit career result is never blocked; goes stale after you leave).
