@@ -109,6 +109,14 @@ Step "Guards"
 if ($env:TRACKSIDE_DEV) {
     Fail "TRACKSIDE_DEV is set in this shell. A release built with it has self-update DISABLED. Open a clean shell."
 }
+# Private update-channel vars must NOT leak into a public build: TRACKSIDE_UPDATE_TOKEN would bake
+# the private repo's PAT into a DLL published to the world, and TRACKSIDE_CHANNEL would point every
+# public user at the private repo. Both are silent at compile time (option_env!), so guard here.
+foreach ($v in 'TRACKSIDE_CHANNEL', 'TRACKSIDE_UPDATE_TOKEN', 'TRACKSIDE_UPDATE_SENTINEL') {
+    if (Get-Item "Env:\$v" -ErrorAction SilentlyContinue) {
+        Fail "$v is set in this shell — that is a PRIVATE-channel build var and must never be baked into a public release. Open a clean shell."
+    }
+}
 $dirty = (& git -C $RepoDir status --porcelain --untracked-files=no)
 if ($dirty -and -not $Force) {
     Write-Host $dirty
@@ -117,7 +125,24 @@ if ($dirty -and -not $Force) {
 if (& git -C $RepoDir tag --list $Tag) {
     Write-Host "  NOTE: tag $Tag already exists locally — it will be reused." -ForegroundColor Yellow
 }
-Write-Host "  clean tree, no TRACKSIDE_DEV." -ForegroundColor Green
+
+# Re-hash guard. Builds are not byte-reproducible, so rebuilding an ALREADY-PUBLISHED tag yields a
+# different DLL — and a different <dll>.hash. The updater's same-tag hotfix check compares exactly
+# that, so re-uploading would prompt every existing user with a "hotfix" for a build containing no
+# actual changes. Bump the version instead; -SkipBuild re-uploads the staged artifacts untouched.
+if (-not $SkipBuild -and -not $Force -and (Get-Command gh -ErrorAction SilentlyContinue)) {
+    $pub = (& gh release view $Tag --json isDraft 2>$null)
+    if ($pub -and ($pub | ConvertFrom-Json).isDraft -eq $false) {
+        Fail @"
+Release $Tag is already PUBLISHED, and rebuilding would change the DLL hash.
+Every user on $Tag would be prompted with a spurious "hotfix" for an identical build.
+  * shipping changes?  bump the version in native\Cargo.toml
+  * re-uploading only? re-run with -SkipBuild (keeps the staged artifacts + hashes)
+  * really meant it?   re-run with -Force
+"@
+    }
+}
+Write-Host "  clean tree, no dev/private build vars, tag not already published." -ForegroundColor Green
 
 New-Item -ItemType Directory -Path $StageDir -Force | Out-Null
 
@@ -253,6 +278,14 @@ $assets = @(
 )
 
 if ($Publish) {
+    # Push the BRANCH as well as the tag. Pushing only the tag publishes the released code (the tag
+    # makes those commits reachable) while leaving origin/<branch> pointing at the previous release,
+    # so GitHub's default view shows stale source. v1.0.6 shipped with origin/main 21 commits behind
+    # for exactly this reason.
+    Write-Host "  pushing $branch..." -ForegroundColor Yellow
+    & git -C $RepoDir push origin $branch
+    if ($LASTEXITCODE -ne 0) { Fail "pushing the branch failed (rebase/pull, then re-run with -SkipBuild)." }
+
     Write-Host "  pushing tag $Tag..." -ForegroundColor Yellow
     & git -C $RepoDir push origin $Tag
     if ($LASTEXITCODE -ne 0) { Fail "pushing the tag failed." }
