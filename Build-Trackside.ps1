@@ -233,18 +233,53 @@ if ($proc) {
     }
 }
 
-# --- deploy -----------------------------------------------------------------
-# Warn (don't fail) if the proxy loader isn't installed yet - the overlay won't
-# load without it, but copying the DLL is still harmless.
+# --- deploy (GUARDED) --------------------------------------------------------
+# NEVER raw-copy. The install may be running the PRIVATE build (Event Oracle), and a
+# build from `main` copied over it silently drops that feature with no undo — the exact
+# failure Deploy-Trackside.ps1 exists to prevent. So route the copy through that guard
+# (feature-loss check + trackside.dll.prev backup + provenance stamp). If the guard script
+# isn't present, apply the SAME sentinel rule inline so it can never be bypassed.
+# Version-agnostic: nothing here knows or cares which Trackside version is being built.
 if (-not (Test-Path -LiteralPath (Join-Path $GameDir 'version.dll'))) {
     Write-Host "  NOTE: version.dll not found in the game folder - install the proxy" -ForegroundColor Yellow
     Write-Host "        loaders once from a release zip, or the overlay won't load." -ForegroundColor Yellow
 }
 
-$dest = Join-Path $GameDir $DllName
-Copy-Item -LiteralPath $dllPath -Destination $dest -Force
-$size = [math]::Round((Get-Item -LiteralPath $dest).Length / 1MB, 2)
-Write-Host "  Copied $DllName ($size MB, $profileName) -> game folder" -ForegroundColor Green
+$branch = (& git -C $repoDir rev-parse --abbrev-ref HEAD 2>$null)
+if ($branch) { Write-Host "  Branch:      $branch" }
+
+$deployScript = Join-Path $repoDir 'Deploy-Trackside.ps1'
+if (Test-Path -LiteralPath $deployScript) {
+    Write-Host "  Deploying via Deploy-Trackside.ps1 (guarded)..." -ForegroundColor DarkGray
+    try {
+        & $deployScript -Source $dllPath -GameDir $GameDir
+    } catch {
+        Fail "guarded deploy refused: $_"
+    }
+} else {
+    # Same rule as Deploy-Trackside.ps1, inline: refuse to replace an Oracle-having install
+    # with a build that lacks it, and always leave a .prev backup.
+    $ORACLE_SENTINEL = 'event_oracle'
+    function Test-DllHas([string]$path, [string]$needle) {
+        if (-not (Test-Path -LiteralPath $path)) { return $false }
+        $bytes = [System.IO.File]::ReadAllBytes($path)
+        $text  = [System.Text.Encoding]::GetEncoding('ISO-8859-1').GetString($bytes)
+        return $text.IndexOf($needle, [System.StringComparison]::Ordinal) -ge 0
+    }
+    $dest = Join-Path $GameDir $DllName
+    if ((Test-DllHas $dest $ORACLE_SENTINEL) -and -not (Test-DllHas $dllPath $ORACLE_SENTINEL)) {
+        Write-Host ""
+        Write-Host "  REFUSING TO DEPLOY." -ForegroundColor Red
+        Write-Host "  The installed DLL HAS Event Oracle; this build (branch '$branch') does NOT." -ForegroundColor Red
+        Write-Host "  Build from 'trackside-private', or deploy on purpose with:" -ForegroundColor Yellow
+        Write-Host "      .\Deploy-Trackside.ps1 -Force" -ForegroundColor Yellow
+        Fail "deploy blocked: would drop Event Oracle."
+    }
+    if (Test-Path -LiteralPath $dest) { Copy-Item -LiteralPath $dest -Destination "$dest.prev" -Force }
+    Copy-Item -LiteralPath $dllPath -Destination $dest -Force
+    $size = [math]::Round((Get-Item -LiteralPath $dest).Length / 1MB, 2)
+    Write-Host "  Copied $DllName ($size MB, $profileName) -> game folder (backup: $DllName.prev)" -ForegroundColor Green
+}
 
 # --- optionally launch ------------------------------------------------------
 if ($Launch) {
