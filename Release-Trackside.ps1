@@ -142,7 +142,7 @@ Every user on $Tag would be prompted with a spurious "hotfix" for an identical b
 "@
     }
 }
-Write-Host "  clean tree, no dev/private build vars, tag not already published." -ForegroundColor Green
+Write-Host "  clean tree, no dev/private build vars." -ForegroundColor Green
 
 New-Item -ItemType Directory -Path $StageDir -Force | Out-Null
 
