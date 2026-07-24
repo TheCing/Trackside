@@ -81,9 +81,20 @@ pub fn is_busy() -> bool {
 }
 
 /// Parse "3.6.0" / "v3.6.0" → (major, minor, patch); missing parts default to 0.
+///
+/// Any semver suffix is stripped before comparing, so the PRIVATE build's `1.0.6+p` compares
+/// EQUAL to the public `1.0.6` rather than parsing to 0. That matters: a trailing-garbage parse
+/// used to yield `(1,0,0)`, which made every public release look newer than the private build and
+/// would have offered private users the Oracle-less public DLL.
 fn parse_ver(s: &str) -> (u32, u32, u32) {
     let s = s.trim().trim_start_matches('v');
-    let mut it = s.split('.').map(|p| p.trim().parse::<u32>().unwrap_or(0));
+    // Drop build metadata ("+p") and any pre-release tail ("-rc1") — neither affects precedence here.
+    let s = s.split(['+', '-']).next().unwrap_or("");
+    // Take leading digits per component so a stray suffix degrades to the number, never to 0.
+    let mut it = s.split('.').map(|p| {
+        let digits: String = p.trim().chars().take_while(|c| c.is_ascii_digit()).collect();
+        digits.parse::<u32>().unwrap_or(0)
+    });
     (it.next().unwrap_or(0), it.next().unwrap_or(0), it.next().unwrap_or(0))
 }
 fn is_newer(tag: &str, base: &str) -> bool {
