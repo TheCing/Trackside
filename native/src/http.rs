@@ -10,8 +10,9 @@ use std::ptr;
 use windows_sys::Win32::Networking::WinHttp::{
     WinHttpCloseHandle, WinHttpConnect, WinHttpOpen, WinHttpOpenRequest, WinHttpQueryDataAvailable,
     WinHttpQueryHeaders, WinHttpReadData, WinHttpReceiveResponse, WinHttpSendRequest,
-    WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_FLAG_SECURE, WINHTTP_QUERY_FLAG_NUMBER,
-    WINHTTP_QUERY_STATUS_CODE,
+    WinHttpSetOption, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_FLAG_SECURE,
+    WINHTTP_OPTION_REDIRECT_POLICY, WINHTTP_OPTION_REDIRECT_POLICY_NEVER, WINHTTP_QUERY_FLAG_NUMBER,
+    WINHTTP_QUERY_LOCATION, WINHTTP_QUERY_STATUS_CODE,
 };
 
 const HTTPS_PORT: u16 = 443;
@@ -40,15 +41,55 @@ impl Drop for Handle {
     }
 }
 
+/// Outcome of one request: the body, or a redirect we were told not to follow.
+enum Fetched {
+    Body(Vec<u8>),
+    Redirect(String),
+}
+
 /// HTTPS GET → response body bytes. Follows HTTPS→HTTPS redirects (WinHTTP default,
 /// which is how a GitHub release-download URL reaches objects.githubusercontent.com)
 /// and sends a User-Agent (the GitHub API rejects requests without one). Err on any failure.
 pub fn get(url: &str) -> Result<Vec<u8>, String> {
+    match fetch(url, "", true)? {
+        Fetched::Body(b) => Ok(b),
+        Fetched::Redirect(_) => Err("unexpected redirect".into()),
+    }
+}
+
+/// Authenticated GET for the PRIVATE update channel (a private repo's API + release assets).
+///
+/// Redirects are handled MANUALLY here on purpose. A private release asset answers with a 302 to a
+/// pre-signed objects.githubusercontent.com URL, and that URL carries its own credentials — if the
+/// `Authorization` header rides along (which WinHTTP would do on an auto-followed redirect) the CDN
+/// rejects it as two competing auth mechanisms. So: send the token to api.github.com only, then
+/// fetch the signed location with a plain, unauthenticated GET.
+pub fn get_auth(url: &str, token: &str, accept: &str) -> Result<Vec<u8>, String> {
+    let headers = format!(
+        "Authorization: Bearer {token}\r\nAccept: {accept}\r\nX-GitHub-Api-Version: 2022-11-28"
+    );
+    match fetch(url, &headers, false)? {
+        Fetched::Body(b) => Ok(b),
+        Fetched::Redirect(loc) => get(&loc), // signed URL — must NOT carry the token
+    }
+}
+
+/// Authenticated GET → UTF-8 string (the private channel's releases API).
+pub fn get_string_auth(url: &str, token: &str, accept: &str) -> Result<String, String> {
+    let bytes = get_auth(url, token, accept)?;
+    String::from_utf8(bytes).map_err(|_| "response not valid utf-8".to_string())
+}
+
+/// One HTTPS GET. `headers` is a CRLF-separated request-header block ("" for none).
+/// `allow_redirect` false => a 3xx is returned as `Fetched::Redirect(location)` instead of
+/// being followed, so the caller decides which headers (if any) the next hop gets.
+fn fetch(url: &str, headers: &str, allow_redirect: bool) -> Result<Fetched, String> {
     let (host, path) = split_url(url).ok_or_else(|| "bad url (need https://)".to_string())?;
     let ua = wide(UA);
     let host_w = wide(&host);
     let path_w = wide(&path);
     let verb = wide("GET");
+    let headers_w = wide(headers);
 
     unsafe {
         let session = Handle(WinHttpOpen(
@@ -80,7 +121,20 @@ pub fn get(url: &str) -> Result<Vec<u8>, String> {
             return Err("WinHttpOpenRequest failed".into());
         }
 
-        if WinHttpSendRequest(request.0, ptr::null(), 0, ptr::null(), 0, 0, 0) == 0 {
+        if !allow_redirect {
+            let policy: u32 = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
+            WinHttpSetOption(
+                request.0,
+                WINHTTP_OPTION_REDIRECT_POLICY,
+                &policy as *const u32 as *const c_void,
+                4,
+            );
+        }
+
+        // A NULL header pointer means "no extra headers"; -1 tells WinHTTP to measure the string.
+        let (hptr, hlen) =
+            if headers.is_empty() { (ptr::null(), 0u32) } else { (headers_w.as_ptr(), u32::MAX) };
+        if WinHttpSendRequest(request.0, hptr, hlen, ptr::null(), 0, 0, 0) == 0 {
             return Err("WinHttpSendRequest failed (no network?)".into());
         }
         if WinHttpReceiveResponse(request.0, ptr::null_mut()) == 0 {
@@ -98,6 +152,11 @@ pub fn get(url: &str) -> Result<Vec<u8>, String> {
             &mut len,
             ptr::null_mut(),
         );
+        if !allow_redirect && matches!(status, 301 | 302 | 303 | 307 | 308) {
+            let loc = query_header_string(request.0, WINHTTP_QUERY_LOCATION)
+                .ok_or_else(|| format!("HTTP {status} without a Location header"))?;
+            return Ok(Fetched::Redirect(loc));
+        }
         if status != 200 {
             return Err(format!("HTTP {status}"));
         }
@@ -123,8 +182,32 @@ pub fn get(url: &str) -> Result<Vec<u8>, String> {
             buf.truncate(read as usize);
             out.extend_from_slice(&buf);
         }
-        Ok(out)
+        Ok(Fetched::Body(out))
     }
+}
+
+/// Read one response header as a String (two-call pattern: size, then fetch). None if absent.
+unsafe fn query_header_string(request: *mut c_void, info: u32) -> Option<String> {
+    let mut len: u32 = 0;
+    // The sizing call always "fails", leaving the required byte count in `len`.
+    WinHttpQueryHeaders(request, info, ptr::null(), ptr::null_mut(), &mut len, ptr::null_mut());
+    if len == 0 {
+        return None;
+    }
+    let mut buf = vec![0u16; (len as usize / 2) + 1];
+    if WinHttpQueryHeaders(
+        request,
+        info,
+        ptr::null(),
+        buf.as_mut_ptr() as *mut c_void,
+        &mut len,
+        ptr::null_mut(),
+    ) == 0
+    {
+        return None;
+    }
+    let n = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+    Some(String::from_utf16_lossy(&buf[..n]))
 }
 
 /// HTTPS GET → UTF-8 string (for JSON APIs).

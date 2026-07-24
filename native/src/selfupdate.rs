@@ -26,7 +26,109 @@ const CURRENT: &str = env!("CARGO_PKG_VERSION");
 /// var, by the release tool) leave it false, so genuine re-uploaded-DLL hotfixes still surface.
 const IS_DEV_BUILD: bool = option_env!("TRACKSIDE_DEV").is_some();
 
-const REPO: &str = "TheCing/Trackside";
+// ── update channels ──────────────────────────────────────────────────────────────────
+// The channel is baked in AT BUILD TIME (`TRACKSIDE_CHANNEL=private`), deliberately NOT a setting.
+// A user-flippable switch would let one misclick point a private install at the public repo and
+// stage the Oracle-less public DLL over it — the exact clobber Deploy-Trackside.ps1 exists to stop.
+//
+// A public build passes none of these env vars, so every const below is the public default and the
+// behaviour is bit-for-bit what it was before channels existed.
+
+const fn str_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut i = 0;
+    while i < a.len() {
+        if a[i] != b[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+const CHANNEL: &str = match option_env!("TRACKSIDE_CHANNEL") {
+    Some(c) => c,
+    None => "public",
+};
+pub const IS_PRIVATE_CHANNEL: bool = str_eq(CHANNEL, "private");
+
+/// Read-only, single-repo token for the private releases repo, baked in by the private release
+/// script. Absent in public builds.
+const UPDATE_TOKEN: Option<&str> = option_env!("TRACKSIDE_UPDATE_TOKEN");
+
+/// Marker string that MUST be present in a downloaded private-channel DLL, else we refuse to stage
+/// it (see `sentinel_ok`). Supplied at build time rather than written as a literal here on purpose:
+/// the public release script aborts if the published DLL contains the Oracle marker, so the public
+/// binary must never carry that string — and with `option_env!` it simply doesn't.
+const UPDATE_SENTINEL: Option<&str> = option_env!("TRACKSIDE_UPDATE_SENTINEL");
+
+const PUBLIC_REPO: &str = "TheCing/Trackside";
+const PRIVATE_REPO: &str = "TheCing/Trackside-Private";
+const REPO: &str = if IS_PRIVATE_CHANNEL { PRIVATE_REPO } else { PUBLIC_REPO };
+
+/// Why self-update is off for this build, if it is. Checked by every entry point.
+///
+/// The private channel FAILS CLOSED: without both a token and a sentinel it disables itself rather
+/// than falling back to the public repo, because that fallback is precisely how a private install
+/// would get clobbered.
+fn update_block() -> Option<&'static str> {
+    if IS_DEV_BUILD {
+        return Some("Self-update disabled (dev build)");
+    }
+    if IS_PRIVATE_CHANNEL && (UPDATE_TOKEN.is_none() || UPDATE_SENTINEL.is_none()) {
+        return Some("Self-update disabled (private build, no channel credentials)");
+    }
+    None
+}
+
+/// Releases-API GET — authenticated on the private channel, plain on the public one.
+fn api_get_string(url: &str) -> Result<String, String> {
+    match UPDATE_TOKEN {
+        Some(t) if IS_PRIVATE_CHANNEL => {
+            http::get_string_auth(url, t, "application/vnd.github+json")
+        }
+        _ => http::get_string(url),
+    }
+}
+
+/// Release-asset GET — authenticated on the private channel, plain on the public one.
+fn asset_get(url: &str) -> Result<Vec<u8>, String> {
+    match UPDATE_TOKEN {
+        Some(t) if IS_PRIVATE_CHANNEL => http::get_auth(url, t, "application/octet-stream"),
+        _ => http::get(url),
+    }
+}
+
+/// Download URL for a named asset on a release, or "" if the release doesn't carry it.
+///
+/// The public channel uses `browser_download_url`. The private channel MUST use the asset's API
+/// `url` instead: a private repo's browser URL wants a logged-in session cookie, not a token, so a
+/// token against it returns 404.
+fn asset_url(rel: &Value, want: &str) -> String {
+    let Some(assets) = rel.get("assets").and_then(|v| v.as_array()) else { return String::new() };
+    let key = if IS_PRIVATE_CHANNEL { "url" } else { "browser_download_url" };
+    for a in assets {
+        if a.get("name").and_then(|v| v.as_str()) == Some(want) {
+            return a.get(key).and_then(|v| v.as_str()).unwrap_or("").to_string();
+        }
+    }
+    String::new()
+}
+
+/// Runtime feature-loss guard, the in-game twin of Deploy-Trackside.ps1's check: on the private
+/// channel a downloaded DLL must contain the sentinel, otherwise it isn't a private build and
+/// staging it would silently drop Event Oracle. Always true on the public channel.
+fn sentinel_ok(bytes: &[u8]) -> bool {
+    let Some(marker) = UPDATE_SENTINEL else { return !IS_PRIVATE_CHANNEL };
+    if !IS_PRIVATE_CHANNEL {
+        return true;
+    }
+    let needle = marker.as_bytes();
+    !needle.is_empty() && bytes.windows(needle.len()).any(|w| w == needle)
+}
 
 /// The loose DLL asset the release must carry for one-click updates (uploaded alongside the zips
 /// by the release tool). Per-variant so a Heaven+Hachimi install pulls the H+H DLL, not the plain
@@ -198,18 +300,16 @@ pub fn check(force: bool) {
 }
 
 fn run_check(force: bool) {
-    // Dev/private builds (TRACKSIDE_DEV=1) NEVER self-update. The update channel is the PUBLIC repo,
-    // so any offer — a newer version OR a same-tag hotfix — would replace this DLL with the public
-    // build, silently dropping the private Event Oracle build. (The old code only skipped the
-    // same-tag hotfix, so a newer public release could still clobber the private install.) Private
-    // users receive updates by re-distribution, not the in-game updater.
-    if IS_DEV_BUILD {
+    // Local dev builds never update, and a private build with no channel credentials disables
+    // itself rather than falling back to the public repo (that fallback would stage the
+    // Oracle-less public DLL over a private install).
+    if let Some(why) = update_block() {
         clear_pending();
-        return set_status("Self-update disabled (dev/private build)");
+        return set_status(why);
     }
     set_status("Checking...");
     let url = format!("https://api.github.com/repos/{REPO}/releases?per_page=30");
-    let body = match http::get_string(&url) {
+    let body = match api_get_string(&url) {
         Ok(b) => b,
         Err(e) => return set_status(format!("Check failed: {e}")),
     };
@@ -244,16 +344,7 @@ fn run_check(force: bool) {
     }
 
     // The loose DLL asset on the newest release (its DLL already contains the in-between fixes).
-    let mut dll_url = String::new();
-    if let Some(assets) = latest.get("assets").and_then(|v| v.as_array()) {
-        for a in assets {
-            if a.get("name").and_then(|v| v.as_str()) == Some(DLL_ASSET) {
-                dll_url =
-                    a.get("browser_download_url").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                break;
-            }
-        }
-    }
+    let dll_url = asset_url(latest, DLL_ASSET);
 
     // Combined changelog, newest-first.
     let mut changelog = String::new();
@@ -284,9 +375,9 @@ fn run_check(force: bool) {
 /// offer it, showing only the changelog lines that changed since we last saw them.
 fn check_same_tag_hotfix(arr: &[Value]) {
     // Dev builds always differ from the published DLL by hash — don't nag about a "hotfix".
-    if IS_DEV_BUILD {
+    if let Some(why) = update_block() {
         clear_pending();
-        return set_status("Up to date (dev build)");
+        return set_status(why);
     }
     let cur = format!("v{CURRENT}");
     let Some(rel) = arr.iter().find(|r| {
@@ -301,21 +392,17 @@ fn check_same_tag_hotfix(arr: &[Value]) {
 
     // Locate the DLL + its .hash asset on this release.
     let hash_name = format!("{DLL_ASSET}.hash");
-    let (mut dll_url, mut hash_url) = (String::new(), String::new());
-    if let Some(assets) = rel.get("assets").and_then(|v| v.as_array()) {
-        for a in assets {
-            let name = a.get("name").and_then(|v| v.as_str()).unwrap_or("");
-            let url = a.get("browser_download_url").and_then(|v| v.as_str()).unwrap_or("");
-            if name == DLL_ASSET {
-                dll_url = url.to_string();
-            } else if name == hash_name {
-                hash_url = url.to_string();
-            }
-        }
-    }
+    let dll_url = asset_url(rel, DLL_ASSET);
+    let hash_url = asset_url(rel, &hash_name);
 
-    let remote_hash =
-        if hash_url.is_empty() { None } else { http::get_string(&hash_url).ok().map(|s| s.trim().to_string()) };
+    let remote_hash = if hash_url.is_empty() {
+        None
+    } else {
+        asset_get(&hash_url)
+            .ok()
+            .and_then(|b| String::from_utf8(b).ok())
+            .map(|s| s.trim().to_string())
+    };
     let local_hash = local_dll_hash();
 
     if let (Some(rh), Some(lh)) = (remote_hash, local_hash) {
@@ -365,14 +452,22 @@ fn stage_and_restart(dll_url: &str, tag: &str) {
     if dll_url.is_empty() {
         return set_status("No downloadable DLL in the release");
     }
+    if let Some(why) = update_block() {
+        return set_status(why);
+    }
     set_status("Downloading...");
-    let bytes = match http::get(dll_url) {
+    let bytes = match asset_get(dll_url) {
         Ok(b) => b,
         Err(e) => return set_status(format!("Download failed: {e}")),
     };
     // Sanity: a PE/DLL starts with "MZ". Guards against a truncated / HTML error page.
     if bytes.len() < 2 || &bytes[..2] != b"MZ" {
         return set_status("Download failed: not a valid DLL");
+    }
+    // Feature-loss guard: never stage a private-channel DLL that lacks the sentinel. Cheap
+    // insurance against a mis-published asset costing someone their Event Oracle build.
+    if !sentinel_ok(&bytes) {
+        return set_status("Update rejected: that build is missing private features");
     }
     let staging = crate::paths::dll_dir().join("trackside.dll.new");
     match std::fs::write(&staging, &bytes) {
@@ -411,9 +506,12 @@ pub fn list_versions() {
 }
 
 fn run_list_versions() {
+    if let Some(why) = update_block() {
+        return set_status(why);
+    }
     set_status("Loading versions...");
     let url = format!("https://api.github.com/repos/{REPO}/releases?per_page=30");
-    let body = match http::get_string(&url) {
+    let body = match api_get_string(&url) {
         Ok(b) => b,
         Err(e) => return set_status(format!("Versions failed: {e}")),
     };
@@ -437,19 +535,7 @@ fn run_list_versions() {
             continue;
         }
         // Only versions that carry OUR variant's loose DLL are switchable (skips pre-3.5.9 zips).
-        let mut dll_url = String::new();
-        if let Some(assets) = r.get("assets").and_then(|v| v.as_array()) {
-            for a in assets {
-                if a.get("name").and_then(|v| v.as_str()) == Some(DLL_ASSET) {
-                    dll_url = a
-                        .get("browser_download_url")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    break;
-                }
-            }
-        }
+        let dll_url = asset_url(r, DLL_ASSET);
         if !dll_url.is_empty() {
             out.push((tag, dll_url));
         }
