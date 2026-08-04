@@ -3491,7 +3491,11 @@ fn career_log_panel(ui: &Ui) {
 
 fn draw_uma_extract(ui: &Ui) {
     let _wrap = ui.push_text_wrap_pos();
-    if btn_primary(ui, "##umaextract", "Export veterans (data.json)") {
+    // The export runs on a worker thread now (multi-MB write - never on the render thread), so the
+    // button has to show that it is working; otherwise a slow disk looks like a dead button.
+    if crate::umas::exporting() {
+        ui.text_colored(DIM, "Exporting\u{2026}");
+    } else if btn_primary(ui, "##umaextract", "Export veterans (data.json)") {
         crate::umas::export_data_json();
     }
     let st = crate::umas::extract_status();

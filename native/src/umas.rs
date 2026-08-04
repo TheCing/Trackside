@@ -118,26 +118,55 @@ pub fn extract_status() -> String {
 }
 
 /// Menu button: write the captured roster as `trackside_umas/data.json` (UmaExtractor format).
+///
+/// RENDER-THREAD RULE: this runs from the overlay draw, so it must not touch the disk here. The
+/// roster is multi-megabyte (a field log showed 252 umas = 2.4 MB), and a write that size blocks
+/// Present - which stalls the game's main thread behind it. Under Wine that is seconds, well past
+/// the hang watchdog's threshold. Everything below the flag happens on a worker thread; the button
+/// only stamps a status and returns.
 pub fn export_data_json() {
-    let snap = vet_slot().lock().ok().and_then(|g| g.clone());
-    let msg = match snap {
-        None => "No veterans captured yet — open the game's Veteran List first.".into(),
-        Some((json, count)) => {
-            let dir = crate::paths::local_dir_migrated("trackside_umas", "heaven_umas");
-            if std::fs::create_dir_all(&dir).is_err() {
-                "Could not create trackside_umas folder.".to_string()
-            } else {
-                let path = dir.join("data.json");
-                match std::fs::write(&path, json.as_bytes()) {
-                    Ok(_) => {
-                        ulog(&format!("[umas] data.json exported ({count} umas, {} bytes)", json.len()));
-                        format!("Exported {count} veterans to trackside_umas\\data.json")
+    if EXPORTING.swap(true, Ordering::Relaxed) {
+        return; // already in flight - a second click must not queue a second multi-MB write
+    }
+    set_vet_status("Exporting...".to_string());
+    std::thread::spawn(|| {
+        // Take the snapshot on THIS thread: the clone is a multi-MB memcpy and has no business
+        // happening under a lock the render thread reads every frame.
+        let snap = vet_slot().lock().ok().and_then(|g| g.clone());
+        let msg = match snap {
+            None => "No veterans captured yet - open the game's Veteran List first.".to_string(),
+            Some((json, count)) => {
+                let dir = crate::paths::local_dir_migrated("trackside_umas", "heaven_umas");
+                if std::fs::create_dir_all(&dir).is_err() {
+                    "Could not create trackside_umas folder.".to_string()
+                } else {
+                    let path = dir.join("data.json");
+                    match std::fs::write(&path, json.as_bytes()) {
+                        Ok(_) => {
+                            ulog(&format!(
+                                "[umas] data.json exported ({count} umas, {} bytes)",
+                                json.len()
+                            ));
+                            format!("Exported {count} veterans to trackside_umas\\data.json")
+                        }
+                        Err(e) => format!("Write failed: {e}"),
                     }
-                    Err(e) => format!("Write failed: {e}"),
                 }
             }
-        }
-    };
+        };
+        set_vet_status(msg);
+        EXPORTING.store(false, Ordering::Relaxed);
+    });
+}
+
+/// True while an export is running, so the button can show progress without locking anything.
+pub fn exporting() -> bool {
+    EXPORTING.load(Ordering::Relaxed)
+}
+
+static EXPORTING: AtomicBool = AtomicBool::new(false);
+
+fn set_vet_status(msg: String) {
     if let Ok(mut s) = vet_status_slot().lock() {
         *s = msg;
     }
