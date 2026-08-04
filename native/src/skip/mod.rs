@@ -381,11 +381,21 @@ pub fn install() -> (bool, bool, String) {
     } else if !event::ACTION_INVOKE.get().map(|i| i.ok()).unwrap_or(false) {
         notes.push_str("action.invoke miss; ");
     } else {
+        // Resolve the splash root's field offset by name. Falls back to the historical constant so
+        // a rename degrades to "splash may flicker" rather than writing at a wrong offset.
+        match il2cpp::field_offset(tag, "_tagCutInRootObject") {
+            Some(off) => event::TAG_ROOT_OFF.store(off, std::sync::atomic::Ordering::Relaxed),
+            None => notes.push_str("tag root field miss (using fallback offset); "),
+        }
         unsafe {
             if let Err(e) = install_one(tag, "PlayCutIn", 2, event::on_tag_play_cutin as *const (), &event::TR_TAGIN, &event::D_TAGIN) {
-                notes.push_str(&format!("{e}; "));
+                notes.push_str(&format!("tag PlayCutIn: {e}; "));
             }
-            let _ = install_one(tag, "PlayCutInOut", 1, event::on_tag_play_cutin_out as *const (), &event::TR_TAGOUT, &event::D_TAGOUT);
+            // Was `let _ = ...`: a PlayCutInOut failure was SILENT, so a half-broken rainbow skip
+            // looked identical to a working one in the log. Report it like every other hook.
+            if let Err(e) = install_one(tag, "PlayCutInOut", 1, event::on_tag_play_cutin_out as *const (), &event::TR_TAGOUT, &event::D_TAGOUT) {
+                notes.push_str(&format!("tag PlayCutInOut: {e}; "));
+            }
         }
     }
 

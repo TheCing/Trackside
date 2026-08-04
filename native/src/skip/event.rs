@@ -229,7 +229,12 @@ type TagOutFn = unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void);
 pub(crate) static ACTION_INVOKE: OnceLock<Invokable> = OnceLock::new(); // System.Action.Invoke
 pub(crate) static SET_ACTIVE: OnceLock<Invokable> = OnceLock::new(); // GameObject.SetActive(bool)
 static PENDING_TAG_CB: AtomicUsize = AtomicUsize::new(0);
-const O_TAG_ROOT: usize = 0x60; // SingleModeMainViewTagTrainingCutInPlayer._tagCutInRootObject
+/// `SingleModeMainViewTagTrainingCutInPlayer._tagCutInRootObject`, resolved BY NAME at install
+/// (see `TAG_ROOT_OFF`). 0x60 is only the fallback for when reflection cannot find the field: a
+/// hardcoded offset silently points at the wrong field the moment a game update reorders the
+/// class, and unlike a missing method that failure is completely invisible.
+const O_TAG_ROOT_FALLBACK: usize = 0x60;
+pub(crate) static TAG_ROOT_OFF: AtomicUsize = AtomicUsize::new(O_TAG_ROOT_FALLBACK);
 
 // GameObject.SetActive takes a bool arg → fn(this, bool, MethodInfo*).
 type SetActiveFn = unsafe extern "C" fn(*mut c_void, bool, *mut c_void);
@@ -238,7 +243,7 @@ unsafe fn hide_tag_visual(this: *mut c_void) {
     if this.is_null() {
         return;
     }
-    let go = *((this as usize + O_TAG_ROOT) as *const *mut c_void);
+    let go = *((this as usize + TAG_ROOT_OFF.load(Ordering::Relaxed)) as *const *mut c_void);
     if go.is_null() {
         return;
     }
