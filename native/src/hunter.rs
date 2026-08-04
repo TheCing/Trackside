@@ -122,9 +122,16 @@ fn target_path() -> std::path::PathBuf {
 }
 
 /// Persist the last-entered target name + viewer ID, so they're there after a restart.
+/// Called from the overlay on EVERY keystroke in the target boxes, i.e. from the render thread -
+/// so it must not touch the disk inline. It used to, meaning one synchronous file write per typed
+/// character while Present waited.
 pub fn save_target(name: &str, vid: &str) {
-    let v = serde_json::json!({ "name": name, "vid": vid });
-    let _ = std::fs::write(target_path(), v.to_string());
+    static WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let body = serde_json::json!({ "name": name, "vid": vid }).to_string();
+    std::thread::spawn(move || {
+        let _g = WRITE_LOCK.lock();
+        let _ = std::fs::write(target_path(), body);
+    });
 }
 
 /// Load the saved target (name, vid) — empty strings if none saved.

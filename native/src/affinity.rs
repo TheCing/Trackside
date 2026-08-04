@@ -155,7 +155,14 @@ fn save() {
         "p1": [pos(1).0, pos(1).1],
         "p2": [pos(2).0, pos(2).1],
     });
-    let _ = std::fs::write(cfg_path(), v.to_string());
+    // Off the render thread: set_enabled/set_edit_mode/set_size all run from the overlay draw,
+    // and a drag on the size slider would otherwise write the config file every single frame.
+    static WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let body = v.to_string();
+    std::thread::spawn(move || {
+        let _g = WRITE_LOCK.lock();
+        let _ = std::fs::write(cfg_path(), body);
+    });
 }
 fn load_cfg() {
     // sensible defaults (tuned on the real Legacy Select layout, screen fractions) so a fresh user

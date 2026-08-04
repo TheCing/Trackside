@@ -135,10 +135,17 @@ fn load_from_disk() -> Store {
     }
 }
 
+/// RENDER-THREAD RULE: every caller holds `store().lock()`, and the overlay reads that same lock
+/// from `list()`/`count()` on every frame the panel draws. Writing to disk while holding it stalls
+/// Present, which stalls the game's main thread behind it - the settings.rs freeze, exactly. So:
+/// serialize under the lock (cheap, in memory), hand the bytes to a worker.
 fn save_to_disk(s: &Store) {
-    if let Ok(json) = serde_json::to_vec_pretty(s) {
+    static WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let Ok(json) = serde_json::to_vec_pretty(s) else { return };
+    std::thread::spawn(move || {
+        let _g = WRITE_LOCK.lock();
         let _ = std::fs::write(json_path(), json);
-    }
+    });
 }
 
 // ── public API consumed by the overlay UI ─────────────────────────────────────

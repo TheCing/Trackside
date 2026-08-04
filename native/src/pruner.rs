@@ -159,10 +159,15 @@ fn load_from_disk() -> Store {
         Err(_) => Store::default(),
     }
 }
+/// Off-thread for the same reason as `padder::save_to_disk`: callers hold `store().lock()` and the
+/// follower panel reads that lock while drawing. Serialize under the lock, write on a worker.
 fn save_to_disk(s: &Store) {
-    if let Ok(json) = serde_json::to_vec_pretty(s) {
+    static WRITE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let Ok(json) = serde_json::to_vec_pretty(s) else { return };
+    std::thread::spawn(move || {
+        let _g = WRITE_LOCK.lock();
         let _ = std::fs::write(json_path(), json);
-    }
+    });
 }
 
 fn log(msg: &str) {
