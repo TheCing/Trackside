@@ -183,16 +183,14 @@ extern "system" {
 
 const MAX_FRAMES: usize = 24;
 
-/// Suspend `tid`, capture a REAL unwound call chain, resume, and return raw addresses.
+/// Capture `tid`'s call stack: suspend, grab the context, RESUME, then unwind the copy.
 ///
-/// Two lessons from earlier versions are load-bearing here:
+/// Two lessons are load-bearing here:
 ///   * v1 SCANNED the stack for module-shaped values. Scans return stale frames from dead calls -
-///     `gameoverlayrenderer64` showed up twice on the main thread and sent a whole hang
-///     investigation at the Steam overlay ("disable it" - it changed nothing). RtlVirtualUnwind
-///     walks the actual chain, so a frame in the output was genuinely on the path.
-///   * NOTHING in here may allocate while the target is suspended. The target might hold the heap
-///     lock, and a watchdog that deadlocks on malloc while diagnosing a deadlock is farce. Raw
-///     addresses go into a caller-provided fixed array; strings happen after ResumeThread.
+///     phantom frames once sent a whole hang investigation at an innocent DLL. RtlVirtualUnwind
+///     walks the real chain.
+///   * NOTHING may allocate or take a lock while the target is suspended - see the resume comment
+///     inside. Raw addresses go into a caller-provided array; strings happen after this returns.
 unsafe fn walk_thread(tid: u32, frames: &mut [usize; MAX_FRAMES]) -> usize {
     use windows_sys::Win32::Foundation::CloseHandle;
     use windows_sys::Win32::System::Diagnostics::Debug::{
@@ -213,44 +211,87 @@ unsafe fn walk_thread(tid: u32, frames: &mut [usize; MAX_FRAMES]) -> usize {
         CloseHandle(h);
         return 0;
     }
-    // CONTEXT must be 16-byte aligned on x64 or GetThreadContext fails silently (the empty-stack
-    // bug). A plain stack local carries no such guarantee, so force it.
+    // CONTEXT must be 16-byte aligned on x64 or GetThreadContext fails silently.
     #[repr(align(16))]
     struct Aligned(CONTEXT);
     let mut a = Aligned(std::mem::zeroed());
     a.0.ContextFlags = CONTEXT_FULL_AMD64;
-    let mut n = 0usize;
-    if GetThreadContext(h, &mut a.0) != 0 {
-        let ctx = &mut a.0;
-        while n < MAX_FRAMES && ctx.Rip > 0x10000 && ctx.Rsp > 0x10000 {
-            frames[n] = ctx.Rip as usize;
-            n += 1;
-            let mut image_base: u64 = 0;
-            let fentry = RtlLookupFunctionEntry(ctx.Rip, &mut image_base, std::ptr::null_mut());
-            if fentry.is_null() {
-                // Leaf function: the return address is simply at Rsp.
-                ctx.Rip = std::ptr::read_unaligned(ctx.Rsp as *const u64);
-                ctx.Rsp += 8;
-            } else {
-                let mut handler_data: *mut c_void = std::ptr::null_mut();
-                let mut establisher: u64 = 0;
-                RtlVirtualUnwind(
-                    0,
-                    image_base,
-                    ctx.Rip,
-                    fentry,
-                    ctx as *mut CONTEXT as *mut c_void,
-                    &mut handler_data,
-                    &mut establisher,
-                    std::ptr::null_mut(),
-                );
-            }
-        }
-    }
+    let got = GetThreadContext(h, &mut a.0) != 0;
+
+    // RESUME BEFORE UNWINDING. RtlLookupFunctionEntry takes ntdll's dynamic function-table lock,
+    // which IL2CPP also takes when it registers JIT unwind data. Unwinding while threads are
+    // suspended can therefore block on a lock held BY a thread we just froze - the watchdog would
+    // deadlock with its victims still suspended, converting a transient stall into the permanent
+    // hang it exists to diagnose. That window is far wider under Wine, where field reports come
+    // from. Everything below works on a COPY of the context, so the thread runs free.
     ResumeThread(h);
     CloseHandle(h);
+    if !got {
+        return 0;
+    }
+
+    let ctx = &mut a.0;
+    let mut n = 0usize;
+    while n < MAX_FRAMES && ctx.Rip > 0x10000 && ctx.Rsp > 0x10000 {
+        frames[n] = ctx.Rip as usize;
+        n += 1;
+        let mut image_base: u64 = 0;
+        let fentry = RtlLookupFunctionEntry(ctx.Rip, &mut image_base, std::ptr::null_mut());
+        if fentry.is_null() {
+            // Leaf function: the return address is at Rsp. The thread is running again, so this
+            // read can race - fault-guard it and stop cleanly rather than crash the watchdog.
+            match read_usize_guarded(ctx.Rsp as usize) {
+                Some(v) => {
+                    ctx.Rip = v as u64;
+                    ctx.Rsp += 8;
+                }
+                None => break,
+            }
+        } else {
+            let mut handler_data: *mut c_void = std::ptr::null_mut();
+            let mut establisher: u64 = 0;
+            RtlVirtualUnwind(
+                0,
+                image_base,
+                ctx.Rip,
+                fentry,
+                ctx as *mut CONTEXT as *mut c_void,
+                &mut handler_data,
+                &mut establisher,
+                std::ptr::null_mut(),
+            );
+        }
+    }
     n
 }
+
+/// Read a usize from a possibly-unmapped address without faulting the process.
+///
+/// Needed because unwinding now happens with the target thread RUNNING (see walk_thread): its
+/// stack can be reused under us, so a leaf-frame read may land on freed or guard memory. A
+/// diagnostic must never be the thing that crashes the game.
+unsafe fn read_usize_guarded(addr: usize) -> Option<usize> {
+    use windows_sys::Win32::System::Memory::{
+        VirtualQuery, MEMORY_BASIC_INFORMATION, PAGE_GUARD, PAGE_NOACCESS,
+    };
+    if addr < 0x10000 || addr % 8 != 0 {
+        return None;
+    }
+    let mut mbi: MEMORY_BASIC_INFORMATION = std::mem::zeroed();
+    let n = VirtualQuery(
+        addr as *const c_void,
+        &mut mbi,
+        std::mem::size_of::<MEMORY_BASIC_INFORMATION>(),
+    );
+    if n == 0 || mbi.State != 0x1000 {
+        return None; // not MEM_COMMIT
+    }
+    if mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS) != 0 || mbi.Protect == 0 {
+        return None;
+    }
+    Some(std::ptr::read_unaligned(addr as *const usize))
+}
+
 
 unsafe fn dump_thread(label: &str, tid: u32) {
     let mut frames = [0usize; MAX_FRAMES];

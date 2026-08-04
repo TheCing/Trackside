@@ -36,6 +36,10 @@
     ad-hoc gh calls: v1.0.8 shipped missing trackside.dll and Trackside+Hachimi.zip exactly that
     way, breaking the standard-install updater until it was caught.
 
+    SYMBOLS: each build's trackside.pdb is archived into the stage folder (staged only, never
+    uploaded). Keep the stage folder - it is the only way to resolve a user's [watchdog] stack
+    frames back to function names after target/release has been rebuilt.
+
 .PARAMETER Notes
     Release-notes markdown. Default: release-v<version>\NOTES.md (a release needs notes —
     the in-game updater renders them as the changelog).
@@ -220,11 +224,17 @@ if (-not $SkipBuild) {
         & cargo build --release
         if ($LASTEXITCODE -ne 0) { Fail "cargo build (default) failed." }
         Copy-Item (Join-Path $NativeDir 'target\release\trackside.dll') (Join-Path $StageDir 'trackside.dll') -Force
+        # Archive THIS build's symbols now - the hachimi build below reuses the same output
+        # path and would overwrite trackside.pdb. Without per-release symbols a user's watchdog
+        # stack is only module+offset and cannot be resolved once target/release is rebuilt
+        # (exactly what blocked the v1.0.8 field report).
+        Copy-Item (Join-Path $NativeDir 'target\release\trackside.pdb') (Join-Path $StageDir 'trackside.pdb') -Force
 
         Write-Host "  cargo build --release --features hachimi"
         & cargo build --release --features hachimi
         if ($LASTEXITCODE -ne 0) { Fail "cargo build (hachimi) failed." }
         Copy-Item (Join-Path $NativeDir 'target\release\trackside.dll') (Join-Path $StageDir 'trackside_hh.dll') -Force
+        Copy-Item (Join-Path $NativeDir 'target\release\trackside.pdb') (Join-Path $StageDir 'trackside_hh.pdb') -Force
     } finally { Pop-Location }
 
     Push-Location $ProxyDir
