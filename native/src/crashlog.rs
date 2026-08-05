@@ -9,7 +9,7 @@
 #![allow(dead_code)]
 
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 
 use windows_sys::Win32::Foundation::HMODULE;
 use windows_sys::Win32::System::LibraryLoader::{
@@ -240,6 +240,57 @@ unsafe fn walk_thread(tid: u32, frames: &mut [usize; MAX_FRAMES]) -> usize {
         if fentry.is_null() {
             // Leaf function: the return address is at Rsp. The thread is running again, so this
             // read can race - fault-guard it and stop cleanly rather than crash the watchdog.
+            match read_usize_guarded(ctx.Rsp as usize) {
+                Some(v) => {
+                    ctx.Rip = v as u64;
+                    ctx.Rsp += 8;
+                }
+                None => break,
+            }
+        } else {
+            let mut handler_data: *mut c_void = std::ptr::null_mut();
+            let mut establisher: u64 = 0;
+            RtlVirtualUnwind(
+                0,
+                image_base,
+                ctx.Rip,
+                fentry,
+                ctx as *mut CONTEXT as *mut c_void,
+                &mut handler_data,
+                &mut establisher,
+                std::ptr::null_mut(),
+            );
+        }
+    }
+    n
+}
+
+/// Unwind the FAULTING thread from the context Windows hands the exception filter.
+///
+/// Without this a jump into garbage tells us only the garbage address — `<unknown> + 0xffff1bba`,
+/// with no way to know who jumped there. The first frame after the fault is the caller, which for
+/// a corrupted trampoline names the hook that owns it. Works on a COPY: the real context must be
+/// left alone in case another filter in the chain wants to act on it.
+unsafe fn walk_context(ctx_in: *const c_void, frames: &mut [usize; MAX_FRAMES]) -> usize {
+    use windows_sys::Win32::System::Diagnostics::Debug::CONTEXT;
+    if ctx_in.is_null() {
+        return 0;
+    }
+    // Same 16-byte alignment requirement as the watchdog's capture — an unaligned CONTEXT is what
+    // made stack captures come back empty the first time round.
+    #[repr(align(16))]
+    struct Aligned(CONTEXT);
+    let mut a = Aligned(std::ptr::read(ctx_in as *const CONTEXT));
+    let ctx = &mut a.0;
+    let mut n = 0usize;
+    while n < MAX_FRAMES && ctx.Rip > 0x10000 && ctx.Rsp > 0x10000 {
+        frames[n] = ctx.Rip as usize;
+        n += 1;
+        let mut image_base: u64 = 0;
+        let fentry = RtlLookupFunctionEntry(ctx.Rip, &mut image_base, std::ptr::null_mut());
+        if fentry.is_null() {
+            // No unwind data — a leaf, or (the interesting case) an address that is not code at
+            // all. Either way the return address sits at Rsp.
             match read_usize_guarded(ctx.Rsp as usize) {
                 Some(v) => {
                     ctx.Rip = v as u64;
@@ -506,19 +557,72 @@ unsafe extern "system" fn handler(info: *const ExceptionPointers) -> i32 {
         extra = format!("\n  access violation: {kind} at 0x{at:016x}");
     }
 
+    // Write the primary record FIRST and unwind afterwards, even though one block would read
+    // better. RtlLookupFunctionEntry takes ntdll's dynamic function-table lock, which IL2CPP also
+    // takes — the watchdog already had to be restructured around that. If we fault while that lock
+    // is held, unwinding here DEADLOCKS, and doing it first would trade every crash record we
+    // currently get for a hang with no log at all. The stack is a bonus; the record is not.
     write_crash(&format!(
-        "\n=== CRASH ===\n  code   : 0x{code:08x}\n  at     : 0x{addr:016x}  ({module} + 0x{off:x})\n  hook   : [{bc}] {}\n  step   : {step_str}{extra}\n=============",
+        "\n=== CRASH ===\n  code   : 0x{code:08x}\n  at     : 0x{addr:016x}  ({module} + 0x{off:x})\n  hook   : [{bc}] {}\n  step   : {step_str}{extra}",
         crumb_name(bc)
     ));
+
+    // Who jumped here? For a corrupted trampoline the faulting address is meaningless garbage and
+    // the CALLER is the whole answer.
+    let mut frames = [0usize; MAX_FRAMES];
+    let n = walk_context((*info).context, &mut frames);
+    if n == 0 {
+        write_crash("  stack  : (unavailable)\n=============");
+    } else {
+        let mut s = String::from("  stack  : ");
+        for (i, f) in frames[..n].iter().enumerate() {
+            let (m, o) = module_for(*f);
+            if i > 0 {
+                s.push_str(" <- ");
+            }
+            s.push_str(&format!("{m}+0x{o:x}"));
+        }
+        s.push_str("\n=============");
+        write_crash(&s);
+    }
+    // Hand the exception to whoever we displaced — normally Unity's handler, which writes the
+    // module list and its own stack walk to Player.log. Only one top-level filter can be
+    // installed, so without this chaining, arming ours DELETES the game's crash report; both are
+    // worth having (ours knows the breadcrumb, Unity's knows the managed side).
+    let prev = PREV_FILTER.load(Ordering::Relaxed);
+    if prev != 0 {
+        let f: unsafe extern "system" fn(*const ExceptionPointers) -> i32 = std::mem::transmute(prev);
+        return f(info);
+    }
     CONTINUE_SEARCH
+}
+
+/// The filter we displaced, so `handler` can chain to it. See the call site above.
+static PREV_FILTER: AtomicUsize = AtomicUsize::new(0);
+
+/// Install our filter, remembering the one it replaced (unless that is already ours).
+fn arm() {
+    unsafe {
+        if let Some(prev) = SetUnhandledExceptionFilter(Some(handler)) {
+            if prev as usize != handler as usize {
+                PREV_FILTER.store(prev as usize, Ordering::Relaxed);
+            }
+        }
+    }
 }
 
 /// Arm the crash detector. Re-armed a few times because the game's own crash handler
 /// (Unity) installs later and would otherwise replace ours.
+///
+/// Process-once: the hachimi variant arms this from `hachimi_init` (before the engine boots, so an
+/// early crash is still captured) and boot arms it again at step 4. Re-running the whole body would
+/// stack a second re-arm thread and a second panic hook for no gain.
 pub fn install() {
-    unsafe {
-        SetUnhandledExceptionFilter(Some(handler));
+    static ARMED: AtomicBool = AtomicBool::new(false);
+    if ARMED.swap(true, Ordering::SeqCst) {
+        return;
     }
+    arm();
     // Rust panics NEVER reach the SEH filter under panic=abort (the runtime __fastfails),
     // which is why panic crashes used to leave an empty log. A panic hook still runs first —
     // capture the message + location + last breadcrumb, THEN let the abort proceed.
@@ -553,9 +657,7 @@ pub fn install() {
     std::thread::spawn(|| {
         for delay in [2u64, 6, 12] {
             std::thread::sleep(std::time::Duration::from_secs(delay));
-            unsafe {
-                SetUnhandledExceptionFilter(Some(handler));
-            }
+            arm();
         }
     });
 }

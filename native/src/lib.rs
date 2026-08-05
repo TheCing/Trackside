@@ -116,6 +116,10 @@ impl HeavenOverlay {
     /// (career reader, SuperSkip, FPS, race), and publishes into the shared
     /// state the overlay renders. No Frida, no Python, no TCP.
     pub fn new_with_engine() -> Self {
+        // Arm the crash detector FIRST — before the engine, before anything that can fault.
+        // It used to go up at boot step 4, behind a five-second settle, which left the entire
+        // startup window covered only by Unity's symbol-less stack.
+        crashlog::install();
         boot::spawn();
         // Start the video player's D3D11 device capture early (independent of the IL2CPP
         // boot) so the intro can draw over the splash logos within ~1 s of launch.
