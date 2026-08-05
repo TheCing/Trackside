@@ -53,9 +53,30 @@ fn main() {
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
     {
-        let head = std::path::Path::new(&dir).join("HEAD");
-        if head.exists() {
-            println!("cargo:rerun-if-changed={}", head.display());
+        let g = std::path::Path::new(&dir);
+        // Watch HEAD *and* the ref it points at. HEAD alone is not enough: it changes on a branch
+        // SWITCH, but a new COMMIT on the current branch only rewrites refs/heads/<branch>, so the
+        // stamp silently kept the previous commit across every commit-then-build. Observed twice.
+        // packed-refs covers the case where the loose ref file does not exist.
+        for f in ["HEAD", "packed-refs"] {
+            let p = g.join(f);
+            if p.exists() {
+                println!("cargo:rerun-if-changed={}", p.display());
+            }
+        }
+        if let Some(r) = Command::new("git")
+            .args(["symbolic-ref", "--quiet", "HEAD"])
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+        {
+            let refp = g.join(&r);
+            if refp.exists() {
+                println!("cargo:rerun-if-changed={}", refp.display());
+            }
         }
     }
 }
