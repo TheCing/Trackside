@@ -42,8 +42,9 @@ pub fn spawn() {
     std::thread::spawn(|| {
         log("======== Trackside native engine starting ========");
         log(&format!(
-            "Trackside v{} (fork of Heaven by Night DC) — verbose logging: {}",
+            "Trackside v{} (build {}) (fork of Heaven by Night DC) — verbose logging: {}",
             env!("CARGO_PKG_VERSION"),
+            env!("TRACKSIDE_BUILD"),
             if crate::diag::enabled() { "ON" } else { "off (enable in About > Diagnostics for detail)" }
         ));
         ipc::set_status("waiting for GameAssembly…");
