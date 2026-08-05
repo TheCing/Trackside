@@ -405,6 +405,18 @@ if ($existing) {
     if ($GhExit -ne 0) { Fail "gh release create failed." }
 }
 
+# --- dev-only diagnostics must never ship ------------------------------------
+# Fire method invokes an arbitrary 0-arg game method on a live instance - a debugging instrument,
+# not a user feature. It is compile-gated behind the `devtools` cargo feature, but a flag is only
+# as good as the person setting it, so this reads the staged BINARY (the same shape as the Oracle
+# checks, and for the same reason: a build-flag misunderstanding cannot defeat a grep of the DLL).
+foreach ($f in 'trackside.dll','trackside_hh.dll') {
+    $p = Join-Path $StageDir $f
+    if ((Test-Path -LiteralPath $p) -and ((Test-DllHas $p '##firemethod') -or (Test-DllHas $p 'screen probe done'))) {
+        Fail "$f contains the dev diagnostics (screen probe / class dump / FIRE METHOD). Build WITHOUT --features devtools."
+    }
+}
+
 # --- asset completeness vs the previous release ------------------------------
 # Catches a partial upload no matter how it happened. Compares this release against the previous
 # published one; anything the last release shipped that this one lacks fails the run. When an

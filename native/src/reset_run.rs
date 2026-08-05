@@ -720,6 +720,7 @@ pub fn probe_screen() {
     PROBE.store(true, Ordering::Relaxed);
 }
 
+#[cfg(feature = "devtools")]
 /// Dump every live UI class and the methods worth clicking. Main thread only, on demand only -
 /// FindObjectsOfType walks every live object, so this must never run per-frame.
 fn probe_live_screen(api: &Api) {
@@ -856,6 +857,7 @@ pub fn poll() {
         return;
     };
 
+    #[cfg(feature = "devtools")]
     if probe {
         crate::crashlog::step("reset-run:probe");
         probe_live_screen(api);

@@ -18,6 +18,11 @@ crate-type = ["cdylib"]
 # /display options, Team Trials capture, free camera + live race telemetry, and the
 # custom title intro. Just `cargo build --release`.
 default = ["racenet", "races_on", "freecam", "banner"]
+# `devtools` = IL2CPP discovery tooling (screen probe). DEV BUILD ONLY, never released: it exists to
+# investigate the game, not as a user feature. It was gated only on verbose logging - a RUNTIME
+# toggle any user can flip - so it shipped reachable in v1.0.8. The release script now refuses a DLL
+# containing it, and the gate is compile-time.
+devtools = []
 # `raceread` = the live race reader (race.rs): live frames + finish placement (the
 #   race-result skip needs placement to know you won).
 raceread = []

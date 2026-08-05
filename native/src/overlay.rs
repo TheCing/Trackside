@@ -3460,6 +3460,11 @@ fn reset_run_panel(ui: &Ui) {
 /// Gated on verbose logging: it is a dev tool, and its output only goes to the log that toggle
 /// enables. Costly by nature - FindObjectsOfType walks every live object once per class name
 /// tested - so it is on-demand only and must never be called per-frame.
+#[cfg(not(feature = "devtools"))]
+fn draw_screen_probe(_ui: &Ui) {}
+
+/// DEV BUILD ONLY - see the `devtools` feature. Verbose logging is a second gate on top.
+#[cfg(feature = "devtools")]
 fn draw_screen_probe(ui: &Ui) {
     if !crate::diag::enabled() {
         return; // dev tool; verbose logging is the gate

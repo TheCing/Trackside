@@ -488,6 +488,7 @@ pub fn model() -> Vec<Tab> {
             // Screen probe - names whatever screen is live, which is what every UI-driving feature
             // needs first. Draws nothing unless verbose logging is on: it is a dev tool, and its
             // output only goes to the log it enables.
+            #[cfg(feature = "devtools")]
             Ctrl::Custom(Custom::ScreenProbe),
             // Icon ripper — reachable from ANY screen (rank emblems show on career profile,
             // veteran list, home…), not just the optimizer's skill-screen footer.
