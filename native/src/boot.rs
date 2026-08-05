@@ -85,6 +85,8 @@ pub fn spawn() {
         //     loader we reach this point during early init; attaching into a
         //     freshly-created domain races the GC. A short settle window makes
         //     the proxy path behave like the (working) late-injection path.
+        //     Applies to the hachimi build too: that is a BUILD variant (it cedes hooks Hachimi
+        //     owns), loaded through the same proxy — not a differently-injected one.
         std::thread::sleep(Duration::from_secs(5));
         log("step3b: settle done");
 
@@ -102,9 +104,11 @@ pub fn spawn() {
         }
         log(&format!("step5: classes resolvable — runtime ready ({}ms total)", waited + rwait + cwait));
 
-        // Arm the crash detector before installing our hooks, so a fault in any of them is
-        // logged with a breadcrumb to trackside-crash.log.
-        crate::crashlog::install();
+        // (The crash detector is already armed — new_with_engine does it before spawning us.)
+        // Hachimi build: let Hachimi finish its own hooking first. Installing before it does means
+        // WE get overwritten and our trampolines corrupt — see arbiter::wait_for_cohabitant.
+        #[cfg(feature = "hachimi")]
+        crate::arbiter::wait_for_cohabitant();
         crate::crashlog::spawn_hang_watchdog();
 
         // Active-scene probe (gates the intro player on the title screen) + intro-song
