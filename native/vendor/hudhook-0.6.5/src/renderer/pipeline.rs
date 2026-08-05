@@ -11,7 +11,7 @@ use tracing::error;
 use windows::core::{Error, Result, HRESULT};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallWindowProcW, DefWindowProcW, SetWindowLongPtrA, GWLP_WNDPROC,
+    CallWindowProcW, DefWindowProcW, SetWindowLongPtrW, GWLP_WNDPROC,
 };
 
 use crate::renderer::input::{imgui_wnd_proc_impl, WndProcType};
@@ -66,8 +66,23 @@ impl<T: RenderEngine> Pipeline<T> {
             return Err((e, render_loop));
         }
 
+        // LOCAL PATCH (Trackside): SetWindowLongPtr**W**, not ...A.
+        //
+        // Unity's game window is a Unicode window. Subclassing it with the ANSI entry point marks
+        // the procedure as ANSI, so USER32 inserts an ANSI<->Unicode translation thunk and hands
+        // back an internal proc HANDLE instead of a function pointer. Upstream never notices,
+        // because it only ever dispatches through CallWindowProcW (below), which decodes such a
+        // handle. Anything else that subclasses the same window and calls the previous procedure
+        // DIRECTLY jumps into the handle value and dies.
+        //
+        // That is exactly what happened with Hachimi co-resident: it subclasses with ...W, gets a
+        // handle back (0xffff1c3a and friends - a narrow band that shifts per run, which is what
+        // gave it away as a handle rather than a corrupted pointer), and calls it directly for
+        // every message except WM_CLOSE. Access violation, execute, on the first message.
+        //
+        // Using ...W also removes an ANSI down-translation of WM_CHAR that imgui never wanted.
         let wnd_proc = unsafe {
-            mem::transmute(SetWindowLongPtrA(hwnd, GWLP_WNDPROC, pipeline_wnd_proc as usize as _))
+            mem::transmute(SetWindowLongPtrW(hwnd, GWLP_WNDPROC, pipeline_wnd_proc as usize as _))
         };
 
         let (tx, rx) = mpsc::channel();
@@ -147,7 +162,8 @@ impl<T: RenderEngine> Pipeline<T> {
 
     pub(crate) fn cleanup(&mut self) {
         unsafe {
-            SetWindowLongPtrA(self.hwnd, GWLP_WNDPROC, self.shared_state.wnd_proc as usize as _)
+            // LOCAL PATCH (Trackside): must match the ...W used to install; see `new` above.
+            SetWindowLongPtrW(self.hwnd, GWLP_WNDPROC, self.shared_state.wnd_proc as usize as _)
         };
     }
 
