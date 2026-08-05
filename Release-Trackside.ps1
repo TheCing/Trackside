@@ -410,7 +410,8 @@ if ($existing) {
 # published one; anything the last release shipped that this one lacks fails the run. When an
 # asset is REMOVED deliberately (e.g. dropping the Hachimi variant), edit this check in the same
 # commit that removes the asset from staging.
-$relJson = Invoke-Gh release list --limit 10 --json tagName,isDraft
+# Quote the field list: PowerShell splits an unquoted comma-list into an ARRAY argument.
+$relJson = Invoke-Gh release list --limit 10 --json 'tagName,isDraft'
 if ($GhExit -eq 0 -and $relJson) {
     $prevTag = ($relJson | ConvertFrom-Json) | Where-Object { -not $_.isDraft -and $_.tagName -ne $Tag } |
         Select-Object -First 1 -ExpandProperty tagName
