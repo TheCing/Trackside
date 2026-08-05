@@ -399,6 +399,21 @@ pub fn install() -> (bool, bool, String) {
         }
     }
 
+    // ── GRAND LIVE training-select transitions ── trace-only for now (see train.rs).
+    //    Absent outside Grand Live, so a miss here is expected on other scenarios and must not
+    //    look like a failure: logged only when the class EXISTS but the methods do not.
+    let glview = il2cpp::class("Gallop.PartsSingleModeScenarioLiveMainView");
+    if !glview.is_null() {
+        unsafe {
+            if let Err(e) = install_one(glview, "PlayGoTrainingSelect", 0, train::on_gl_go_training as *const (), &train::TR_GL_GO, &train::D_GL_GO) {
+                notes.push_str(&format!("gl go: {e}; "));
+            }
+            if let Err(e) = install_one(glview, "PlayReturnTrainingSelect", 0, train::on_gl_return_training as *const (), &train::TR_GL_BACK, &train::D_GL_BACK) {
+                notes.push_str(&format!("gl back: {e}; "));
+            }
+        }
+    }
+
     // ── PHOTO STUDIO cut-recreation guard ── pause the training-skip while the Photo
     //    Studio replays a cut (it reuses SingleModeTrainingCutInHelper, so our OnPlayCutIn
     //    hook would otherwise skip the animation the user is trying to view/capture).

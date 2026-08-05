@@ -15,6 +15,8 @@ pub(crate) static SKIP_RUNTIME: OnceLock<Invokable> = OnceLock::new(); // traini
 crate::skip_hook_slot!(TR_START, D_START);
 crate::skip_hook_slot!(TR_PLAY, D_PLAY);
 crate::skip_hook_slot!(TR_MAIN, D_MAIN);
+crate::skip_hook_slot!(TR_GL_GO, D_GL_GO); // PartsSingleModeScenarioLiveMainView.PlayGoTrainingSelect
+crate::skip_hook_slot!(TR_GL_BACK, D_GL_BACK); // .PlayReturnTrainingSelect
 crate::skip_hook_slot!(TR_PHOTO_PLAY, D_PHOTO_PLAY); // PhotoStudioCuttController.PlayCutIn
 crate::skip_hook_slot!(TR_PHOTO_ASYNC, D_PHOTO_ASYNC); // .PlayCutInAsync
 crate::skip_hook_slot!(TR_PHOTO_END, D_PHOTO_END); // .OnEndCutIn
@@ -65,6 +67,32 @@ pub(crate) unsafe extern "C" fn on_play_cutin(this: *mut c_void, m: *mut c_void)
 pub(crate) unsafe extern "C" fn on_play_main_cutin(this: *mut c_void, m: *mut c_void) {
     call_orig(&TR_MAIN, this, m);
     do_training_skip(this, "OnPlayMainCutIn");
+}
+
+// ── GRAND LIVE: the training-select screen transitions ──────────────────────
+//
+// `PartsSingleModeScenarioLiveMainView.PlayGoTrainingSelect/PlayReturnTrainingSelect` animate INTO
+// and OUT OF the training-select screen. They run every turn of a 78-turn career, so they cost more
+// in aggregate than any single cut-in.
+//
+// These are NAVIGATION, not a cut-in, and that changes the safe approach entirely. A cut-in can be
+// suppressed by hiding its visual and letting the flow continue; a transition IS the flow - the
+// screen only arrives because the animation completes and hands control on. So there is no
+// "fire the callback early" trick available here and no visual to hide: we call the original and
+// let it finish. Skipping properly needs whatever tween these drive to be shortened, which is a
+// different and much more invasive change.
+//
+// What these hooks DO give, today, is evidence: a debug-gated trace proving the transitions are
+// hookable, how often they fire, and in which order. That is the prerequisite for shortening them
+// safely, and it is deliberately all they do - the probe showed the GL view parts expose no Play or
+// Skip methods of their own, so anything more would be guessing at a tween owner.
+pub(crate) unsafe extern "C" fn on_gl_go_training(this: *mut c_void, m: *mut c_void) {
+    call_orig(&TR_GL_GO, this, m);
+    crate::tools::debug("[train] GL transition: PlayGoTrainingSelect");
+}
+pub(crate) unsafe extern "C" fn on_gl_return_training(this: *mut c_void, m: *mut c_void) {
+    call_orig(&TR_GL_BACK, this, m);
+    crate::tools::debug("[train] GL transition: PlayReturnTrainingSelect");
 }
 
 // ── PHOTO STUDIO: pause the training-skip while a recreated cut plays ────────
