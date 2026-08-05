@@ -37,15 +37,32 @@ fn main() {
     println!("cargo:rustc-env=TRACKSIDE_BUILD={stamp}");
 
     // HEAD moves without any tracked source changing (a new commit, a checkout), and the stamp has
-    // to follow it - otherwise a rebuild bakes in a stale commit id, which is worse than no stamp
-    // at all because it points confidently at the wrong .pdb.
+    // to follow it - otherwise a rebuild bakes in a stale commit id, which is worse than no stamp at
+    // all because it points confidently at the wrong .pdb.
     //
-    // Ask git for the real git dir rather than assuming "../.git": this repo is developed through
-    // WORKTREES, where .git is a FILE containing a gitdir: pointer, so the guessed path does not
-    // exist and the rerun trigger silently never registers. That is exactly how the first stamped
-    // build shipped a stale id.
-    if let Some(dir) = Command::new("git")
-        .args(["rev-parse", "--absolute-git-dir"])
+    // Resolve every path with `git rev-parse --git-path`, never by joining onto one git dir. Two
+    // layouts break the naive approach and BOTH exist in this project:
+    //   * a WORKTREE's .git is a FILE holding a gitdir: pointer, so "../.git/HEAD" does not exist;
+    //   * in a worktree, HEAD is per-worktree but refs/heads/<branch> lives in the COMMON dir, so
+    //     joining the ref onto --absolute-git-dir points at a file that is never written.
+    // The first cost a stale stamp on the private clone; the second cost one HERE, on a worktree,
+    // after the first fix was assumed to generalise.
+    //
+    // HEAD alone is not enough either: it changes on a branch SWITCH, while a new COMMIT on the
+    // current branch only rewrites refs/heads/<branch>.
+    let git_path = |arg: &str| -> Option<std::path::PathBuf> {
+        Command::new("git")
+            .args(["rev-parse", "--git-path", arg])
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| std::path::PathBuf::from(s.trim()))
+            .filter(|p| p.exists())
+    };
+    let mut watch: Vec<std::path::PathBuf> = ["HEAD", "packed-refs"].iter().filter_map(|a| git_path(a)).collect();
+    if let Some(r) = Command::new("git")
+        .args(["symbolic-ref", "--quiet", "HEAD"])
         .output()
         .ok()
         .filter(|o| o.status.success())
@@ -53,30 +70,11 @@ fn main() {
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
     {
-        let g = std::path::Path::new(&dir);
-        // Watch HEAD *and* the ref it points at. HEAD alone is not enough: it changes on a branch
-        // SWITCH, but a new COMMIT on the current branch only rewrites refs/heads/<branch>, so the
-        // stamp silently kept the previous commit across every commit-then-build. Observed twice.
-        // packed-refs covers the case where the loose ref file does not exist.
-        for f in ["HEAD", "packed-refs"] {
-            let p = g.join(f);
-            if p.exists() {
-                println!("cargo:rerun-if-changed={}", p.display());
-            }
+        if let Some(p) = git_path(&r) {
+            watch.push(p);
         }
-        if let Some(r) = Command::new("git")
-            .args(["symbolic-ref", "--quiet", "HEAD"])
-            .output()
-            .ok()
-            .filter(|o| o.status.success())
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
-        {
-            let refp = g.join(&r);
-            if refp.exists() {
-                println!("cargo:rerun-if-changed={}", refp.display());
-            }
-        }
+    }
+    for p in watch {
+        println!("cargo:rerun-if-changed={}", p.display());
     }
 }
