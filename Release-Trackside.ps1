@@ -209,6 +209,26 @@ Every user on $Tag would be prompted with a spurious "hotfix" for an identical b
 "@
     }
 }
+# --- branch guard --------------------------------------------------------------
+# This is the PUBLIC release script. Run from a private worktree it reads that branch's
+# Cargo.toml, stages private code, and would publish it to the public repo. That nearly happened:
+# the script was invoked from the trackside-private worktree with -Force -Publish and only failed
+# because the private stage folder is named release-v<ver>_p while this script computes
+# release-v<ver>+p, so -SkipBuild found nothing to reuse. Naming luck is not a safety mechanism.
+#
+# The existing "no dev/private build vars" check reads ENVIRONMENT, not the branch - it printed
+# green on that run. This checks the branch itself.
+if ($branch -ne 'main' -and -not $Force) {
+    Fail @"
+on branch '$branch', not main. This script publishes to the PUBLIC repo.
+  * releasing the private build? use Release-TracksidePrivate.ps1 from the private worktree
+  * releasing public?            cd to the main worktree (Trackside-main) and re-run
+  * deliberate?                  re-run with -Force
+"@
+}
+if ($branch -ne 'main') {
+    Write-Host "  WARNING: releasing from '$branch', not main (-Force)." -ForegroundColor Yellow
+}
 Write-Host "  clean tree, no dev/private build vars." -ForegroundColor Green
 
 New-Item -ItemType Directory -Path $StageDir -Force | Out-Null
