@@ -37,10 +37,25 @@ fn main() {
     println!("cargo:rustc-env=TRACKSIDE_BUILD={stamp}");
 
     // HEAD moves without any tracked source changing (a new commit, a checkout), and the stamp has
-    // to follow it - otherwise a rebuild keeps baking in a stale commit id.
-    for p in [".git/HEAD", "../.git/HEAD"] {
-        if std::path::Path::new(p).exists() {
-            println!("cargo:rerun-if-changed={p}");
+    // to follow it - otherwise a rebuild bakes in a stale commit id, which is worse than no stamp
+    // at all because it points confidently at the wrong .pdb.
+    //
+    // Ask git for the real git dir rather than assuming "../.git": this repo is developed through
+    // WORKTREES, where .git is a FILE containing a gitdir: pointer, so the guessed path does not
+    // exist and the rerun trigger silently never registers. That is exactly how the first stamped
+    // build shipped a stale id.
+    if let Some(dir) = Command::new("git")
+        .args(["rev-parse", "--absolute-git-dir"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+    {
+        let head = std::path::Path::new(&dir).join("HEAD");
+        if head.exists() {
+            println!("cargo:rerun-if-changed={}", head.display());
         }
     }
 }
