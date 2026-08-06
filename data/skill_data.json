@@ -603,6 +603,20 @@
   "skill_category": 5,
   "disp_order": 10
  },
+ "100291": {
+  "name": "Snow Bright, Snow Flight",
+  "rarity": 5,
+  "group_id": 10029,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
  "100301": {
   "name": "Blue Rose Closer",
   "rarity": 5,
@@ -7915,6 +7929,20 @@
   "need_skill_point": 200,
   "disable_singlemode": 1,
   "tags": [],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "900291": {
+  "name": "Snow Bright, Snow Flight",
+  "rarity": 1,
+  "group_id": 90029,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
   "icon_id": 20011,
   "skill_category": 5,
   "disp_order": 30

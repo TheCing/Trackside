@@ -1439,6 +1439,36 @@
    "need_rank": 5
   }
  ],
+ "102901": [
+  {
+   "skill_id": 200492,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201102,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201342,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 200242,
+   "need_rank": 2
+  },
+  {
+   "skill_id": 200491,
+   "need_rank": 3
+  },
+  {
+   "skill_id": 201322,
+   "need_rank": 4
+  },
+  {
+   "skill_id": 201341,
+   "need_rank": 5
+  }
+ ],
  "103001": [
   {
    "skill_id": 200861,
