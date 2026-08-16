@@ -268,12 +268,12 @@ pub fn last_status() -> &'static str {
         status::NO_MENU => "Could not open the career menu - open it and press again",
         status::PRESS_CAREER => "Press Career on the main menu to continue",
         status::ADVANCING => "Advancing through career setup...",
-        status::OPEN_FRIENDS => "Deck screen - open the Friends slot, I pick the card",
-        status::NO_SAVED_CARD => "No remembered friend card yet - pick one and I will remember it",
+        status::OPEN_FRIENDS => "Deck screen - open the Friends slot (card picked automatically)",
+        status::NO_SAVED_CARD => "No card remembered yet - pick one to save it for next time",
         status::CARD_NOT_VISIBLE => "Remembered card not on screen - scroll to it or pick manually",
         status::AT_CONFIRM => "Paused at confirmation - review and press Start",
         status::STEP_STUCK => "Setup step did not advance - continue manually",
-        status::NEEDS_CHOICE => "This screen needs a choice - pick, then Next (I resume at the deck)",
+        status::NEEDS_CHOICE => "This screen needs a choice - pick, then Next (resumes at the deck)",
         _ => "",
     }
 }
