@@ -1121,6 +1121,15 @@ static CATALOG: Lazy<Vec<(i32, String, i32, i32)>> = Lazy::new(skill_catalog);
 /// Search box state. Render-thread only, but a Mutex keeps it sound without `static mut`.
 static MB_SEARCH: Mutex<String> = Mutex::new(String::new());
 
+/// True while the must-buy search field holds imgui focus. The optimizer window blocks game input
+/// whenever imgui wants the mouse OR the keyboard, so a focused text field silently makes the game
+/// deaf to clicks - this reports whether that field is the one holding it.
+static MB_SEARCH_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+pub fn search_active() -> bool {
+    MB_SEARCH_ACTIVE.load(Ordering::Relaxed)
+}
+
 /// Rows shown for a search — enough to find what you want without turning the popup into a
 /// 700-row scroll.
 const MB_MAX_ROWS: usize = 40;
@@ -1128,6 +1137,9 @@ const MB_MAX_ROWS: usize = 40;
 /// The must-buy picker: a collapsible section for the optimizer popup. Set up ahead of a run;
 /// nothing here needs a career loaded.
 pub fn draw_must_buy_section(ui: &hudhook::imgui::Ui, w: f32) {
+    // Clear first: the field cannot be active on a frame where it is not drawn (section collapsed,
+    // window closed), and a latched `true` would misreport who is holding input capture.
+    MB_SEARCH_ACTIVE.store(false, Ordering::Relaxed);
     let current = must_buy_ids();
     // `###mustbuy` fixes the widget ID. imgui derives it from the label, so letting the visible
     // count change the label made this a DIFFERENT widget each time one was pinned — which reset
@@ -1212,6 +1224,7 @@ pub fn draw_must_buy_section(ui: &hudhook::imgui::Ui, w: f32) {
     let mut query = MB_SEARCH.lock().map(|g| g.clone()).unwrap_or_default();
     ui.set_next_item_width(w * 0.6);
     let changed = ui.input_text("##mbsearch", &mut query).hint("search skills").build();
+    MB_SEARCH_ACTIVE.store(ui.is_item_active(), Ordering::Relaxed);
     if changed {
         if let Ok(mut g) = MB_SEARCH.lock() {
             *g = query.clone();

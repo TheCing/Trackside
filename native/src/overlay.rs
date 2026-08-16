@@ -846,8 +846,16 @@ impl ImguiRenderLoop for HeavenOverlay {
         // mouse so clicks move the badge instead of the game UI underneath. Same for the Skill
         // Optimizer window: it floats over the game's skill screen, and a click on APPLY must not
         // fall through to the shop list underneath.
-        (self.show || crate::affinity::edit_mode() || crate::skill_advisor::window_open())
-            && (io.want_capture_mouse || io.want_capture_keyboard)
+        let over_ui =
+            self.show || crate::affinity::edit_mode() || crate::skill_advisor::window_open();
+        let mouse = over_ui && io.want_capture_mouse;
+        // Keyboard capture is deliberately NOT ORed in for every floating window. hudhook's
+        // WndProc blocks ALL messages on this one flag, so a focused text field made the game deaf
+        // to MOUSE CLICKS while the overlay stayed responsive — the optimizer window floats over
+        // live gameplay, and the must-buy search box is the first text field ever placed in it.
+        // Block on keyboard only where typing is genuinely expected: the menu, or that field.
+        let keys = (self.show || crate::skill_advisor::search_active()) && io.want_capture_keyboard;
+        mouse || keys
     }
 
     fn render(&mut self, ui: &mut Ui) {
@@ -4038,6 +4046,29 @@ fn draw_skill_optimizer(ui: &Ui) {
                     opt_chip(ui, "in-game", crate::theme::accent_a(0.14), crate::theme::accent_hi(), None);
                 }
                 ui.set_cursor_screen_pos([p[0], p[1] + btn_h + 8.0 * s]);
+                // DEV ONLY: input-capture readout. `should_block_messages` ORs mouse and keyboard
+                // capture into ONE flag, and hudhook's WndProc then swallows EVERY message — so a
+                // text field holding focus makes the game deaf to mouse clicks while the overlay
+                // stays fully responsive. This says which of the two is actually held.
+                #[cfg(feature = "devtools")]
+                {
+                    let io = ui.io();
+                    let (m, k) = (io.want_capture_mouse, io.want_capture_keyboard);
+                    let blocked = m || k;
+                    ui.set_window_font_scale(s * 0.80);
+                    ui.text_colored(
+                        if blocked { WARN } else { DIM },
+                        format!(
+                            "capture: mouse={} kbd={} anyactive={} search={} -> game input {}",
+                            if m { "Y" } else { "n" },
+                            if k { "Y" } else { "n" },
+                            if ui.is_any_item_active() { "Y" } else { "n" },
+                            if crate::skill_advisor::search_active() { "Y" } else { "n" },
+                            if blocked { "BLOCKED" } else { "passes" },
+                        ),
+                    );
+                    ui.set_window_font_scale(s);
+                }
                 // Automation status / first-run scan affordance.
                 let st = crate::skill_buyer::status();
                 if !st.is_empty() {
