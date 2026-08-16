@@ -3284,7 +3284,15 @@ fn opt_unique_row(ui: &Ui, skill_id: i32, name: &str, w: f32, s: f32, vis: (f32,
 
 /// One buy-list card row: icon on a rounded plate, semibold name, dim prerequisite line,
 /// green gain + cost chip right-aligned on one row.
-fn opt_skill_card(ui: &Ui, it: &crate::skill_advisor::PoolItem, w: f32, s: f32, selected: bool, vis: (f32, f32)) {
+fn opt_skill_card(
+    ui: &Ui,
+    it: &crate::skill_advisor::PoolItem,
+    w: f32,
+    s: f32,
+    selected: bool,
+    must: bool,
+    vis: (f32, f32),
+) {
     // Unselected candidates render dimmed — the list mirrors the whole shop, and a skill the
     // optimizer passed on must read as "seen but not worth it", not vanish entirely.
     let dim_f = if selected { 1.0 } else { 0.42 };
@@ -3298,15 +3306,27 @@ fn opt_skill_card(ui: &Ui, it: &crate::skill_advisor::PoolItem, w: f32, s: f32, 
         return;
     }
     let gold = it.rarity >= 2;
-    // Rarity keeps its gold edge even though the window chrome is silk-themed.
-    let edge = dim(if gold { [0.85, 0.70, 0.38, 0.50] } else { [1.0, 1.0, 1.0, 0.09] });
+    let acc = crate::theme::accent();
+    // Rarity keeps its gold edge even though the window chrome is silk-themed. A must-buy takes
+    // the accent instead: recolouring the border and the left wash marks the card using its OWN
+    // geometry, so it follows the corner radius exactly — a separate stripe cannot, because imgui
+    // clamps a rect's rounding to half its width and a thin bar ends up with the wrong arc.
+    let edge = if must {
+        dim([acc[0], acc[1], acc[2], 0.85])
+    } else if gold {
+        dim([0.85, 0.70, 0.38, 0.50])
+    } else {
+        dim([1.0, 1.0, 1.0, 0.09])
+    };
     {
         let dl = ui.get_window_draw_list();
         dl.add_rect(p, [p[0] + w, p[1] + h], dim([1.0, 1.0, 1.0, 0.040])).filled(true).rounding(12.0).build();
         // Body wash: warm gold glow bleeding off the icon side for rares, a faint white
         // ramp for support skills (the mockup's cards are never flat). Solid rounded-left
         // cap + fade so the gradient starts flush at the edge (an inset leaves a bare strip).
-        let (wl, wr) = if gold {
+        let (wl, wr) = if must {
+            (dim([acc[0], acc[1], acc[2], 0.20]), dim([acc[0], acc[1], acc[2], 0.0]))
+        } else if gold {
             (dim([0.90, 0.72, 0.35, 0.11]), dim([0.90, 0.72, 0.35, 0.0]))
         } else {
             (dim([1.0, 1.0, 1.0, 0.045]), dim([1.0, 1.0, 1.0, 0.0]))
@@ -3873,6 +3893,9 @@ fn draw_skill_optimizer(ui: &Ui) {
                     crate::skill_advisor::request_recommend();
                 }
                 ui.dummy([0.0, 6.0 * s]);
+                // Must-buy picker — collapsed by default, set up ahead of a run.
+                crate::skill_advisor::draw_must_buy_section(ui, cw);
+                ui.dummy([0.0, 6.0 * s]);
             }
 
             // ── Sectioned buy list (scrollable) ──
@@ -3919,7 +3942,10 @@ fn draw_skill_optimizer(ui: &Ui) {
                     section_header("S K I L L S", crate::theme::accent(), &note);
                     // Legend so the dimming reads as intentional, not broken.
                     ui.set_window_font_scale(s * 0.78);
-                    ui.text_colored(DIM, "Bright = recommended buy \u{00b7} Dim = considered, skipped");
+                    ui.text_colored(
+                        DIM,
+                        "Bright = recommended buy \u{00b7} Dim = considered, skipped \u{00b7} Accent outline = must-buy",
+                    );
                     ui.set_window_font_scale(s);
                     ui.dummy([0.0, 4.0 * s]);
                     // Scroll culling: only draw rows inside the child's visible band. Custom
@@ -3932,7 +3958,8 @@ fn draw_skill_optimizer(ui: &Ui) {
                         opt_unique_row(ui, *sid, name, lw, s, (vis_top, vis_bot));
                     }
                     for (it, sel) in &rows {
-                        opt_skill_card(ui, it, lw, s, *sel, (vis_top, vis_bot));
+                        let must = *sel && res.must_buy.contains(&it.skill_id);
+                        opt_skill_card(ui, it, lw, s, *sel, must, (vis_top, vis_bot));
                     }
                 }
             });
@@ -3982,12 +4009,9 @@ fn draw_skill_optimizer(ui: &Ui) {
                     );
                 }
                 if clicked {
-                    let ids: Vec<i32> = res
-                        .selected
-                        .iter()
-                        .flat_map(|it| it.chain.iter().map(|c| c.skill_id))
-                        .collect();
-                    crate::skill_buyer::request_apply(ids);
+                    // Purchase order, not display order: must-buys are clicked first so a run
+                    // that stops early still secures them. See RecommendResult::apply_ids.
+                    crate::skill_buyer::request_apply(res.apply_ids());
                 }
                 // Right block: "then press Decide" (Decide emphasized) over the in-game chip.
                 {

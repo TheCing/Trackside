@@ -127,6 +127,26 @@ pub struct RecommendResult {
     pub pool_size: usize,
     pub current: RatingBreakdown,
     pub projected: RatingBreakdown,
+    /// Skill ids in `selected` that were reserved as must-buys rather than chosen by the
+    /// optimizer — the UI marks these, and `apply_ids` buys them first.
+    pub must_buy: HashSet<i32>,
+    /// Requested as must-buy but not bought: not offered this career, already owned, or
+    /// (rarely) unaffordable. Surfaced so a missing skill is never silent.
+    pub must_buy_unavailable: Vec<i32>,
+}
+
+impl RecommendResult {
+    /// Tier ids in PURCHASE order — must-buys first, then the optimizer's picks.
+    ///
+    /// `selected` is sorted for DISPLAY (learn-screen order), but the Apply driver clicks in list
+    /// order, so the two orders have to be separate: if the player stops a run part-way, or the
+    /// game refuses a late click, the must-buys are the ones already secured.
+    pub fn apply_ids(&self) -> Vec<i32> {
+        let (mut first, mut rest): (Vec<&PoolItem>, Vec<&PoolItem>) =
+            self.selected.iter().partition(|it| self.must_buy.contains(&it.skill_id));
+        first.append(&mut rest);
+        first.iter().flat_map(|it| it.chain.iter().map(|c| c.skill_id)).collect()
+    }
 }
 
 #[derive(Deserialize)]
@@ -463,6 +483,24 @@ fn compute_rating_breakdown(info: &CharaInfo, extra_skill_score: i32) -> RatingB
         unique: unique_bonus,
         total: stats_total + skills_total + unique_bonus,
     }
+}
+
+/// Every bundled skill as (id, name, rarity, category) - the catalogue the must-buy picker
+/// searches. rarity: 1 white, 2 gold, 3/4 evolved unique, 5 unique.
+/// category: 0 passive/green, 1 gate, 2 recovery, 3 debuff, 4 speed, 5 unique/special.
+pub fn skill_catalog() -> Vec<(i32, String, i32, i32)> {
+    let mut v: Vec<(i32, String, i32, i32)> = SKILL_META
+        .iter()
+        .filter_map(|(k, s)| {
+            let id: i32 = k.parse().ok()?;
+            let name = s.get("name").and_then(|x| x.as_str()).unwrap_or("").to_string();
+            let rarity = s.get("rarity").and_then(|x| x.as_i64()).unwrap_or(0) as i32;
+            let cat = s.get("skill_category").and_then(|x| x.as_i64()).unwrap_or(0) as i32;
+            Some((id, name, rarity, cat))
+        })
+        .collect();
+    v.sort_by(|a, b| a.1.cmp(&b.1));
+    v
 }
 
 fn build_candidate_pool(info: &CharaInfo, offered_ids: &HashSet<i32>) -> (Vec<PoolItem>, i32) {
@@ -996,6 +1034,257 @@ pub fn offered_uniques() -> Vec<(i32, String)> {
     out
 }
 
+// ── Must-buy list ───────────────────────────────────────────────────────────────────────
+// Skills the player always wants, bought BEFORE the optimizer spends anything — deliberately at
+// the cost of rating. Set up ahead of a run, persisted, global (not per-uma): this is "I always
+// take a recovery skill", not per-career setup.
+//
+// A must-buy takes the BEST tier of its chain that fits, not the exact tier that was ticked. ◎/gold
+// doubles the chance of a spark appearing (5% → 10%), so being handed the ○ when the ◎ was
+// affordable is the outcome nobody wants. SP at end of career is rarely the binding constraint.
+
+static MUST_BUY: OnceLock<Mutex<Vec<i32>>> = OnceLock::new();
+
+fn must_buy_path() -> std::path::PathBuf {
+    crate::paths::local_file("trackside_skill_must_buy.json")
+}
+
+fn must_buy_slot() -> &'static Mutex<Vec<i32>> {
+    MUST_BUY.get_or_init(|| {
+        let ids = std::fs::read(must_buy_path())
+            .ok()
+            .and_then(|b| serde_json::from_slice::<Vec<i32>>(&b).ok())
+            .unwrap_or_default();
+        Mutex::new(ids)
+    })
+}
+
+/// Persist off-thread: every call site is a click in the render loop (render-thread rule).
+fn save_must_buy(ids: &[i32]) {
+    static WRITE_LOCK: Mutex<()> = Mutex::new(());
+    let Ok(body) = serde_json::to_vec_pretty(&ids.to_vec()) else { return };
+    std::thread::spawn(move || {
+        let _g = WRITE_LOCK.lock();
+        let _ = std::fs::write(must_buy_path(), body);
+    });
+}
+
+/// The must-buy skill ids, in the player's priority order.
+pub fn must_buy_ids() -> Vec<i32> {
+    must_buy_slot().lock().map(|g| g.clone()).unwrap_or_default()
+}
+
+pub fn is_must_buy(id: i32) -> bool {
+    must_buy_slot().lock().map(|g| g.contains(&id)).unwrap_or(false)
+}
+
+/// Add or remove; returns the new state. Order of insertion IS priority order.
+pub fn toggle_must_buy(id: i32) -> bool {
+    let mut on = false;
+    let snapshot = {
+        let Ok(mut g) = must_buy_slot().lock() else { return false };
+        if let Some(pos) = g.iter().position(|&x| x == id) {
+            g.remove(pos);
+        } else {
+            g.push(id);
+            on = true;
+        }
+        g.clone()
+    };
+    save_must_buy(&snapshot);
+    // Same contract as the filter row: a change takes effect without a separate button press.
+    // Only drop the cached result if we can actually rebuild one. `request_recommend` returns
+    // early without a CharaInfo, so invalidating with no career loaded (preview host, or the
+    // window still open after a run) blanks the panel with nothing left to refill it.
+    if has_chara() {
+        invalidate_result();
+        request_recommend();
+    }
+    on
+}
+
+pub fn clear_must_buy() {
+    if let Ok(mut g) = must_buy_slot().lock() {
+        g.clear();
+    }
+    save_must_buy(&[]);
+    if has_chara() {
+        invalidate_result();
+        request_recommend();
+    }
+}
+
+/// Whole-catalogue list for the picker, built once (≈700 entries; rebuilding it per frame would
+/// allocate on the render thread every frame).
+static CATALOG: Lazy<Vec<(i32, String, i32, i32)>> = Lazy::new(skill_catalog);
+
+/// Search box state. Render-thread only, but a Mutex keeps it sound without `static mut`.
+static MB_SEARCH: Mutex<String> = Mutex::new(String::new());
+
+/// Rows shown for a search — enough to find what you want without turning the popup into a
+/// 700-row scroll.
+const MB_MAX_ROWS: usize = 40;
+
+/// The must-buy picker: a collapsible section for the optimizer popup. Set up ahead of a run;
+/// nothing here needs a career loaded.
+pub fn draw_must_buy_section(ui: &hudhook::imgui::Ui, w: f32) {
+    let current = must_buy_ids();
+    // `###mustbuy` fixes the widget ID. imgui derives it from the label, so letting the visible
+    // count change the label made this a DIFFERENT widget each time one was pinned — which reset
+    // it to closed, i.e. the section snapped shut the moment you added a skill.
+    let header = if current.is_empty() {
+        "Must-buy skills###mustbuy".to_string()
+    } else {
+        format!("Must-buy skills ({})###mustbuy", current.len())
+    };
+    // Open by default when there is no career loaded: the buy list is empty then anyway, so this
+    // is the only thing on the popup worth doing, and nothing gets pushed down by showing it.
+    let flags = if has_chara() {
+        hudhook::imgui::TreeNodeFlags::empty()
+    } else {
+        hudhook::imgui::TreeNodeFlags::DEFAULT_OPEN
+    };
+    // Explanation lives in the (i), not in a paragraph: this section sits above the buy list,
+    // so every line of standing copy here pushes the actual result further down the popup.
+    // Placing the (i) next to a COLLAPSING HEADER needs absolute positioning, unlike the
+    // text-then-same_line() pattern used everywhere else in the overlay. A header is a framed,
+    // full-width item, so same_line() lands at the far edge; and same_line_with_pos measures its
+    // offset from a different origin than cursor_pos reports (it does not carry the indent), which
+    // put the icon left of where the label ends. set_cursor_pos IS symmetric with cursor_pos, so
+    // "start of the header + arrow + label + gap" means what it says.
+    let start = ui.cursor_pos();
+    let label_w = ui.calc_text_size(header.split("###").next().unwrap_or(""))[0];
+    let open = ui.collapsing_header(&header, flags);
+    let after = ui.cursor_pos();
+    // Vertically centred in the header frame: start[1] is the frame TOP, and the glyph is only
+    // one text line tall, so without this it rides high like a superscript.
+    let icon_y = start[1] + (ui.frame_height() - ui.calc_text_size("A")[1]) * 0.5;
+    ui.set_cursor_pos([start[0] + ui.frame_height() + label_w + 24.0, icon_y]);
+    help_icon(
+        ui,
+        "Bought first, before the optimizer spends anything - even if that costs rating.",
+    );
+    ui.set_cursor_pos(after); // back to the header's own flow, so the body is not overlapped
+    if !open {
+        return;
+    }
+
+    // ── current list ──
+    if current.is_empty() {
+        ui.text_colored(DIM, "Nothing pinned - search below to add.");
+    } else {
+        let mut remove: Option<i32> = None;
+        for (i, id) in current.iter().enumerate() {
+            ui.text_colored(TEXT, format!("{}. {}", i + 1, skill_name(*id)));
+            ui.same_line();
+            if ui.small_button(format!("remove##mbrm{id}")) {
+                remove = Some(*id);
+            }
+        }
+        if let Some(id) = remove {
+            toggle_must_buy(id);
+        }
+        if ui.small_button("Clear all##mbclear") {
+            clear_must_buy();
+        }
+    }
+    // Requested but not bought - not offered this career, already owned, or unaffordable.
+    // Without this the skill just silently is not in the buy list.
+    if let Some(res) = last_result() {
+        let missing: Vec<String> = res
+            .must_buy_unavailable
+            .iter()
+            .filter(|id| current.contains(id))
+            .map(|id| skill_name(*id))
+            .collect();
+        if !missing.is_empty() {
+            ui.dummy([0.0, 4.0]);
+            text_wrapped_colored(
+                ui,
+                WARN,
+                &format!("Not available this career: {}", missing.join(", ")),
+            );
+        }
+    }
+    ui.dummy([0.0, 6.0]);
+
+    // ── search + add ──
+    let mut query = MB_SEARCH.lock().map(|g| g.clone()).unwrap_or_default();
+    ui.set_next_item_width(w * 0.6);
+    let changed = ui.input_text("##mbsearch", &mut query).hint("search skills").build();
+    if changed {
+        if let Ok(mut g) = MB_SEARCH.lock() {
+            *g = query.clone();
+        }
+    }
+    let needle = normalize_name(&query);
+    if needle.is_empty() {
+        return;
+    }
+    let matches: Vec<&(i32, String, i32, i32)> = CATALOG
+        .iter()
+        .filter(|(_, name, _, _)| normalize_name(name).contains(&needle))
+        .take(MB_MAX_ROWS)
+        .collect();
+    if matches.is_empty() {
+        ui.text_colored(DIM, "No skill matches that.");
+        return;
+    }
+    let mut toggled: Option<i32> = None;
+    ui.child_window("##mbresults").size([w, 150.0]).build(|| {
+        for (id, name, _, _) in &matches {
+            let on = current.contains(id);
+            if ui.small_button(format!("{}##mbadd{id}", if on { "pinned" } else { "  +   " })) {
+                toggled = Some(*id);
+            }
+            ui.same_line();
+            ui.text_colored(if on { GOOD } else { TEXT }, name);
+        }
+    });
+    if let Some(id) = toggled {
+        toggle_must_buy(id);
+    }
+}
+
+/// Reserve the must-buys out of `pool` before the optimizer sees it.
+///
+/// Removes each taken skill's whole CHAIN GROUP from the pool: the knapsack treats a group as
+/// mutually exclusive, so leaving a sibling tier behind would let it buy a second tier of a chain
+/// we already bought. Returns (forced picks, SP spent, grade gained, requested-but-unavailable).
+fn reserve_must_buys(pool: &mut Vec<PoolItem>, budget: i32) -> (Vec<PoolItem>, i32, i32, Vec<i32>) {
+    let wanted = must_buy_ids();
+    if wanted.is_empty() {
+        return (Vec::new(), 0, 0, Vec::new());
+    }
+    let (mut forced, mut spent, mut grade, mut unavailable) = (Vec::new(), 0, 0, Vec::new());
+    for id in wanted {
+        // The pool is keyed by chain group, and any tier of the group satisfies the request —
+        // that is what lets a ticked ○ come back as the ◎.
+        let Some(gid) = group_of(id) else {
+            unavailable.push(id);
+            continue;
+        };
+        let mut tiers: Vec<usize> =
+            pool.iter().enumerate().filter(|(_, it)| it.group_id == gid).map(|(i, _)| i).collect();
+        if tiers.is_empty() {
+            unavailable.push(id); // not offered this career, or already owned
+            continue;
+        }
+        // Best tier first; fall back down the chain if the top one does not fit.
+        tiers.sort_by_key(|&i| std::cmp::Reverse(pool[i].grade));
+        let Some(&pick) = tiers.iter().find(|&&i| pool[i].cost <= budget - spent) else {
+            unavailable.push(id); // wanted, offered, but genuinely unaffordable
+            continue;
+        };
+        let it = pool[pick].clone();
+        spent += it.cost;
+        grade += it.grade;
+        forced.push(it);
+        pool.retain(|p| p.group_id != gid);
+    }
+    (forced, spent, grade, unavailable)
+}
+
 fn recommend(info: &CharaInfo, only_distance: &str, only_style: &str, preset_id: i32) -> RecommendResult {
     // Ground truth: the exact skills the game is offering right now (empty if we're not on
     // the learn screen — then it's pure static reconstruction).
@@ -1026,11 +1315,20 @@ fn recommend(info: &CharaInfo, only_distance: &str, only_style: &str, preset_id:
             pool_size,
             current: current.clone(),
             projected: current,
+            must_buy: HashSet::new(),
+            must_buy_unavailable: must_buy_ids(),
         };
     }
-    let (mut selected, spent, rating_gain) = solve_knapsack(&pool, budget);
+    // Must-buys come out of the pool first and off the top of the budget; the optimizer then
+    // does its best with what is left.
+    let (forced, forced_cost, forced_grade, must_buy_unavailable) =
+        reserve_must_buys(&mut pool, budget);
+    let must_buy: HashSet<i32> = forced.iter().map(|it| it.skill_id).collect();
+    let (mut selected, dp_spent, dp_gain) = solve_knapsack(&pool, budget - forced_cost);
+    selected.extend(forced);
+    let (spent, rating_gain) = (dp_spent + forced_cost, dp_gain + forced_grade);
     // Present buys in the game's own learn-screen order so the list matches what the
-    // player sees when they scroll the shop.
+    // player sees when they scroll the shop. (Purchase order is separate — see `apply_ids`.)
     selected.sort_by_key(|it| (skill_disp_order(it.skill_id), it.skill_id));
     // A pick's `chain` covers every tier bought on the way up (itself included) — none of
     // those belong in "not bought".
@@ -1065,6 +1363,8 @@ fn recommend(info: &CharaInfo, only_distance: &str, only_style: &str, preset_id:
         pool_size,
         current,
         projected,
+        must_buy,
+        must_buy_unavailable,
     }
 }
 
@@ -1224,6 +1524,8 @@ pub fn mock_for_preview() {
     let spent: i32 = selected.iter().map(|it| it.cost).sum();
     let current = RatingBreakdown { stats: 14_800, skills: 5_200, unique: 468, total: 20_468 };
     let projected = RatingBreakdown { stats: 14_800, skills: 11_726, unique: 468, total: 26_994 };
+    // Mark one pick as a must-buy so the preview host exercises that styling too.
+    let must_buy: HashSet<i32> = selected.first().map(|it| it.skill_id).into_iter().collect();
     let res = RecommendResult {
         rating_gain: projected.total - current.total,
         pool_size: selected.len() + 14,
@@ -1233,6 +1535,8 @@ pub fn mock_for_preview() {
         spent,
         current,
         projected,
+        must_buy,
+        must_buy_unavailable: Vec::new(),
     };
     if let Ok(mut r) = result_slot().lock() {
         *r = Some(res);
