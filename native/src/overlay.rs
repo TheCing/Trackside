@@ -3337,7 +3337,10 @@ fn opt_skill_card(
             .round_top_right(false)
             .round_bot_right(false)
             .build();
-        dl.add_rect_filled_multicolor([p[0] + 23.0, p[1]], [p[0] + w * 0.72, p[1] + h], wl, wr, wr, wl);
+        // Start the gradient exactly where the cap ends. It used to begin 1px INSIDE the cap, and
+        // both rects paint `wl` there — the doubled alpha drew a faint vertical line down every
+        // card, 24px in. Abutting removes it without reopening the bare strip an inset caused.
+        dl.add_rect_filled_multicolor([p[0] + 24.0, p[1]], [p[0] + w * 0.72, p[1] + h], wl, wr, wr, wl);
         dl.add_rect(p, [p[0] + w, p[1] + h], edge).rounding(12.0).thickness(1.0).build();
         // Icon plate: rounded square with its own soft fill + rarity ring.
         let plate = 38.0 * s;
