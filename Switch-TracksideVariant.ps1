@@ -199,7 +199,20 @@ function Invoke-Build([string]$extra) {
     $cargoArgs = @('build','--release','--manifest-path', (Join-Path $scriptDir 'native\Cargo.toml'))
     if ($feat.Count) { $cargoArgs += @('--features', ($feat -join ',')) }
     Write-Host "  cargo $($cargoArgs -join ' ')"
-    & cargo @cargoArgs
+    # TRACKSIDE_DEV=1, same as Build-Trackside.ps1. Everything this script builds is a DEV build,
+    # and without the flag selfupdate.rs bakes IS_DEV_BUILD=false + the default "public" channel:
+    # the DLL then compares itself against the PUBLIC release, finds a hash mismatch (a local build
+    # never matches a published asset), and offers a "hotfix" that would overwrite a private dev
+    # build with the public one. build.rs has rerun-if-env-changed on it, so this forces a rebuild
+    # when the flag flips rather than silently reusing a cached non-dev binary.
+    $hadDev = Test-Path Env:\TRACKSIDE_DEV
+    $oldDev = if ($hadDev) { $env:TRACKSIDE_DEV } else { $null }
+    $env:TRACKSIDE_DEV = '1'
+    try { & cargo @cargoArgs }
+    finally {
+        if ($hadDev) { $env:TRACKSIDE_DEV = $oldDev }
+        else { Remove-Item Env:\TRACKSIDE_DEV -ErrorAction SilentlyContinue }
+    }
     if ($LASTEXITCODE -ne 0) { Fail "cargo build failed." }
     Join-Path $scriptDir 'native\target\release\trackside.dll'
 }
