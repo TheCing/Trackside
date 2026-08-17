@@ -3757,7 +3757,8 @@ fn draw_skill_optimizer(ui: &Ui) {
                     let wl = crate::theme::accent_a(0.10);
                     let wr = crate::theme::accent_a(0.02);
                     dl.add_rect(p, [p[0] + 28.0, p[1] + hh], wl).filled(true).rounding(14.0).round_top_right(false).round_bot_right(false).build();
-                    dl.add_rect_filled_multicolor([p[0] + 27.0, p[1]], [p[0] + cw - 14.0, p[1] + hh], wl, wr, wr, wl);
+                    // Abut the cap, don't overlap it — same doubled-alpha seam as the skill cards.
+                    dl.add_rect_filled_multicolor([p[0] + 28.0, p[1]], [p[0] + cw - 14.0, p[1] + hh], wl, wr, wr, wl);
                     dl.add_rect(p, [p[0] + cw, p[1] + hh], crate::theme::accent_a(0.30)).rounding(14.0).thickness(1.2).build();
                 }
                 let pad = 16.0 * s;
