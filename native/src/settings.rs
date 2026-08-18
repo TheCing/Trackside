@@ -23,6 +23,10 @@ use crate::{htt, skip};
 // those defaults (the "my FPS/speed don't persist" bug).
 static APPLIED: AtomicBool = AtomicBool::new(false);
 
+/// Lock-free mirror of Settings::streamer_mode, read from per-frame hook paths.
+/// Updated in set_streamer_mode() and apply_on_boot().
+static STREAMER_MODE: AtomicBool = AtomicBool::new(false);
+
 fn settings_path() -> std::path::PathBuf {
     crate::paths::local_file_migrated("trackside-settings.json", "heaven-settings.json")
 }
@@ -365,6 +369,7 @@ pub fn apply_on_boot() {
     crate::race_export::apply(&s);
     crate::friendlyplugins::apply(&s);
     crate::umas::apply(&s);
+    STREAMER_MODE.store(s.streamer_mode, Ordering::Relaxed);
     if let Ok(mut c) = cache().lock() {
         *c = s;
     }
@@ -377,9 +382,10 @@ pub fn apply_on_boot() {
 /// would notice - all skips and the UI speed-up (see skip::suppressed and ui_tempo::tempo).
 /// Capture, career logging and the hunters keep running, since none of those are visible.
 pub fn streamer_mode() -> bool {
-    cache().lock().map(|c| c.streamer_mode).unwrap_or(false)
+    STREAMER_MODE.load(Ordering::Relaxed)
 }
 pub fn set_streamer_mode(on: bool) {
+    STREAMER_MODE.store(on, Ordering::Relaxed);
     if let Ok(mut c) = cache().lock() {
         c.streamer_mode = on;
         write_file(&c);
