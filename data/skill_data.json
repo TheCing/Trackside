@@ -1277,6 +1277,20 @@
   "skill_category": 5,
   "disp_order": 10
  },
+ "110191": {
+  "name": "THE MOE AAAA Thanks for My Life",
+  "rarity": 5,
+  "group_id": 11019,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
  "110201": {
   "name": "Break It Down!",
   "rarity": 5,
@@ -1465,6 +1479,18 @@
   "tags": [
    401
   ],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
+ "110581": {
+  "name": "Spooky, Scary, Happy",
+  "rarity": 5,
+  "group_id": 11058,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [],
   "icon_id": 20013,
   "skill_category": 5,
   "disp_order": 10
@@ -6868,7 +6894,7 @@
   "disp_order": 22050
  },
  "202401": {
-  "name": "Flash Forward",
+  "name": "Lightning Surge",
   "rarity": 2,
   "group_id": 20240,
   "grade_value": 508,
@@ -8109,6 +8135,20 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "900421": {
+  "name": "I'm Possible!",
+  "rarity": 1,
+  "group_id": 90042,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "900441": {
   "name": "Victory belongs to me—Strelitzia! ☆",
   "rarity": 1,
@@ -8583,6 +8623,20 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "910191": {
+  "name": "THE MOE AAAA Thanks for My Life",
+  "rarity": 1,
+  "group_id": 91019,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "910201": {
   "name": "Break It Down!",
   "rarity": 1,
@@ -8596,7 +8650,7 @@
   "disp_order": 30
  },
  "910221": {
-  "name": "Best day ever",
+  "name": "Best Day Ever",
   "rarity": 1,
   "group_id": 91022,
   "grade_value": 180,
@@ -8771,6 +8825,18 @@
   "tags": [
    401
   ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "910581": {
+  "name": "Spooky, Scary, Happy",
+  "rarity": 1,
+  "group_id": 91058,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [],
   "icon_id": 20011,
   "skill_category": 5,
   "disp_order": 30
