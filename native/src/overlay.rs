@@ -3034,20 +3034,20 @@ fn draw_room_finder(ui: &Ui, w: f32) {
         val(ui, TEXT, &format!("{}", f.min_open));
         ui.dummy([0.0, 3.0]);
         // "Require none" gates — unrestricted rooms are always preferred.
-        let mut nr = f.no_rank_restrict;
-        if ui.checkbox("No career rank requirement", &mut nr) {
-            f.no_rank_restrict = nr;
+        let nr = f.no_rank_restrict;
+        if toggle_row(ui, "##rfnorank", "No career rank requirement", nr, w) {
+            f.no_rank_restrict = !nr;
             changed = true;
         }
-        let mut nu = f.no_uma_restrict;
-        if ui.checkbox("No Uma restrictions (bans)", &mut nu) {
-            f.no_uma_restrict = nu;
+        let nu = f.no_uma_restrict;
+        if toggle_row(ui, "##rfnouma", "No Uma restrictions (bans)", nu, w) {
+            f.no_uma_restrict = !nu;
             changed = true;
         }
         // Auto-open the found room's runner-entry screen (the game's join path)
-        let mut aj = f.auto_join;
-        if ui.checkbox("Auto-open room when found", &mut aj) {
-            f.auto_join = aj;
+        let aj = f.auto_join;
+        if toggle_row(ui, "##rfautojoin", "Auto-open room when found", aj, w) {
+            f.auto_join = !aj;
             changed = true;
         }
         // Preselect a saved team to auto-load into the entry when a room is found (set ahead of
@@ -3065,9 +3065,9 @@ fn draw_room_finder(ui: &Ui, w: f32) {
         ui.same_line();
         help_icon(ui, "When a matching room is found and Auto-open is on, Trackside jumps to the runner-entry screen and loads this saved My Runners team automatically. Pair with Auto-confirm to send the entry the instant the room opens. Requires you to have saved the team in-game.");
         if f.preset_slot > 0 && f.auto_join {
-            let mut ac = f.auto_confirm;
-            if ui.checkbox("Auto-confirm entry (join instantly)", &mut ac) {
-                f.auto_confirm = ac;
+            let ac = f.auto_confirm;
+            if toggle_row(ui, "##rfautoconfirm", "Auto-confirm entry (join instantly)", ac, w) {
+                f.auto_confirm = !ac;
                 changed = true;
             }
         }
