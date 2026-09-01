@@ -93,13 +93,26 @@ fn now_ms() -> u64 {
     crate::tools::now_ms()
 }
 
-fn target_vid() -> &'static Mutex<Option<i64>> {
-    static S: OnceLock<Mutex<Option<i64>>> = OnceLock::new();
-    S.get_or_init(|| Mutex::new(None))
+// Candidate LISTS, not single targets: the pool is random and rolling for one specific trainer can
+// take a very long time, so hunting several at once and stopping on whichever appears first is the
+// difference between a feasible farm and an infeasible one. Empty list = that key is unused.
+fn target_vid() -> &'static Mutex<Vec<i64>> {
+    static S: OnceLock<Mutex<Vec<i64>>> = OnceLock::new();
+    S.get_or_init(|| Mutex::new(Vec::new()))
 }
-fn target_name() -> &'static Mutex<Option<String>> {
-    static S: OnceLock<Mutex<Option<String>>> = OnceLock::new();
-    S.get_or_init(|| Mutex::new(None))
+fn target_name() -> &'static Mutex<Vec<String>> {
+    static S: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+    S.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+/// Split a user-typed candidate list. Commas, semicolons and newlines all separate, because people
+/// paste from all three; blanks are dropped so a trailing comma is harmless.
+fn split_candidates(raw: &str) -> Vec<String> {
+    raw.split([',', ';', '\n', '\r'])
+        .map(|p| p.trim())
+        .filter(|p| !p.is_empty())
+        .map(|p| p.to_string())
+        .collect()
 }
 fn status_buf() -> &'static Mutex<String> {
     static S: OnceLock<Mutex<String>> = OnceLock::new();
@@ -159,17 +172,23 @@ pub fn start(name: &str, vid: &str) -> Result<(), String> {
     if name.is_empty() && vid.is_empty() {
         return Err("Enter a name or a viewer ID.".into());
     }
-    let vid_parsed = if vid.is_empty() {
-        None
-    } else {
-        Some(vid.parse::<i64>().map_err(|_| "Invalid viewer ID (must be a number).".to_string())?)
-    };
+    let mut vids = Vec::new();
+    for part in split_candidates(vid) {
+        vids.push(
+            part.parse::<i64>()
+                .map_err(|_| format!("Invalid viewer ID '{part}' (must be a number)."))?,
+        );
+    }
+    let names: Vec<String> = split_candidates(name).iter().map(|n| n.to_lowercase()).collect();
+    if names.is_empty() && vids.is_empty() {
+        return Err("Enter a name or a viewer ID.".into());
+    }
     if !screen_open() {
         return Err("Open the Team Trials Select Opponent screen first.".into());
     }
-    *target_vid().lock().map_err(|_| "lock")? = vid_parsed;
-    *target_name().lock().map_err(|_| "lock")? =
-        if name.is_empty() { None } else { Some(name.to_lowercase()) };
+    let n_cand = names.len() + vids.len();
+    *target_vid().lock().map_err(|_| "lock")? = vids;
+    *target_name().lock().map_err(|_| "lock")? = names;
     ROLLS.store(0, Ordering::Relaxed);
     FOUND.store(false, Ordering::Relaxed);
     FOUND_VID.store(0, Ordering::Relaxed); // dismiss any previous on-screen alert
@@ -178,7 +197,7 @@ pub fn start(name: &str, vid: &str) -> Result<(), String> {
     CHECK_NOW.store(true, Ordering::Relaxed);
     NEXT_ROLL_MS.store(u64::MAX, Ordering::Relaxed);
     PROCESS_DUE_MS.store(u64::MAX, Ordering::Relaxed);
-    set_status("Hunting…".into());
+    set_status(if n_cand > 1 { format!("Hunting… ({n_cand} candidates)") } else { "Hunting…".into() });
     Ok(())
 }
 
@@ -242,11 +261,12 @@ unsafe fn process_batch() -> bool {
         *g = opps.clone();
     }
     // match: exact viewer_id OR name substring (case-insensitive)
-    let tvid = *target_vid().lock().unwrap();
-    let tname = target_name().lock().unwrap().clone();
+    let tvids = target_vid().lock().unwrap().clone();
+    let tnames = target_name().lock().unwrap().clone();
+    // First candidate found wins - opponents are checked in the order the game offered them.
     let hit = opps.iter().find(|(vid, name)| {
-        (tvid.is_some() && tvid == Some(*vid))
-            || tname.as_ref().map(|t| name.to_lowercase().contains(t)).unwrap_or(false)
+        let lname = name.to_lowercase();
+        tvids.iter().any(|t| t == vid) || tnames.iter().any(|t| lname.contains(t))
     });
     if let Some((vid, name)) = hit {
         FOUND.store(true, Ordering::Relaxed);
@@ -572,22 +592,22 @@ pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
         status_dot(ui, WARN, "Open Select Opponent");
     }
     ui.same_line();
-    help_icon(ui, "Auto-refreshes the opponent list until your target shows up, then stops and alerts. Match by trainer name and/or exact viewer ID. The pool is random, so a target may take many rolls (or not appear).");
+    help_icon(ui, "Auto-refreshes the opponent list until one of your targets shows up, then stops and alerts. Match by trainer name and/or exact viewer ID - list several of either, separated by commas, and the hunt stops on whichever appears first. The pool is random, so a single target may take many rolls (or not appear); more candidates means fewer rolls.");
     ui.dummy([0.0, 8.0]);
 
     let hunting = crate::hunter::is_hunting();
     if !hunting {
-        ui.text_colored(DIM, "Target — name and/or viewer ID:");
+        ui.text_colored(DIM, "Targets — names and/or viewer IDs (comma-separated):");
         let ch_n = NAMEBUF.with(|b| {
             let mut s = b.borrow_mut();
             ui.set_next_item_width(w * 0.9);
-            ui.input_text("##huntname", &mut s).hint("trainer name").build()
+            ui.input_text("##huntname", &mut s).hint("trainer names, comma-separated").build()
         });
         ui.dummy([0.0, 3.0]);
         let ch_v = VIDBUF.with(|b| {
             let mut s = b.borrow_mut();
             ui.set_next_item_width(w * 0.9);
-            ui.input_text("##huntvid", &mut s).hint("viewer ID (exact, optional)").build()
+            ui.input_text("##huntvid", &mut s).hint("viewer IDs (exact, comma-separated)").build()
         });
         // Persist on any edit so the target survives a game restart.
         if ch_n || ch_v {
