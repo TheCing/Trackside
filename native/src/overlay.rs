@@ -3070,6 +3070,16 @@ fn draw_room_finder(ui: &Ui, w: f32) {
                 f.auto_confirm = !ac;
                 changed = true;
             }
+            // Repeat only makes sense once entries send themselves.
+            if f.auto_confirm {
+                let ar = f.auto_repeat;
+                if toggle_row(ui, "##rfautorepeat", "Keep signing up until the limit", ar, w) {
+                    f.auto_repeat = !ar;
+                    changed = true;
+                }
+                ui.same_line();
+                help_icon(ui, "After a successful sign-up, resumes hunting when the room list returns, and keeps going until you are signed up for the game's limit of 5 room races. The count is re-read from the game after every join, so joining or leaving rooms by hand is picked up automatically.");
+            }
         }
         if changed {
             rf::set_filters(f);

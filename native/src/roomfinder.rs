@@ -32,6 +32,15 @@ use serde::{Deserialize, Serialize};
 
 /// Stop hunting after this many list checks (a check ≈ one refresh cycle).
 pub const MAX_CHECKS: usize = 60;
+/// Room-match sign-ups the game allows at once. NOT discoverable: the scan's
+/// ExhibitionRaceDefine constants are per-ROOM entry counts, not a per-player cap, and there is no
+/// CanEntry/IsEntryFull guard to read. If the game ever changes it, this is the one number.
+pub const ENTRY_LIMIT: usize = 5;
+/// Auto-repeat armed and waiting for the room list to come back after a successful join.
+static REPEAT_PENDING: AtomicBool = AtomicBool::new(false);
+/// Set from the list hook, consumed by pump() on the main thread: restart the hunt. The hook runs
+/// inside the game's own call, so it only flips a flag - same discipline as the rest of this file.
+static REQ_RESUME: AtomicBool = AtomicBool::new(false);
 /// If a triggered refresh produces no fresh list within this window (cooldown, network),
 /// re-arm and try again rather than hanging forever.
 const REFRESH_TIMEOUT_MS: u64 = 15_000;
@@ -115,6 +124,10 @@ pub struct Filters {
     /// other players racing to fill the room). Requires preset_slot > 0.
     #[serde(default)]
     pub auto_confirm: bool,
+    /// Keep hunting and signing up after a successful join, until ENTRY_LIMIT is reached.
+    /// Requires auto_confirm (there is nothing to repeat without it).
+    #[serde(default)]
+    pub auto_repeat: bool,
 }
 impl Default for Filters {
     fn default() -> Self {
@@ -131,6 +144,7 @@ impl Default for Filters {
             auto_join: false,
             preset_slot: 0,
             auto_confirm: false,
+            auto_repeat: false,
         }
     }
 }
@@ -599,6 +613,12 @@ unsafe extern "C" fn create_list_hook(this: *mut c_void, list: *mut c_void, mi: 
         // Cross-clearing keeps exactly one screen "live" so the entry loader UI never sticks
         // after backing out of a room we failed to join.
         ENTRY_VC.store(0, Ordering::Relaxed);
+        // Auto-repeat: the list is back after a successful join, so pick the hunt up again.
+        // Resuming HERE (rather than straight after the confirm) is deliberate - the hunt drives
+        // the list screen's own reload button, so it can only run once that screen is live again.
+        if REPEAT_PENDING.swap(false, Ordering::Relaxed) && !HUNTING.load(Ordering::Relaxed) {
+            REQ_RESUME.store(true, Ordering::Relaxed);
+        }
     }
     let o = CREATE_ORIG.load(Ordering::Relaxed);
     if o != 0 {
@@ -690,6 +710,24 @@ pub fn pump() {
     }
     if REQ_PREFETCH.swap(false, Ordering::Relaxed) {
         unsafe { bridge::prefetch_presets() };
+    }
+    // Auto-repeat resume, on the main thread where start() is safe to call. Re-read the count here
+    // too: the player may have joined or left rooms by hand between the join and the list coming
+    // back, so the cap is enforced against the game's state rather than our own bookkeeping.
+    if REQ_RESUME.swap(false, Ordering::Relaxed) {
+        let n = unsafe { bridge::my_entry_count() }.unwrap_or(0);
+        if n >= ENTRY_LIMIT {
+            set_status(format!("Auto-repeat: {n}/{ENTRY_LIMIT} sign-ups — limit reached, stopped."));
+        } else {
+            match start() {
+                Ok(()) => {
+                    let f = filters();
+                    set_status(format!("Auto-repeat ({n}/{ENTRY_LIMIT}): hunting {} …", f.summary()));
+                    log(&format!("auto-repeat resumed at {n}/{ENTRY_LIMIT}"));
+                }
+                Err(e) => set_status(format!("Auto-repeat could not resume: {e}")),
+            }
+        }
     }
     // Load-a-saved-team is independent of hunting; handle it before the hunting gate.
     let slot = REQ_LOAD.swap(0, Ordering::Relaxed);
@@ -832,7 +870,26 @@ fn pump_auto_join() {
                 // reset clears CONFIRM_ACTION too — grab the pointer first.
                 reset_auto_join();
                 match unsafe { bridge::fire_confirm_ok(action as *mut c_void) } {
-                    Ok(_) => set_status(format!("Auto-join: Team {slot} — registered, joining the room!")),
+                    Ok(_) => {
+                        // Registered. If auto-repeat is on and we are under the cap, arm a resume:
+                        // the next fresh room list (our CreateRoomListUI hook) restarts the hunt.
+                        // Counting AFTER the join is what makes the cap self-correcting - we never
+                        // assume our own tally, we re-read the game's.
+                        let signed = unsafe { bridge::my_entry_count() };
+                        let repeat = filters().auto_repeat;
+                        let n = signed.unwrap_or(0);
+                        if repeat && n < ENTRY_LIMIT {
+                            REPEAT_PENDING.store(true, Ordering::Relaxed);
+                            set_status(format!(
+                                "Auto-join: registered ({n}/{ENTRY_LIMIT}) — will keep hunting when the list returns."
+                            ));
+                        } else if repeat {
+                            set_status(format!("Auto-join: registered — {n}/{ENTRY_LIMIT} sign-ups, limit reached."));
+                            log(&format!("entry limit reached ({n}/{ENTRY_LIMIT}) - auto-repeat stopped"));
+                        } else {
+                            set_status(format!("Auto-join: Team {slot} — registered, joining the room!"));
+                        }
+                    }
                     Err(e) => set_status(format!("Auto-join: registration confirm failed ({e}) — tap OK.")),
                 }
             } else if now_ms() > AJ_DEADLINE.load(Ordering::Relaxed) {
@@ -1255,6 +1312,44 @@ mod bridge {
     }
 
     /// Decode one WorkRoomMatchData.RoomData via its getters (Obscured-safe through
+    /// How many rooms the player is ALREADY signed up for, or None if it cannot be read.
+    ///
+    /// Two candidate lists exist on WorkRoomMatchData (both confirmed in the 2026-07-02 scan):
+    ///   `_myEntryRoomList` @0x30 (get_MyEntryRoomList) - mutated locally by
+    ///     Add/RemoveMyEntryRoomList, so it reacts the instant an entry is confirmed;
+    ///   `_registEntryList` @0x58 (get_RegistEntryList) - filled from the server by
+    ///     UpdateRegistRoomList(RoomMatchGetEntryRoomListResponse).
+    ///
+    /// Which is authoritative depends on what the game has fetched this session, so take the
+    /// LARGER: over-counting stops the loop early (harmless), under-counting would keep entering
+    /// past the cap. Both are logged so the first real run settles which one to trust.
+    pub unsafe fn my_entry_count() -> Option<usize> {
+        let wdm = work_data_manager();
+        if wdm.is_null() {
+            return None;
+        }
+        let wdm_class = il2cpp::class("Gallop.WorkDataManager");
+        let blob = invoke0(wdm, wdm_class, WDM_GETTER);
+        if blob.is_null() {
+            return None;
+        }
+        let blob_class = il2cpp::object_class(blob);
+        let mut best: Option<usize> = None;
+        for g in ["get_MyEntryRoomList", "get_RegistEntryList"] {
+            let list = invoke0(blob, blob_class, g);
+            if list.is_null() {
+                continue;
+            }
+            // List<T>: _size @0x18 - the same layout the guest list uses above.
+            let n = rd_i32(list, 0x18);
+            if n >= 0 {
+                crate::tools::debug(&format!("[roomfinder] {g} = {n}"));
+                best = Some(best.map_or(n as usize, |b: usize| b.max(n as usize)));
+            }
+        }
+        best
+    }
+
     /// invoke0 + unbox_i64/plain_string; inherited getters resolve through the parent chain).
     unsafe fn read_entry(e: *mut c_void) -> Option<Room> {
         let k = il2cpp::object_class(e);
