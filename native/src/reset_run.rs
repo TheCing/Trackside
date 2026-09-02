@@ -96,7 +96,7 @@
 
 use std::ffi::c_void;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU8, AtomicUsize, Ordering};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 
 use crate::il2cpp;
 
@@ -732,6 +732,9 @@ static PROBE_TAIL: AtomicBool = AtomicBool::new(false);
 /// thread long enough for the watchdog to declare it stalled.
 #[cfg(feature = "devtools")]
 const PROBE_BUDGET_MS: u128 = 6;
+/// Live classes reported during the current sweep.
+#[cfg(feature = "devtools")]
+static PROBE_LIVE: AtomicUsize = AtomicUsize::new(0);
 
 #[cfg(feature = "devtools")]
 fn probe_pending() -> bool {
@@ -767,7 +770,17 @@ fn probeable(name: &str, k: il2cpp::Class) -> bool {
         // MUST be the namespace-qualified name. `class_name` returns the SHORT name, and
         // System.Object is also called "Object" - matching on that made this filter a no-op that
         // passed 3174 of 3276 classes straight through to FindObjectsOfType.
-        if il2cpp::class_full_name(cur) == "UnityEngine.Object" {
+        let full = il2cpp::class_full_name(cur);
+        if full == "UnityEngine.Object" {
+            return true;
+        }
+        // The walk cannot continue through an inflated generic base (`class_parent` of
+        // `ViewControllerBase`1<T>` comes back null in this build), which is the base of EVERY
+        // screen controller. Reaching a generic base at all means `k` is a concrete reference
+        // type under it - a legal FindObjectsOfType target - so accept rather than drop the one
+        // class of object the probe exists to find. The hazard cases (interfaces, structs, open
+        // generics as the class ITSELF) are still excluded above by name and by never getting here.
+        if full.contains('`') {
             return true;
         }
         cur = il2cpp::class_parent(cur);
@@ -778,10 +791,18 @@ fn probeable(name: &str, k: il2cpp::Class) -> bool {
 #[cfg(feature = "devtools")]
 /// Queue every UI class worth probing. Cheap: metadata only, no live-object walk.
 fn probe_begin() {
+    // A press while a sweep is running used to REPLACE the queue, so four quick presses on four
+    // screens produced one sweep of whichever screen was up last - and every ViewController was
+    // filtered out anyway (below). The sweep takes ~10-25 s; say so and keep going.
+    if probe_pending() {
+        let left = PROBE_QUEUE.lock().map(|q| q.len()).unwrap_or(0);
+        log(&format!("probe: already sweeping ({left} classes left) - stay on this screen until 'probe: complete'"));
+        return;
+    }
     let mut seen: Vec<String> = Vec::new();
     let mut queue: Vec<(String, usize)> = Vec::new();
     let mut skipped = 0usize;
-    for needle in ["Dialog", "ViewController", "SingleMode", "SupportCardDeck", "Home", "Succession"] {
+    for needle in ["Dialog", "ViewController", "SingleMode", "SupportCardDeck", "Home", "Succession", "RoomMatch", "Paddock"] {
         for (full, k) in il2cpp::find_classes(needle) {
             if seen.contains(&full) {
                 continue;
@@ -820,7 +841,7 @@ fn probe_step(api: &Api) {
     }
     if PROBE_TAIL.swap(false, Ordering::Relaxed) {
         probe_static_shapes();
-        log("probe: complete");
+        log(&format!("probe: complete - {} live classes reported", PROBE_LIVE.swap(0, Ordering::Relaxed)));
     }
 }
 
@@ -832,6 +853,7 @@ fn probe_one(api: &Api, full: &str, k: il2cpp::Class) {
             if ty.is_null() || unsafe { first_of_type(api, ty).is_null() } {
                 return;
             }
+            PROBE_LIVE.fetch_add(1, Ordering::Relaxed);
             let clicks: Vec<String> = il2cpp::class_methods(k)
                 .into_iter()
                 .filter(|n| {
