@@ -1075,6 +1075,32 @@
   "skill_category": 5,
   "disp_order": 10
  },
+ "100781": {
+  "name": "Sunny Breeze",
+  "rarity": 5,
+  "group_id": 10078,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   403
+  ],
+  "icon_id": 20043,
+  "skill_category": 5,
+  "disp_order": 10
+ },
+ "100871": {
+  "name": "Silent Letter",
+  "rarity": 5,
+  "group_id": 10087,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
  "100981": {
   "name": "Luck Runs My Way",
   "rarity": 5,
@@ -8431,6 +8457,32 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "900781": {
+  "name": "Sunny Breeze",
+  "rarity": 1,
+  "group_id": 90078,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   403
+  ],
+  "icon_id": 20041,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "900871": {
+  "name": "Silent Letter",
+  "rarity": 1,
+  "group_id": 90087,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "900981": {
   "name": "Luck Runs My Way",
   "rarity": 1,
@@ -8650,7 +8702,7 @@
   "disp_order": 30
  },
  "910221": {
-  "name": "Best Day Ever",
+  "name": "Best day ever",
   "rarity": 1,
   "group_id": 91022,
   "grade_value": 180,

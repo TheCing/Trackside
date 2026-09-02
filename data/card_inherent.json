@@ -2939,6 +2939,66 @@
    "need_rank": 5
   }
  ],
+ "107801": [
+  {
+   "skill_id": 200302,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201052,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 202412,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201042,
+   "need_rank": 2
+  },
+  {
+   "skill_id": 201051,
+   "need_rank": 3
+  },
+  {
+   "skill_id": 200342,
+   "need_rank": 4
+  },
+  {
+   "skill_id": 202411,
+   "need_rank": 5
+  }
+ ],
+ "108701": [
+  {
+   "skill_id": 200162,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 202042,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 200532,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 200972,
+   "need_rank": 2
+  },
+  {
+   "skill_id": 200531,
+   "need_rank": 3
+  },
+  {
+   "skill_id": 201601,
+   "need_rank": 4
+  },
+  {
+   "skill_id": 202041,
+   "need_rank": 5
+  }
+ ],
  "109801": [
   {
    "skill_id": 202262,
