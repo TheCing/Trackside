@@ -87,6 +87,9 @@ dedicated window shows:
 - **Filters** — restrict to a distance, running style, or a **Champions Meeting preset**
   (only skills that can trigger under that race's conditions). Changing a filter recomputes
   instantly.
+- **Must-buy list** — pin skills that are bought **first, no matter what** (a gold skill for the
+  spark chance, a race-day skill you always run), and the optimizer plans the rest of your SP around
+  them. Set it up before the career ends; it's remembered.
 - **APPLY OPTIMAL** — one click selects every recommended skill on the game's own list
   (upgrade chains get their double-press automatically), then **you** press the game's
   **Decide** to confirm. Nothing is ever bought without your confirmation.
@@ -172,7 +175,8 @@ in a profile no longer exists, **Apply** tells you instead of saving a broken te
 **Opponent finder** — auto-refresh the opponent list until a specific trainer appears.
 
 1. Open the Team Trials **Select Opponent** screen.
-2. Under **Opponent hunter**, enter the trainer's **name and/or ID** and press **Start hunt**.
+2. Under **Opponent hunter**, enter one or more trainers' **names and/or IDs** (one per line) and
+   press **Start hunt** — it stops on the first of them that appears.
 3. Trackside refreshes for you at a relaxed, human pace. When the target appears it stops and
    alerts you — an on-screen banner, a **Windows notification**, and a flashing taskbar — so you
    can leave it running and come back. It stops on its own after a while if the target never shows.
@@ -183,15 +187,24 @@ The opponent pool is random, so a given trainer may take many refreshes — or n
 Auto-refresh the **Room Match** room list until a room matches your filters — track, distance,
 surface, season, weather, minimum open slots, career-rank restriction and Uma bans — then alert
 you or **auto-join**: Trackside opens the room, loads a **saved My Runners team** of your choice
-and can **auto-confirm** the entry, so you beat other players into contested rooms. Found under
-**Gameplay → Room finder**.
+and can **auto-confirm** the entry, so you beat other players into contested rooms. With
+**Keep signing up until the limit** on, it goes straight back to hunting after each sign-up and
+stops by itself at the game's 5-race cap. Found under **Automation → Room finder**.
+
+### Room Match watcher
+The finder's mirror: from the **Room Match** top screen, press **Watch ready races** and Trackside
+runs every signed-up race that's **Ready to race!**, one after another — opens Sign-Ups, takes the
+race, goes to the waiting room, through the paddock, runs the race, clears the result and save
+prompts, and comes back for the next one until nothing is ready. **Skip race playback** shows results
+only. Every step is one of the game's own buttons; **Stop** at any time and the current race just
+finishes normally. Found under **Automation → Room watcher**.
 
 ### Follower pruner
 When you're near the **1000-follower cap**, prune the oldest-inactive followers (longest since
 last login) down to a target you set. Always shows a **dry-run preview** of the exact list first —
 nothing is removed until you press Start — and individual trainers can be **pinned** so they're
 never touched. Removals are paced like a human tapping the button. Found under
-**Gameplay → Followers**. (The upstream one-by-one *auto-unfollow* click tool is also included.)
+**Automation → Follower pruner**. (The upstream one-by-one *auto-unfollow* click tool is also included.)
 
 ### Affinity display
 On the **Legacy Select** screen — where you pick your inherited parents at the start of a career —
