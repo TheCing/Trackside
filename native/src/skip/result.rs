@@ -179,6 +179,12 @@ unsafe extern "C" fn on_button_update(this: *mut c_void, m: *mut c_void) {
     if rr_should_advance() && WINDOW_OPEN.load(Ordering::Relaxed) && !in_heaven() {
         auto_press(this);
     }
+    // Room Match watcher: the race scene's own result panel ("Next") sits between the race and
+    // the Room Match result screen, and no screen controller announces it. This per-button tick
+    // is how the career skip finds that panel; the watcher borrows it. One atomic load when idle.
+    if !in_heaven() {
+        crate::roomwatch::on_button_update(this);
+    }
 }
 unsafe extern "C" fn on_pointer_click(this: *mut c_void, evt: *mut c_void, m: *mut c_void) {
     let t = TR_ONPC.load(Ordering::Relaxed);
@@ -186,6 +192,9 @@ unsafe extern "C" fn on_pointer_click(this: *mut c_void, evt: *mut c_void, m: *m
         let f: Void3 = std::mem::transmute(t);
         f(this, evt, m);
     }
+    // Click recorder (room watcher's record & replay): every press, by object path. One atomic
+    // load when not recording.
+    crate::roomwatch::record_click(this);
     if !RACE_RESULT_ENABLED.load(Ordering::Relaxed) || in_heaven() {
         return;
     }

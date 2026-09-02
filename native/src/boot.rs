@@ -259,6 +259,12 @@ pub fn spawn() {
             log(&format!("room finder: {r}"));
             crate::diag::record_install("room finder", &r);
         }
+        // Room-match watcher — screen-controller detours only; driven from the tween pump.
+        {
+            let r = crate::roomwatch::install();
+            log(&format!("room watcher: {r}"));
+            crate::diag::record_install("room watcher", &r);
+        }
         // Apply Optimal (skill-advisor auto-select). Resolution is best-effort by design —
         // the learn screen has no prior RE; the optimizer window's Scan button is the wiring
         // path. Its per-frame driver rides ui_tempo's single TweenManager.Update detour.

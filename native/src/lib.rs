@@ -56,6 +56,8 @@ mod padder;
 mod paths;
 mod pruner;
 mod roomfinder;
+// Room Match watcher — runs every signed-up race that is ready, back to back (the finder's mirror).
+mod roomwatch;
 // Live race reader (Race panel + race-result win-gate). Built in both the full
 // both builds (the race-result skip needs finish placement).
 #[cfg(feature = "raceread")]

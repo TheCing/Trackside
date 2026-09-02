@@ -1849,6 +1849,9 @@ impl HeavenOverlay {
                                         Ctrl::Custom(Custom::RoomFinder) => {
                                             draw_room_finder(ui, cw);
                                         }
+                                        Ctrl::Custom(Custom::RoomWatcher) => {
+                                            draw_room_watcher(ui, cw);
+                                        }
                                         Ctrl::Custom(Custom::SkillAdvisor) => {
                                             crate::skill_advisor::draw_panel(ui, cw);
                                         }
@@ -2182,6 +2185,10 @@ impl HeavenOverlay {
                                     Ctrl::Custom(Custom::RoomFinder) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         draw_room_finder(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::RoomWatcher) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_room_watcher(ui, w);
                                     }
                                     Ctrl::Custom(Custom::SkillAdvisor) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
@@ -2914,6 +2921,46 @@ fn draw_followers(ui: &Ui, w: f32) {
 /// slots), auto-join toggle, Start/Stop, live status + last-seen rooms. All reads/refreshes/
 /// joins run on the game main thread via roomfinder::pump(); this panel only sets filters
 /// and renders state.
+/// Room Match watcher panel. Everything runs on the game main thread via roomwatch::pump(); this
+/// only sets flags and reads status strings.
+fn draw_room_watcher(ui: &Ui, w: f32) {
+    use crate::roomwatch as rw;
+
+    ui.dummy([0.0, 4.0]);
+    let running = rw::is_running();
+    if running {
+        status_dot(ui, GOOD, &format!("Running \u{2014} {} watched this run", rw::done_count()));
+    } else if rw::on_top_screen() {
+        status_dot(ui, GOOD, "Room Match top \u{2014} ready to start");
+    } else {
+        status_dot(ui, WARN, "Open Race > Room Match first");
+    }
+    ui.same_line();
+    help_icon(ui, "From the Room Match top screen: opens Sign-Ups, takes the first race marked Ready to race!, goes To Waiting Room, presses Race!, runs it, dismisses the save prompt, returns to the top and repeats until nothing is ready. Every step is the game's own button. Stop at any time; the current race finishes normally.");
+    ui.dummy([0.0, 6.0]);
+
+    let skip = rw::skip_race();
+    if toggle_row(ui, "##rwskip", "Skip race playback (results only)", skip, w) {
+        rw::set_skip_race(!skip);
+    }
+    ui.dummy([0.0, 6.0]);
+
+
+    if running {
+        if btn_primary(ui, "##rwstop", "Stop") {
+            rw::request_stop();
+        }
+    } else if btn_primary(ui, "##rwstart", "Watch ready races") {
+        rw::request_start();
+    }
+    let st = rw::status();
+    if !st.is_empty() {
+        ui.dummy([0.0, 4.0]);
+        let col = if st.starts_with("Stopped") { WARN } else if st.starts_with("Nothing") { TEXT } else { GOOD };
+        text_wrapped_colored(ui, col, &st);
+    }
+}
+
 fn draw_room_finder(ui: &Ui, w: f32) {
     use crate::roomfinder as rf;
 

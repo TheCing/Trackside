@@ -79,6 +79,8 @@ unsafe extern "C" fn update_hook(update_type: i32, mut dt: f32, mut idt: f32, mi
     crate::pruner::pump(); // follower-pruner reads/removals (main thread; guarded, no-op if idle)
     crate::crashlog::step("tween:roomfinder-pump");
     crate::roomfinder::pump(); // room-match finder read/refresh/auto-join cycle (guarded, no-op if idle)
+    crate::crashlog::step("tween:roomwatch-pump");
+    crate::roomwatch::pump(); // room-match watcher: run ready sign-ups back to back (no-op if idle)
     crate::crashlog::step("tween:skillbuyer-pump");
     crate::skill_buyer::pump(); // Apply Optimal scan/selection driver (guarded, no-op if idle)
     #[cfg(feature = "banner")]

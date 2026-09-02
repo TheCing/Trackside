@@ -66,6 +66,7 @@ pub enum Custom {
     TtHunter,        // Team Trials opponent hunter — auto-refresh until a target appears
     Followers,       // Follower pruner — preview + paced removal of oldest-inactive followers
     RoomFinder,      // Room Match finder — auto-refresh the room list until a room matches the filters
+    RoomWatcher,     // Room Match watcher — run every signed-up race that is ready, back to back
     SkillAdvisor,    // End-of-career skill buy optimizer (manual Gameplay tab)
     CareerLog,
     ResetRun,        // Give up the current career and start the next (two-click confirm)
@@ -91,6 +92,7 @@ impl Custom {
             Custom::TtHunter => "ui:tthunter",
             Custom::Followers => "ui:followers",
             Custom::RoomFinder => "ui:roomfinder",
+            Custom::RoomWatcher => "ui:roomwatch",
             Custom::SkillAdvisor => "ui:skilladvisor",
             Custom::CareerLog => "ui:careerlog",
             Custom::ResetRun => "ui:resetrun",
@@ -275,6 +277,12 @@ pub fn model() -> Vec<Tab> {
                 icon: '\u{E774}',
                 blurb: "Auto-refresh the Room Match list until a room matches your filters.",
                 controls: vec![Ctrl::Custom(Custom::RoomFinder)],
+            },
+            Section {
+                title: "Room watcher",
+                icon: '\u{E8B2}',
+                blurb: "Run every signed-up Room Match race that's ready, one after another.",
+                controls: vec![Ctrl::Custom(Custom::RoomWatcher)],
             },
             Section {
                 title: "Follower pruner",
@@ -490,6 +498,13 @@ pub fn model() -> Vec<Tab> {
             // output only goes to the log it enables.
             #[cfg(feature = "devtools")]
             Ctrl::Custom(Custom::ScreenProbe),
+            // Click recorder — captures every button press by object path to
+            // trackside-logs/click-recording.txt. How UI flows get re-captured after a game update;
+            // a recording on disk overrides the room watcher's built-in flow in dev builds.
+            #[cfg(feature = "devtools")]
+            Ctrl::Toggle { id: "clickrec", label: "Record my clicks (dev)", get: crate::roomwatch::recording, set: crate::roomwatch::set_recording },
+            #[cfg(feature = "devtools")]
+            Ctrl::Note("Writes every button press (by object path) to trackside-logs/click-recording.txt. A recording on disk replaces the room watcher's built-in flow until deleted."),
             // Icon ripper — reachable from ANY screen (rank emblems show on career profile,
             // veteran list, home…), not just the optimizer's skill-screen footer.
             #[cfg(feature = "banner")]
