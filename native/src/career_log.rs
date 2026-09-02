@@ -48,6 +48,11 @@ const CHARA_KEEP: &[&str] = &[
     "vital", "max_vital", "motivation", "fans", "state", "playing_state",
     "support_card_array", "evaluation_info_array", "training_level_info_array",
     "chara_effect_id_array", "skill_array", "skill_tips_array", "race_program_id",
+    // Events that fired this turn. Kept so a captured career can be REPLAYED offline against
+    // event-driven features (the chain tracker's per-card progress is derived purely from these
+    // story_ids). Without it, every change to that logic costs a full in-game career to verify -
+    // which is exactly what it cost while the tracker was being built.
+    "unchecked_event_array",
 ];
 
 /// live_data_set fields (Grand Live / scenario state).
