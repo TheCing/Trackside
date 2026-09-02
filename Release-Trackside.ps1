@@ -368,7 +368,12 @@ $assets = @(
     (Join-Path $StageDir 'trackside_hh.dll'),
     (Join-Path $StageDir 'trackside_hh.dll.hash'),
     (Join-Path $StageDir 'Trackside.zip'),
-    (Join-Path $StageDir 'Trackside+Hachimi.zip')
+    (Join-Path $StageDir 'Trackside+Hachimi.zip'),
+    # The proxy loaders ship as standalone assets too (the README's manual-install and hotfix
+    # paths point at them). v1.0.8 had them only because they were hand-uploaded; the asset
+    # completeness guard caught their absence on v1.0.9's first draft.
+    (Join-Path $StageDir 'trackside_version.dll'),
+    (Join-Path $StageDir 'version.dll')
 )
 
 # Push the BRANCH for drafts AND publishes. Pushing only the tag publishes the released code (the
