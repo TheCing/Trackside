@@ -374,6 +374,10 @@ const AJ_AWAIT_ENTRY: i32 = 1;
 const AJ_LOADING: i32 = 2;
 const AJ_CONFIRM: i32 = 3;
 const AJ_CONFIRM_DIALOG: i32 = 4;
+/// Registration accepted — the "Sign-Up Complete" dialog (Gallop.DialogRoomMatchRoomComplete) is
+/// coming up, and it BLOCKS the room list behind it. Press its "Race List" button so auto-repeat
+/// has a list to hunt again; without it the run parks on that dialog after the first sign-up.
+const AJ_COMPLETE: i32 = 5;
 static AJ_STATE: AtomicI32 = AtomicI32::new(AJ_IDLE);
 static AJ_SLOT: AtomicI32 = AtomicI32::new(0);
 static AJ_WANT_CONFIRM: AtomicBool = AtomicBool::new(false);
@@ -395,6 +399,9 @@ const AJ_CONFIRM_SETTLE_MS: u64 = 500;
 // After pressing Confirm, wait this long for the "Confirm Registration" dialog's OK action to
 // be captured before giving up (letting the user tap OK themselves).
 const AJ_DIALOG_TIMEOUT_MS: u64 = 5_000;
+/// The complete-dialog has to fade in after the server round-trip; give it longer than the confirm
+/// dialog and re-poll, rather than pressing once into empty space.
+const AJ_COMPLETE_TIMEOUT_MS: u64 = 8_000;
 
 /// The "Confirm Registration" dialog's OK (right-button) `System.Action`, captured from the
 /// dialog's Initialize/PushDialog. Firing it does exactly what tapping OK does — sends the entry
@@ -438,6 +445,18 @@ fn set_status(s: String) {
     if let Ok(mut g) = status_buf().lock() {
         *g = s;
     }
+}
+
+/// Status + log, for the auto-join pipeline only.
+///
+/// `set_status` writes a UI buffer and nothing else, so every auto-join outcome was invisible in
+/// trackside-native.log - a stall could only be reported as "it paused", with no way to tell which
+/// state it stalled in. MAIN THREAD ONLY (pump / pump_auto_join / process_list): `set_status` is
+/// also called from the panel's click handlers, which run on the RENDER thread, where disk I/O is
+/// forbidden.
+fn say(s: String) {
+    log(&s);
+    set_status(s);
 }
 
 fn clock() -> &'static Instant {
@@ -493,13 +512,12 @@ fn save_to_disk(f: &Filters) {
     });
 }
 
+// One log, not two. This module used to append to its own unstamped trackside.log; that
+// split cost a misdiagnosis (a stale session's lines read as the current run) and made
+// its output impossible to correlate with everything else. tools::log is timestamped,
+// sequenced, and goes to trackside-native.log with the rest.
 fn log(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) =
-        std::fs::OpenOptions::new().create(true).append(true).open(crate::paths::log_file("trackside.log"))
-    {
-        let _ = writeln!(f, "[roomfinder] {msg}");
-    }
+    crate::tools::log(&format!("[roomfinder] {msg}"));
 }
 
 // ── public API consumed by the overlay UI ─────────────────────────────────────
@@ -721,6 +739,16 @@ pub fn pump() {
         } else {
             match start() {
                 Ok(()) => {
+                    // start() arms CHECK_NOW, which reads whatever list is in work data RIGHT NOW.
+                    // That is correct when a human presses Start on a settled screen, and WRONG
+                    // here: we resume from inside the game's own list rebuild after a join, so the
+                    // entries are stale/being freed and walking them dereferenced a dead object
+                    // (0xC0000005 reading klass at obj+0). Wait for the next CreateRoomListUI
+                    // instead - the only moment the list is known-complete - by scheduling a
+                    // refresh rather than an immediate read.
+                    CHECK_NOW.store(false, Ordering::Relaxed);
+                    LIST_READY.store(false, Ordering::Relaxed);
+                    NEXT_MS.store(now_ms() + next_delay_ms(), Ordering::Relaxed);
                     let f = filters();
                     set_status(format!("Auto-repeat ({n}/{ENTRY_LIMIT}): hunting {} …", f.summary()));
                     log(&format!("auto-repeat resumed at {n}/{ENTRY_LIMIT}"));
@@ -738,6 +766,12 @@ pub fn pump() {
             // wait until the screen is actually up rather than poking unbuilt buttons.
             set_status("Entry screen still loading — try again in a moment.".into());
         } else {
+            if !unsafe { bridge::presets_ready() } {
+                // Same reason as the auto path: fetch via the game's own button, not a bare request.
+                unsafe { bridge::press_deck_select(vc) };
+                set_status(format!("Team {slot}: opening My Runners to fetch your teams — press Load again."));
+                return;
+            }
             match unsafe { bridge::load_preset(vc, slot) } {
                 Ok(n) => set_status(format!("Loaded Team {slot} ({n} runner{}).", if n == 1 { "" } else { "s" })),
                 Err(e) => set_status(format!("Team {slot}: {e}")),
@@ -780,9 +814,10 @@ fn pump_auto_join() {
                 AJ_DEADLINE.store(now_ms() + AJ_LOAD_WINDOW_MS, Ordering::Relaxed);
                 AJ_NEXT.store(now_ms(), Ordering::Relaxed);
                 AJ_STATE.store(AJ_LOADING, Ordering::Relaxed);
+                log("[auto-join] entry screen up -> LOADING (staging the team)");
             } else if now_ms() > AJ_DEADLINE.load(Ordering::Relaxed) {
                 reset_auto_join();
-                set_status("Auto-join: the entry screen didn't open — load your team manually.".into());
+                say("Auto-join: the entry screen didn't open — load your team manually.".into());
             }
         }
         AJ_LOADING => {
@@ -802,7 +837,19 @@ fn pump_auto_join() {
             if !unsafe { bridge::entry_ready(vc) } {
                 if expired {
                     reset_auto_join();
-                    set_status("Auto-join: entry screen wasn't ready in time — load your team manually.".into());
+                    say("Auto-join: entry screen wasn't ready in time — load your team manually.".into());
+                } else {
+                    AJ_NEXT.store(now_ms() + AJ_RETRY_MS, Ordering::Relaxed);
+                }
+                return;
+            }
+            // Presets absent? Press the game's own My Runners button - the raw prefetch request
+            // cannot apply its own response, so waiting alone never resolves.
+            if !unsafe { bridge::presets_ready() } {
+                unsafe { bridge::press_deck_select(vc) };
+                if expired {
+                    say("Auto-join: saved teams didn't load — open My Runners once, then retry.".into());
+                    reset_auto_join();
                 } else {
                     AJ_NEXT.store(now_ms() + AJ_RETRY_MS, Ordering::Relaxed);
                 }
@@ -811,25 +858,29 @@ fn pump_auto_join() {
             match unsafe { bridge::load_preset(vc, slot) } {
                 // Staged with runners — either move to confirm or hand off to the user.
                 Ok(n) if n > 0 => {
+                    // The preset dialog has done its job (the game applied the fetch); take it
+                    // down NOW, before the Confirm dialog is pushed on top of it. The settle
+                    // window below covers its close animation.
+                    unsafe { bridge::close_deck_dialog_if_ours() };
                     if AJ_WANT_CONFIRM.load(Ordering::Relaxed) {
                         AJ_NEXT.store(now_ms() + AJ_CONFIRM_SETTLE_MS, Ordering::Relaxed);
                         AJ_STATE.store(AJ_CONFIRM, Ordering::Relaxed);
-                        set_status(format!("Auto-join: Team {slot} loaded ({n}) — confirming…"));
+                        say(format!("Auto-join: Team {slot} loaded ({n}) — confirming…"));
                     } else {
                         reset_auto_join();
-                        set_status(format!("Auto-join: Team {slot} loaded ({n} runners) — press Confirm."));
+                        say(format!("Auto-join: Team {slot} loaded ({n} runners) — press Confirm."));
                     }
                 }
                 // Genuinely empty slot — no point retrying.
                 Ok(_) => {
                     reset_auto_join();
-                    set_status(format!("Auto-join: Team {slot} looks empty — save runners to it in-game."));
+                    say(format!("Auto-join: Team {slot} looks empty — save runners to it in-game."));
                 }
                 // Usually "presets still fetching" — retry until the window closes.
                 Err(e) => {
                     if expired {
                         reset_auto_join();
-                        set_status(format!("Auto-join: Team {slot} not loaded ({e})."));
+                        say(format!("Auto-join: Team {slot} not loaded ({e})."));
                     } else {
                         AJ_NEXT.store(now_ms() + AJ_RETRY_MS, Ordering::Relaxed);
                     }
@@ -855,11 +906,11 @@ fn pump_auto_join() {
                     AJ_DEADLINE.store(now_ms() + AJ_DIALOG_TIMEOUT_MS, Ordering::Relaxed);
                     AJ_NEXT.store(u64::MAX, Ordering::Relaxed);
                     AJ_STATE.store(AJ_CONFIRM_DIALOG, Ordering::Relaxed);
-                    set_status(format!("Auto-join: Team {slot} confirmed — accepting registration…"));
+                    say(format!("Auto-join: Team {slot} confirmed — accepting registration…"));
                 }
                 Err(e) => {
                     reset_auto_join();
-                    set_status(format!("Auto-join: loaded Team {slot}; confirm failed ({e}) — press Confirm."));
+                    say(format!("Auto-join: loaded Team {slot}; confirm failed ({e}) — press Confirm."));
                 }
             }
         }
@@ -875,26 +926,67 @@ fn pump_auto_join() {
                         // the next fresh room list (our CreateRoomListUI hook) restarts the hunt.
                         // Counting AFTER the join is what makes the cap self-correcting - we never
                         // assume our own tally, we re-read the game's.
-                        let signed = unsafe { bridge::my_entry_count() };
-                        let repeat = filters().auto_repeat;
-                        let n = signed.unwrap_or(0);
-                        if repeat && n < ENTRY_LIMIT {
-                            REPEAT_PENDING.store(true, Ordering::Relaxed);
-                            set_status(format!(
-                                "Auto-join: registered ({n}/{ENTRY_LIMIT}) — will keep hunting when the list returns."
-                            ));
-                        } else if repeat {
-                            set_status(format!("Auto-join: registered — {n}/{ENTRY_LIMIT} sign-ups, limit reached."));
-                            log(&format!("entry limit reached ({n}/{ENTRY_LIMIT}) - auto-repeat stopped"));
-                        } else {
-                            set_status(format!("Auto-join: Team {slot} — registered, joining the room!"));
-                        }
+                        // The cap decision is NOT made here: the only trustworthy count is the one
+                        // printed on the complete dialog, which has not appeared yet. Deciding now
+                        // is what made the limit unenforceable.
+                        set_status(format!("Auto-join: Team {slot} — registered."));
+                        // Either way the Sign-Up Complete dialog is about to cover the list. Clear
+                        // it ourselves so auto-repeat can see a list again; with repeat off this
+                        // just saves the player a tap.
+                        AJ_DEADLINE.store(now_ms() + AJ_COMPLETE_TIMEOUT_MS, Ordering::Relaxed);
+                        AJ_NEXT.store(now_ms() + AJ_RETRY_MS, Ordering::Relaxed);
+                        AJ_STATE.store(AJ_COMPLETE, Ordering::Relaxed);
                     }
                     Err(e) => set_status(format!("Auto-join: registration confirm failed ({e}) — tap OK.")),
                 }
             } else if now_ms() > AJ_DEADLINE.load(Ordering::Relaxed) {
                 reset_auto_join();
-                set_status("Auto-join: registration dialog didn't appear — tap OK to finish.".into());
+                say("Auto-join: registration dialog didn't appear — tap OK to finish.".into());
+            }
+        }
+        AJ_COMPLETE => {
+            // Poll rather than press once: the dialog fades in after the server round-trip, and a
+            // press into an empty frame is indistinguishable from a press that failed.
+            if now_ms() < AJ_NEXT.load(Ordering::Relaxed) {
+                return;
+            }
+            // Read the count BEFORE pressing - the dialog carrying it is about to close.
+            let signed = unsafe { bridge::registered_from_dialog() };
+            match unsafe { bridge::press_race_list() } {
+                Ok(which) => {
+                    reset_auto_join();
+                    log(&format!("complete-dialog: pressed {which} - back to the room list"));
+                    let repeat = filters().auto_repeat;
+                    // Unknown count is NOT zero: without a reading, keep hunting only if repeat is
+                    // on, and say the count is unknown rather than printing a made-up 0/5.
+                    match (repeat, signed) {
+                        (false, _) => {}
+                        (true, Some(n)) if n >= ENTRY_LIMIT => {
+                            set_status(format!("Auto-join: registered — {n}/{ENTRY_LIMIT} sign-ups, limit reached."));
+                            log(&format!("entry limit reached ({n}/{ENTRY_LIMIT}) - auto-repeat stopped"));
+                        }
+                        (true, Some(n)) => {
+                            REPEAT_PENDING.store(true, Ordering::Relaxed);
+                            set_status(format!(
+                                "Auto-join: registered ({n}/{ENTRY_LIMIT}) — will keep hunting when the list returns."
+                            ));
+                        }
+                        (true, None) => {
+                            REPEAT_PENDING.store(true, Ordering::Relaxed);
+                            set_status("Auto-join: registered (count unread) — will keep hunting.".into());
+                        }
+                    }
+                }
+                Err(e) => {
+                    if now_ms() > AJ_DEADLINE.load(Ordering::Relaxed) {
+                        reset_auto_join();
+                        // Not fatal: the player can tap it. Auto-repeat still resumes on the next
+                        // list, so say it plainly instead of failing the whole run.
+                        log(&format!("complete-dialog: gave up ({e}) - tap Race List to continue"));
+                    } else {
+                        AJ_NEXT.store(now_ms() + AJ_RETRY_MS, Ordering::Relaxed);
+                    }
+                }
             }
         }
         _ => {}
@@ -931,6 +1023,19 @@ fn process_list() {
         if !hist.is_empty() {
             let parts: Vec<String> = hist.iter().map(|(k, v)| format!("{k}={v}")).collect();
             log(&format!("check {n}: {} rooms, rejected by {}", rooms.len(), parts.join(" ")));
+        }
+    }
+    // Cap check on every list, not just after our own join. The count is ~4s behind a
+    // registration (the local list is updated asynchronously), and the player can also reach the
+    // limit by signing up by hand - so checking only at resume left it rolling at 5/5 forever.
+    if f.auto_repeat {
+        if let Some(n) = unsafe { bridge::my_entry_count() } {
+            if n >= ENTRY_LIMIT {
+                HUNTING.store(false, Ordering::Relaxed);
+                NEXT_MS.store(u64::MAX, Ordering::Relaxed);
+                say(format!("Signed up for {n}/{ENTRY_LIMIT} room races — limit reached, stopped."));
+                return;
+            }
         }
     }
     if let Some(hit) = rooms.iter().find(|r| f.matches(r)) {
@@ -1300,7 +1405,11 @@ mod bridge {
             let mut out = Vec::with_capacity(size as usize);
             for i in 0..size as usize {
                 let e = rd_ptr(items, 0x20 + i * 8);
-                if e.is_null() {
+                if !plausible_obj(e) {
+                    // A freed or half-written list yields garbage element pointers, and IL2CPP
+                    // reads the klass at obj+0 - so a bogus entry is an instant access violation
+                    // rather than a bad read. Skip it: a missing room is a non-event, a crash
+                    // during someone's race is not.
                     continue;
                 }
                 if let Some(r) = read_entry(e) {
@@ -1312,6 +1421,13 @@ mod bridge {
     }
 
     /// Decode one WorkRoomMatchData.RoomData via its getters (Obscured-safe through
+    /// Is this plausibly a live managed object? x64 user-mode pointers sit below the canonical
+    /// split and are never tiny, so anything outside that is garbage from a stale list.
+    fn plausible_obj(p: *mut c_void) -> bool {
+        let v = p as usize;
+        v >= 0x10000 && v < 0x0000_8000_0000_0000
+    }
+
     /// How many rooms the player is ALREADY signed up for, or None if it cannot be read.
     ///
     /// Two candidate lists exist on WorkRoomMatchData (both confirmed in the 2026-07-02 scan):
@@ -1334,20 +1450,21 @@ mod bridge {
             return None;
         }
         let blob_class = il2cpp::object_class(blob);
-        let mut best: Option<usize> = None;
-        for g in ["get_MyEntryRoomList", "get_RegistEntryList"] {
-            let list = invoke0(blob, blob_class, g);
-            if list.is_null() {
-                continue;
-            }
-            // List<T>: _size @0x18 - the same layout the guest list uses above.
-            let n = rd_i32(list, 0x18);
-            if n >= 0 {
-                crate::tools::debug(&format!("[roomfinder] {g} = {n}"));
-                best = Some(best.map_or(n as usize, |b: usize| b.max(n as usize)));
-            }
+        // MEASURED, not guessed: across a full 2->3->4 sign-up run, `_myEntryRoomList` tracked the
+        // real count every time and `_registEntryList` read 0 on every sample (it is only filled by
+        // UpdateRegistRoomList, which this flow never triggers). The earlier max()-of-both was a
+        // hedge; the log settled it, so use the one that works.
+        let list = invoke0(blob, blob_class, "get_MyEntryRoomList");
+        if list.is_null() {
+            return None;
         }
-        best
+        // List<T>: _size @0x18 - the same layout the guest list uses above.
+        let n = rd_i32(list, 0x18);
+        if n < 0 {
+            return None;
+        }
+        crate::tools::debug(&format!("[roomfinder] signed up: {n}"));
+        Some(n as usize)
     }
 
     /// invoke0 + unbox_i64/plain_string; inherited getters resolve through the parent chain).
@@ -1629,6 +1746,239 @@ mod bridge {
     /// deck dict (the source `CreateDeckItemDataList` reads). Fire-and-forget: the game's own
     /// response handler applies the result. Same inherited `RequestBase.Send(7)` path the pruner
     /// uses (null callbacks + all UI flags false = silent). MAIN THREAD ONLY.
+    /// Are the saved-team presets actually in work data yet?
+    pub unsafe fn presets_ready() -> bool {
+        if !il2cpp::ready() {
+            return false;
+        }
+        let util = il2cpp::class(UTIL_CLASS);
+        if util.is_null() {
+            return false;
+        }
+        let make = il2cpp::method(util, "CreateDeckItemDataList", 0);
+        if make.is_null() {
+            return false;
+        }
+        let list = il2cpp::runtime_invoke(make, std::ptr::null_mut(), &mut []);
+        !list.is_null() && rd_i32(list, 0x18) > 0
+    }
+
+    /// Press the entry screen's own "My Runners" button (`OnClickDeckSelectButton`, confirmed in
+    /// the 2026-07-02 scan).
+    ///
+    /// THIS is what populates the saved-team deck dict. `prefetch_presets` below fires
+    /// `RoomMatchRaceGetPresetArrayRequest.Send(7)` with NULL callback arguments - the request
+    /// leaves the client, but nothing is wired to apply the response, so `CreateDeckItemDataList()`
+    /// stayed empty forever and auto-join sat on "fetching your saved teams" until it timed out.
+    /// Driving the game's own button is the discipline the rest of this module already uses for the
+    /// reload button and the Join Race transition; the raw request was the one place that broke it.
+    /// How many room races the player is signed up for, read off the Sign-Up Complete dialog.
+    ///
+    /// This is the number the PLAYER sees ("Registered 2 / 5"), which is the whole point: the
+    /// `_myEntryRoomList` source this used to trust reported 0 on every single sample of a run that
+    /// really was at 2/5, so the cap could never fire and auto-repeat would have kept signing up
+    /// past the limit. That list is only populated when the my-entries view has fetched it; the
+    /// dialog's own label is populated because it is on screen.
+    ///
+    /// Returns None when the dialog is not up or the label cannot be parsed - callers keep their
+    /// previous count rather than treating "unknown" as zero.
+    pub unsafe fn registered_from_dialog() -> Option<usize> {
+        let k = il2cpp::class("Gallop.DialogRoomMatchRoomComplete");
+        if k.is_null() {
+            return None;
+        }
+        let k_obj = il2cpp::class("UnityEngine.Object");
+        if k_obj.is_null() {
+            return None;
+        }
+        // Same-argc GENERIC overloads exist - match on parameter type, not argc.
+        let find = il2cpp::method_with_param_types(k_obj, "FindObjectsOfType", &["System.Type"]);
+        if find.is_null() {
+            return None;
+        }
+        let ty = il2cpp::type_object(k);
+        if ty.is_null() {
+            return None;
+        }
+        let mut args: [*mut c_void; 1] = [ty as *mut c_void];
+        let (arr, exc) = il2cpp::runtime_invoke_exc(find, std::ptr::null_mut(), &mut args);
+        if !exc.is_null() || arr.is_null() {
+            return None;
+        }
+        let arr = arr as *mut c_void;
+        if crate::htt_il2cpp::array_len(arr as *mut _) == 0 {
+            return None;
+        }
+        let dlg = rd_ptr(arr, 0x20);
+        if !plausible_obj(dlg) {
+            return None;
+        }
+        let off = il2cpp::field_offset(k, "_registNum")?;
+        let label = rd_ptr(dlg, off);
+        if !plausible_obj(label) {
+            return None;
+        }
+        let m = il2cpp::method(il2cpp::object_class(label), "get_text", 0);
+        if m.is_null() {
+            return None;
+        }
+        let text = il2cpp::read_string(il2cpp::runtime_invoke(m, label, &mut []));
+        // "2 / 5" - take the first run of digits. Splitting on '/' would break on a localisation
+        // that writes it any other way, where "first number wins" still holds.
+        let n: String = text.chars().skip_while(|c| !c.is_ascii_digit()).take_while(|c| c.is_ascii_digit()).collect();
+        let parsed = n.parse::<usize>().ok();
+        if let Some(v) = parsed {
+            log(&format!("complete-dialog: registered {v}/{} (from \"{}\")", super::ENTRY_LIMIT, text.trim()));
+        }
+        parsed
+    }
+
+    /// Press "Race List" on the Sign-Up Complete dialog (`Gallop.DialogRoomMatchRoomComplete`).
+    ///
+    /// That dialog sits on top of the room list after a registration, so auto-repeat has nothing to
+    /// hunt until it is dismissed - the first sign-up used to be the last one of the session.
+    ///
+    /// The class carries NO click methods of its own (verified by a live screen probe with the
+    /// dialog up); its buttons live on the shared dialog chrome:
+    ///   `Gallop.DialogCommon._currentDialogObj` -> `Gallop.DialogObject`
+    ///   `Gallop.DialogObject.{_leftButton,_centerButton,_rightButton}` -> `Gallop.ButtonCommon`
+    /// Offsets are resolved BY NAME so a client update that moves fields does not turn this into a
+    /// wild write, and the click itself reuses `ui_input::click_now` - the same primitive the
+    /// race-result skip has used for months, including its IsLock retry - rather than a new one.
+    ///
+    /// Returns the pressed button's name, so the log says what was actually clicked instead of
+    /// asserting success.
+    pub unsafe fn press_race_list() -> Result<String, String> {
+        if !il2cpp::ready() {
+            return Err("runtime not ready".into());
+        }
+        let dm = il2cpp::class("Gallop.DialogManager");
+        if dm.is_null() {
+            return Err("DialogManager miss".into());
+        }
+        let m = il2cpp::method(dm, "GetForeFrontDialog", 0);
+        if m.is_null() {
+            return Err("GetForeFrontDialog miss".into());
+        }
+        let top = il2cpp::runtime_invoke(m, std::ptr::null_mut(), &mut []);
+        if !plausible_obj(top) {
+            return Err("no dialog up".into());
+        }
+        let dc = il2cpp::class("Gallop.DialogCommon");
+        let Some(off) = il2cpp::field_offset(dc, "_currentDialogObj") else {
+            return Err("_currentDialogObj miss".into());
+        };
+        let dobj = rd_ptr(top, off);
+        if !plausible_obj(dobj) {
+            return Err("dialog has no content object".into());
+        }
+        let dok = il2cpp::class("Gallop.DialogObject");
+        // Slot order IS the button choice, because the names carry no meaning: this dialog's
+        // buttons are literally "ButtonLeft" / "ButtonCenter" / "ButtonRight". The Sign-Up Complete
+        // layout is
+        //     [ Race List ]  [ To Waiting Room ]
+        //        left              right
+        // so LEFT is the one we want. Right is the affirmative slot - pressing it walks into the
+        // race waiting room and parks there, which is exactly what the first attempt did by
+        // preferring right on the assumption that the affirmative button was the useful one.
+        // Centre is the single-button layout (no waiting-room option), so it is the fallback.
+        // Right is never pressed: on this dialog it is always the wrong door.
+        let mut found: Vec<(&str, *mut c_void, String)> = Vec::new();
+        for slot in ["_leftButton", "_centerButton"] {
+            let Some(o) = il2cpp::field_offset(dok, slot) else { continue };
+            let b = rd_ptr(dobj, o);
+            if !plausible_obj(b) {
+                continue;
+            }
+            let name = crate::ui_input::button_name(b);
+            found.push((slot, b, name));
+        }
+        if found.is_empty() {
+            return Err("dialog has no buttons".into());
+        }
+        log(&format!(
+            "complete-dialog buttons: {}",
+            found
+                .iter()
+                .map(|(s, _, n)| format!("{s}=\"{n}\""))
+                .collect::<Vec<_>>()
+                .join(" ")
+        ));
+        let pick = &found[0];
+        if crate::ui_input::click_now(pick.1) {
+            Ok(format!("{} (\"{}\")", pick.0, pick.2))
+        } else {
+            Err("button locked".into())
+        }
+    }
+
+    /// True while the "My Runners" preset dialog opened by `press_deck_select` is still up.
+    pub(super) static DECK_DIALOG_OURS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+    /// Dismiss the "My Runners" preset dialog IF we were the ones who opened it.
+    ///
+    /// `press_deck_select` opens the game's preset list purely to make the game fetch and apply
+    /// the saved teams; the team itself is then staged by `load_preset`, not by the dialog's own
+    /// "Load List" button, so nothing ever closes it. It then outlives the entry screen, sits over
+    /// the next room list with every portrait blanked (its data was released with the scene), and
+    /// stays there for the rest of the session while sign-ups keep succeeding underneath it.
+    ///
+    /// Gated on our own flag so this never dismisses a dialog the player opened, and on the
+    /// forefront being a dialog container so it never "closes" a screen. Uses the proper
+    /// `DialogCommon.Close` (clears blur + state) via the resolved invokers the SuperSkip shop
+    /// path already owns - not ForceDestroy.
+    pub unsafe fn close_deck_dialog_if_ours() {
+        if !DECK_DIALOG_OURS.swap(false, Ordering::Relaxed) {
+            return;
+        }
+        use crate::skip::shop::{DIALOG_CLOSE, GET_FOREFRONT};
+        let (Some(gf), Some(close)) = (GET_FOREFRONT.get(), DIALOG_CLOSE.get()) else {
+            log("deck-select: dialog close unavailable (invokers unresolved) - close My Runners by hand");
+            return;
+        };
+        if !gf.ok() || !close.ok() {
+            return;
+        }
+        let top = gf.call_ptr_static();
+        if !plausible_obj(top) {
+            log("deck-select: no forefront dialog to close");
+            return;
+        }
+        let nm = il2cpp::object_class_name(top);
+        if !nm.contains("Dialog") {
+            log(&format!("deck-select: forefront is {nm}, not a dialog - left alone"));
+            return;
+        }
+        close.call_void(top);
+        log(&format!("deck-select: closed My Runners ({nm})"));
+    }
+
+    pub unsafe fn press_deck_select(entry_vc: *mut c_void) -> bool {
+        if entry_vc.is_null() || !il2cpp::ready() {
+            return false;
+        }
+        // The button opens a dialog, so never spam it.
+        static LAST_PRESS_MS: AtomicU64 = AtomicU64::new(0);
+        let now = super::now_ms();
+        if now.saturating_sub(LAST_PRESS_MS.load(Ordering::Relaxed)) < 4000 {
+            return false;
+        }
+        let k = il2cpp::class(ENTRY_VC_CLASS);
+        if k.is_null() {
+            return false;
+        }
+        let m = il2cpp::method(k, "OnClickDeckSelectButton", 0);
+        if m.is_null() {
+            log("deck-select: OnClickDeckSelectButton not found (run Scan)");
+            return false;
+        }
+        LAST_PRESS_MS.store(now, Ordering::Relaxed);
+        il2cpp::runtime_invoke(m, entry_vc, &mut []);
+        DECK_DIALOG_OURS.store(true, Ordering::Relaxed);
+        log("deck-select: pressed My Runners (the game's own preset fetch)");
+        true
+    }
+
     pub unsafe fn prefetch_presets() {
         if !il2cpp::ready() {
             return;
