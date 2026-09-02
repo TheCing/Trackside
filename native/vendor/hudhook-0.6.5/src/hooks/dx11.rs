@@ -78,20 +78,46 @@ fn render(swap_chain: &IDXGISwapChain) -> Result<()> {
     Ok(())
 }
 
+/// LOCAL PATCH: where the render thread is inside the Present hook, for the host's hang watchdog.
+/// A stalled render thread has three very different explanations and a stack without symbols
+/// cannot tell them apart; this can.
+pub static PRESENT_STAGE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(PRESENT_IDLE);
+/// Not inside the hook: the game has not called Present again (render thread is waiting for the
+/// game's own frame loop - the hang is upstream of us).
+pub const PRESENT_IDLE: u8 = 0;
+/// Inside the overlay's own render callback (imgui + host draw code): the hang is OURS.
+pub const PRESENT_OVERLAY: u8 = 1;
+/// Inside the game's original Present: DXGI / driver never returned.
+pub const PRESENT_ORIGINAL: u8 = 2;
+
+/// Human-readable name for a [`PRESENT_STAGE`] value.
+pub fn present_stage_name(stage: u8) -> &'static str {
+    match stage {
+        PRESENT_OVERLAY => "INSIDE OVERLAY RENDER (our code)",
+        PRESENT_ORIGINAL => "INSIDE THE GAME'S ORIGINAL Present (DXGI/driver)",
+        _ => "IDLE - game never called Present again (upstream of the overlay)",
+    }
+}
+
 unsafe extern "system" fn dxgi_swap_chain_present_impl(
     swap_chain: IDXGISwapChain,
     sync_interval: u32,
     flags: u32,
 ) -> HRESULT {
+    use std::sync::atomic::Ordering;
     let Trampolines { dxgi_swap_chain_present } =
         TRAMPOLINES.get().expect("DirectX 11 trampolines uninitialized");
 
+    PRESENT_STAGE.store(PRESENT_OVERLAY, Ordering::Relaxed);
     if let Err(e) = render(&swap_chain) {
         error!("Render error: {e:?}");
     }
 
     trace!("Call IDXGISwapChain::Present trampoline");
-    dxgi_swap_chain_present(swap_chain, sync_interval, flags)
+    PRESENT_STAGE.store(PRESENT_ORIGINAL, Ordering::Relaxed);
+    let hr = dxgi_swap_chain_present(swap_chain, sync_interval, flags);
+    PRESENT_STAGE.store(PRESENT_IDLE, Ordering::Relaxed);
+    hr
 }
 
 fn get_target_addrs() -> DXGISwapChainPresentType {

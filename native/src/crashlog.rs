@@ -355,6 +355,57 @@ unsafe fn dump_thread(label: &str, tid: u32) {
     crate::tools::log(&format!("[watchdog] {label} stack (tid {tid}): {}", body.join(" <- ")));
 }
 
+/// Sample one thread's top frames repeatedly and report whether it MOVES.
+///
+/// A single stack sample cannot tell the two hang shapes apart, and they need opposite fixes:
+///   * frozen  - the thread is genuinely blocked, and whatever it waits on is the bug;
+///   * moving  - the thread is running fine and our step marker is simply not being reached,
+///               i.e. the game stopped calling the hook we pump from. Nothing is deadlocked.
+/// Every previous investigation of this hang read one sample of MAIN parked in a message-wait and
+/// argued about which it was. Eight samples over ~1.2s settles it in the log instead.
+unsafe fn probe_liveness(label: &str, tid: u32) {
+    const SAMPLES: usize = 8;
+    let mut tops: Vec<usize> = Vec::with_capacity(SAMPLES);
+    let mut depths: Vec<usize> = Vec::with_capacity(SAMPLES);
+    for _ in 0..SAMPLES {
+        let mut frames = [0usize; MAX_FRAMES];
+        let n = walk_thread(tid, &mut frames);
+        if n > 0 {
+            tops.push(frames[0]);
+            depths.push(n);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(150));
+    }
+    if tops.is_empty() {
+        crate::tools::log(&format!("[watchdog] {label} liveness (tid {tid}): <no samples>"));
+        return;
+    }
+    let distinct_tops = {
+        let mut v = tops.clone();
+        v.sort_unstable();
+        v.dedup();
+        v.len()
+    };
+    let distinct_depths = {
+        let mut v = depths.clone();
+        v.sort_unstable();
+        v.dedup();
+        v.len()
+    };
+    // Depth changing is the stronger signal: a spin inside one function keeps the same top frame
+    // but a thread doing real work moves up and down the stack.
+    let verdict = if distinct_tops > 1 || distinct_depths > 1 {
+        "RUNNING (stack moves - the pump is not being called; this is NOT a deadlock)"
+    } else {
+        "FROZEN (identical stack every sample - genuinely blocked)"
+    };
+    crate::tools::log(&format!(
+        "[watchdog] {label} liveness (tid {tid}): {} samples, {distinct_tops} distinct top frames, {distinct_depths} distinct depths -> {verdict}",
+        tops.len()
+    ));
+    crate::tools::log(&format!("[watchdog] {label} top frame now: {}", describe_addr(tops[tops.len() - 1])));
+}
+
 /// Dump EVERY thread in the process. The main/render pair kept showing two VICTIMS - render queued
 /// on a d3d11 internal wait, main queued behind render - while whichever thread actually holds the
 /// resource was never in the picture. The culprit can only hide if we do not look at it.
@@ -435,7 +486,11 @@ pub fn spawn_hang_watchdog() {
                         last_step(),
                         now_main
                     ));
-                    unsafe { dump_thread("MAIN", MAIN_TID.load(Ordering::Relaxed)) };
+                    unsafe {
+                        let tid = MAIN_TID.load(Ordering::Relaxed);
+                        dump_thread("MAIN", tid);
+                        probe_liveness("MAIN", tid);
+                    }
                 }
             } else {
                 rep_main = false;
@@ -450,6 +505,18 @@ pub fn spawn_hang_watchdog() {
                         last_ui_step(),
                         if now_main == last_main { "ALSO stalled" } else { "still running" }
                     ));
+                    // The stack below has no symbols and detour trampolines break its unwind info,
+                    // so "no trackside frames" proves nothing. This marker does: it says whether
+                    // the render thread is in our draw code, in the game's Present, or was never
+                    // handed another frame at all.
+                    {
+                        use hudhook::hooks::dx11::{present_stage_name, PRESENT_STAGE};
+                        let stage = PRESENT_STAGE.load(Ordering::Relaxed);
+                        crate::tools::log(&format!(
+                            "[watchdog] RENDER position: {}",
+                            present_stage_name(stage)
+                        ));
+                    }
                     unsafe { dump_thread("RENDER", RENDER_TID.load(Ordering::Relaxed)) };
                 }
             } else {
