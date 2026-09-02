@@ -201,9 +201,30 @@ unsafe extern "system" fn pipeline_wnd_proc(
     // expresses the intent as of *before* the current message was received.
     let should_block_messages = shared_state.should_block_events.load(Ordering::SeqCst);
 
-    if should_block_messages {
+    // LOCAL PATCH: only ever swallow INPUT. Upstream returned 1 for EVERY message while the
+    // overlay had capture - activation, focus, size, paint, timers, system commands, the lot.
+    // The flag is refreshed only by the render loop, so the moment the game stops presenting for
+    // any reason while the cursor is over the overlay, the flag freezes TRUE and the game's own
+    // window procedure never receives another message: it cannot re-activate, cannot repaint,
+    // cannot recover. Measured on a live hung process: WM_NULL and WM_GETTEXT both returned 1
+    // from outside, i.e. this branch, with the game parked in its message pump forever.
+    // Capture is an INPUT concern; everything else belongs to the game unconditionally.
+    if should_block_messages && is_input_message(msg) {
         LRESULT(1)
     } else {
         CallWindowProcW(Some(shared_state.wnd_proc), hwnd, msg, wparam, lparam)
     }
+}
+
+/// Keyboard, client-area mouse, and raw input: the messages that mean "the user acted", which is
+/// what imgui capture is entitled to keep from the game. Non-client mouse (title bar, borders),
+/// activation, cursor-shape and enter/leave notifications are deliberately NOT here.
+#[inline]
+fn is_input_message(msg: u32) -> bool {
+    use windows::Win32::UI::WindowsAndMessaging::{
+        WM_INPUT, WM_KEYFIRST, WM_KEYLAST, WM_MOUSEFIRST, WM_MOUSELAST,
+    };
+    (WM_KEYFIRST..=WM_KEYLAST).contains(&msg)
+        || (WM_MOUSEFIRST..=WM_MOUSELAST).contains(&msg)
+        || msg == WM_INPUT
 }
