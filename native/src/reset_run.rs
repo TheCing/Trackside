@@ -720,21 +720,118 @@ pub fn probe_screen() {
     PROBE.store(true, Ordering::Relaxed);
 }
 
+/// Classes still to be probed, as (name, Class-as-usize). Held across frames so the sweep can be
+/// spread over many ticks instead of blocking one.
 #[cfg(feature = "devtools")]
-/// Dump every live UI class and the methods worth clicking. Main thread only, on demand only -
-/// FindObjectsOfType walks every live object, so this must never run per-frame.
-fn probe_live_screen(api: &Api) {
+static PROBE_QUEUE: Mutex<Vec<(String, usize)>> = Mutex::new(Vec::new());
+/// The static-shape dump still owes a run once the live queue drains.
+#[cfg(feature = "devtools")]
+static PROBE_TAIL: AtomicBool = AtomicBool::new(false);
+/// Per-tick budget for the live sweep. The whole point is that the probe never owns a frame: at
+/// ~6 ms it costs a visible hitch and nothing else, where the old single-shot version held the main
+/// thread long enough for the watchdog to declare it stalled.
+#[cfg(feature = "devtools")]
+const PROBE_BUDGET_MS: u128 = 6;
+
+#[cfg(feature = "devtools")]
+fn probe_pending() -> bool {
+    PROBE_TAIL.load(Ordering::Relaxed)
+        || PROBE_QUEUE.lock().map(|q| !q.is_empty()).unwrap_or(false)
+}
+
+#[cfg(not(feature = "devtools"))]
+fn probe_pending() -> bool {
+    false
+}
+
+/// True for a class `FindObjectsOfType` can legally be asked about: a UnityEngine.Object subclass.
+///
+/// This is a SAFETY filter, not an optimisation. FindObjectsOfType on an arbitrary type - an
+/// interface, a plain struct, an open generic - is not merely useless; it dereferences a scripting
+/// class pointer the type does not have and faults inside UnityPlayer, which is how a probe run
+/// ended in `0xc0000005 read at 0xe9`. `runtime_invoke_exc` cannot catch that: it is a native
+/// access violation, not a managed throw. The same generics hazard is documented on
+/// `il2cpp::method` above.
+#[cfg(feature = "devtools")]
+fn probeable(name: &str, k: il2cpp::Class) -> bool {
+    // `<` is a constructed generic, a backtick the il2cpp arity marker on an open one.
+    if name.contains('<') || name.contains('`') {
+        return false;
+    }
+    let mut cur = il2cpp::class_parent(k);
+    // Bounded: a corrupt or cyclic parent chain must not spin the main thread.
+    for _ in 0..16 {
+        if cur.is_null() {
+            return false;
+        }
+        // MUST be the namespace-qualified name. `class_name` returns the SHORT name, and
+        // System.Object is also called "Object" - matching on that made this filter a no-op that
+        // passed 3174 of 3276 classes straight through to FindObjectsOfType.
+        if il2cpp::class_full_name(cur) == "UnityEngine.Object" {
+            return true;
+        }
+        cur = il2cpp::class_parent(cur);
+    }
+    false
+}
+
+#[cfg(feature = "devtools")]
+/// Queue every UI class worth probing. Cheap: metadata only, no live-object walk.
+fn probe_begin() {
     let mut seen: Vec<String> = Vec::new();
+    let mut queue: Vec<(String, usize)> = Vec::new();
+    let mut skipped = 0usize;
     for needle in ["Dialog", "ViewController", "SingleMode", "SupportCardDeck", "Home", "Succession"] {
         for (full, k) in il2cpp::find_classes(needle) {
             if seen.contains(&full) {
                 continue;
             }
-            let ty = il2cpp::type_object(k);
-            if ty.is_null() || unsafe { first_of_type(api, ty).is_null() } {
+            seen.push(full.clone());
+            if !probeable(&full, k) {
+                skipped += 1;
                 continue;
             }
-            seen.push(full.clone());
+            queue.push((full, k as usize));
+        }
+    }
+    log(&format!(
+        "probe: {} classes queued, {skipped} skipped (not UnityEngine.Object) - sweeping at {PROBE_BUDGET_MS}ms/frame",
+        queue.len()
+    ));
+    if let Ok(mut q) = PROBE_QUEUE.lock() {
+        *q = queue;
+    }
+    PROBE_TAIL.store(true, Ordering::Relaxed);
+}
+
+#[cfg(feature = "devtools")]
+/// Drain part of the queue. Main thread only - FindObjectsOfType walks every live object, so this
+/// stops as soon as the frame budget is spent and resumes on the next tick.
+fn probe_step(api: &Api) {
+    let start = std::time::Instant::now();
+    loop {
+        let Some((full, kp)) = PROBE_QUEUE.lock().ok().and_then(|mut q| q.pop()) else {
+            break;
+        };
+        probe_one(api, &full, kp as il2cpp::Class);
+        if start.elapsed().as_millis() >= PROBE_BUDGET_MS {
+            return;
+        }
+    }
+    if PROBE_TAIL.swap(false, Ordering::Relaxed) {
+        probe_static_shapes();
+        log("probe: complete");
+    }
+}
+
+#[cfg(feature = "devtools")]
+/// One class: skip it unless it is actually on screen, then dump its clickable methods and fields.
+fn probe_one(api: &Api, full: &str, k: il2cpp::Class) {
+    {
+            let ty = il2cpp::type_object(k);
+            if ty.is_null() || unsafe { first_of_type(api, ty).is_null() } {
+                return;
+            }
             let clicks: Vec<String> = il2cpp::class_methods(k)
                 .into_iter()
                 .filter(|n| {
@@ -757,8 +854,12 @@ fn probe_live_screen(api: &Api) {
             if !fields.is_empty() {
                 log(&format!("FIELDS {full}: {}", fields.join(" ")));
             }
-        }
     }
+}
+
+#[cfg(feature = "devtools")]
+/// Metadata-only dump: no live objects involved, so this is cheap and runs in one go.
+fn probe_static_shapes() {
     // Static shapes, no instance needed. The live sweep established that the wizard's whole state
     // rides in SingleModeStartViewController.EntryInfo and that friend-card selection passes a
     // FriendCardInfo OBJECT (not an index). What is still unknown is the field layout inside those
@@ -820,7 +921,7 @@ fn probe_live_screen(api: &Api) {
             .collect();
         log(&format!("SHAPE SingleModeStartView.Step: {}", c.join(" ")));
     }
-    log(&format!("screen probe done - {} live classes", seen.len()));
+    log("screen probe: static shapes done");
 }
 
 /// True while a reset is pending, so the button can show progress.
@@ -845,7 +946,8 @@ pub fn poll() {
     }
     let probe = PROBE.swap(false, Ordering::Relaxed);
     let st = STAGE.load(Ordering::Relaxed);
-    if st == stage::IDLE && !probe {
+    // A sweep in progress keeps the pump alive even when idle - it now spans many frames.
+    if st == stage::IDLE && !probe && !probe_pending() {
         return;
     }
     if !il2cpp::ready() {
@@ -858,11 +960,17 @@ pub fn poll() {
     };
 
     #[cfg(feature = "devtools")]
-    if probe {
-        crate::crashlog::step("reset-run:probe");
-        probe_live_screen(api);
-        if st == stage::IDLE {
-            return;
+    {
+        if probe {
+            crate::crashlog::step("reset-run:probe");
+            probe_begin();
+        }
+        if probe_pending() {
+            crate::crashlog::step("reset-run:probe");
+            probe_step(api);
+            if st == stage::IDLE {
+                return;
+            }
         }
     }
 
