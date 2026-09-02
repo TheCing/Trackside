@@ -170,13 +170,12 @@ fn save_to_disk(s: &Store) {
     });
 }
 
+// One log, not two. This module used to append to its own unstamped trackside.log; that
+// split cost a misdiagnosis (a stale session's lines read as the current run) and made
+// its output impossible to correlate with everything else. tools::log is timestamped,
+// sequenced, and goes to trackside-native.log with the rest.
 fn log(msg: &str) {
-    use std::io::Write;
-    if let Ok(mut f) =
-        std::fs::OpenOptions::new().create(true).append(true).open(crate::paths::log_file("trackside.log"))
-    {
-        let _ = writeln!(f, "[pruner] {msg}");
-    }
+    crate::tools::log(&format!("[pruner] {msg}"));
 }
 
 // ── public API consumed by the overlay UI ─────────────────────────────────────
