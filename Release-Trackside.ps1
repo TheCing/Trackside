@@ -371,15 +371,17 @@ $assets = @(
     (Join-Path $StageDir 'Trackside+Hachimi.zip')
 )
 
-if ($Publish) {
-    # Push the BRANCH as well as the tag. Pushing only the tag publishes the released code (the tag
-    # makes those commits reachable) while leaving origin/<branch> pointing at the previous release,
-    # so GitHub's default view shows stale source. v1.0.6 shipped with origin/main 21 commits behind
-    # for exactly this reason.
-    Write-Host "  pushing $branch..." -ForegroundColor Yellow
-    & git -C $RepoDir push origin $branch
-    if ($LASTEXITCODE -ne 0) { Fail "pushing the branch failed (rebase/pull, then re-run with -SkipBuild)." }
+# Push the BRANCH for drafts AND publishes. Pushing only the tag publishes the released code (the
+# tag makes those commits reachable) while leaving origin/<branch> pointing at the previous release,
+# so GitHub's default view shows stale source. v1.0.6 shipped with origin/main 21 commits behind for
+# exactly this reason. A DRAFT needs the branch pushed too: GitHub creates the tag on publish at
+# --target, and that commit has to exist on the remote - v1.0.9's first draft attempt failed here
+# with the branch 10 commits ahead and the reason hidden.
+Write-Host "  pushing $branch..." -ForegroundColor Yellow
+& git -C $RepoDir push origin $branch
+if ($LASTEXITCODE -ne 0) { Fail "pushing the branch failed (rebase/pull, then re-run with -SkipBuild)." }
 
+if ($Publish) {
     Write-Host "  pushing tag $Tag..." -ForegroundColor Yellow
     & git -C $RepoDir push origin $Tag
     if ($LASTEXITCODE -ne 0) { Fail "pushing the tag failed." }
@@ -398,11 +400,14 @@ if ($existing) {
         Write-Host "  flipped the existing draft to published." -ForegroundColor Green
     }
 } else {
-    $ghArgs = @('release','create',$Tag,'--title',"Trackside $Tag",'--notes-file',(Join-Path $StageDir 'NOTES.md'))
+    # --target pins the commit the tag will be created at (a draft's tag is created on publish);
+    # without it GitHub tags the default branch head, which is only right by luck.
+    $sha = (& git -C $RepoDir rev-parse HEAD).Trim()
+    $ghArgs = @('release','create',$Tag,'--target',$sha,'--title',"Trackside $Tag",'--notes-file',(Join-Path $StageDir 'NOTES.md'))
     if (-not $Publish) { $ghArgs += '--draft' }
     $ghArgs += $assets
-    $null = Invoke-Gh @ghArgs
-    if ($GhExit -ne 0) { Fail "gh release create failed." }
+    $ghOut = Invoke-Gh @ghArgs
+    if ($GhExit -ne 0) { Write-Host $ghOut; Fail "gh release create failed (gh output above)." }
 }
 
 # --- dev-only diagnostics must never ship ------------------------------------
