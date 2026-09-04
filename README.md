@@ -4,9 +4,6 @@ In-game **QoL overlay** for **Umamusume Pretty Derby (Steam / Global)** - a sing
 DLL that loads with the game and renders inside it (D3D11 + imgui). No external window, no
 Python, no extra process. Open the game and press **Insert** for the menu.
 
-**Trackside is a fork of [Heaven](https://github.com/Nighty3333/Heaven-Internal-Public-Version-)
-by Night DC (nighty3333)** - fully open source under MIT, with every feature in the open.
-
 > **Disclaimer.** Trackside is an unofficial third-party tool that runs inside the game. Like
 > any mod that touches the game - Hachimi included - using it is against the game's Terms of
 > Service and carries a small but real risk of an account ban. Use it at your own risk; you
