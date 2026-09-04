@@ -144,17 +144,6 @@ Full step-by-step guide (controls, presets, reading the HUD): **[race-director.m
 > (removes the 30/60 lock + vSync override) and measures them exactly. It does **not**
 > synthesise extra "real" frames; true high-refresh rendering is a separate WIP.
 
-### Team Trials capture  (`Capture` → ON)
-Captures your **Team Trials** results as you view them — it reads each trial's result and
-writes it to the Heaven dashboard's data folder, so it keeps working with the existing
-analysis app: **https://github.com/Nighty3333/Heaven**
-
-1. Enable **Team Trials** under `Capture` (it shows `N saved`).
-2. Open your Team Trials results in-game — each one you view is saved automatically.
-3. Browse/analyze them in the dashboard app.
-
-This overlay only does the *capture*; the analysis lives in the dashboard.
-
 ### Team Trials — deck profiles & opponent finder
 A dedicated **Team Trials** menu section with two tools for competitive play.
 
