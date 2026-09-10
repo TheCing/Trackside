@@ -51,7 +51,7 @@
 //! silently.
 //!
 //! Instead: `UnityEngine.Object.FindObjectsOfType(typeof(DialogSingleModeTopMenu))`, the same call
-//! `glasses` already uses. It needs no name, and it returns empty unless the menu is open - which is
+//! the other panel finders use. It needs no name, and it returns empty unless the menu is open - which is
 //! exactly the precondition we wanted anyway, so the "is the menu open?" check and the "get the
 //! instance" step collapse into one.
 //!
@@ -399,7 +399,7 @@ fn finish(code: u8, msg: &str) {
 }
 
 /// First live object of `ty`, or null. Main thread only. 0x20 is the IL2CPP array data offset on
-/// x64, same as `glasses`.
+/// x64, same offset every other FindObjectsOfType caller reads.
 unsafe fn first_of_type(api: &Api, ty: il2cpp::Object) -> *mut c_void {
     if ty.is_null() {
         return std::ptr::null_mut();
