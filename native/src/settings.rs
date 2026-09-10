@@ -365,9 +365,12 @@ pub fn apply_on_boot() {
     crate::race_export::apply(&s);
     crate::friendlyplugins::apply(&s);
     crate::umas::apply(&s);
+    // Read before the move, and seed the lock-free mirror WITHOUT taking the lock a second time.
+    let streamer = s.streamer_mode;
     if let Ok(mut c) = cache().lock() {
         *c = s;
     }
+    STREAMER.store(streamer, Ordering::Relaxed);
     APPLIED.store(true, Ordering::Relaxed);
 }
 
@@ -376,10 +379,23 @@ pub fn apply_on_boot() {
 /// Suppresses the VISIBLE surface: every overlay window, the intro, AND the behaviours a viewer
 /// would notice - all skips and the UI speed-up (see skip::suppressed and ui_tempo::tempo).
 /// Capture, career logging and the hunters keep running, since none of those are visible.
+/// Lock-free mirror of `streamer_mode`. MUST stay lock-free.
+///
+/// This flag is read from `ui_tempo::tempo()` (every frame, from the TweenManager detour on the
+/// main thread), from every skip gate (IL2CPP detours), and - the one that froze every public build
+/// from 1.0.8 to 1.0.9 (issue #8) - from `save_current`, which already HOLDS the settings mutex
+/// when it calls those skip getters. A `std::sync::Mutex` re-locked on its own thread waits
+/// forever, and that thread was the render thread, so Present stopped and the game froze on every
+/// toggle. Reading an atomic here removes the re-entry; `save_current` also no longer calls out
+/// while holding the lock, so a future getter cannot bring it back.
+static STREAMER: AtomicBool = AtomicBool::new(false);
+
 pub fn streamer_mode() -> bool {
-    cache().lock().map(|c| c.streamer_mode).unwrap_or(false)
+    STREAMER.load(Ordering::Relaxed)
 }
 pub fn set_streamer_mode(on: bool) {
+    // Mirror FIRST so the hot paths see the new value immediately, and never behind the lock.
+    STREAMER.store(on, Ordering::Relaxed);
     if let Ok(mut c) = cache().lock() {
         c.streamer_mode = on;
         write_file(&c);
@@ -441,15 +457,27 @@ pub fn save_current() {
     if !APPLIED.load(Ordering::Relaxed) {
         return;
     }
+    // Read every live value BEFORE taking the lock. The getters belong to other modules and are
+    // free to consult settings themselves; one of them did (streamer mode, via the skip gates),
+    // and calling it with the mutex already held deadlocked the render thread on every toggle in
+    // 1.0.8 and 1.0.9. Nothing outside this module runs while the lock is held now.
+    let skip_training = skip::is_train_enabled();
+    let skip_events = skip::is_event_enabled();
+    let skip_shop = skip::is_shop_enabled();
+    let skip_rival = skip::is_rival_enabled();
+    let skip_scene_cutt = skip::is_scene_enabled();
+    let race_result = skip::is_race_result_enabled();
+    let fps = fps::current();
+    let ui_tempo = crate::ui_tempo::tempo();
     if let Ok(mut c) = cache().lock() {
-        c.skip_training = skip::is_train_enabled();
-        c.skip_events = skip::is_event_enabled();
-        c.skip_shop = skip::is_shop_enabled();
-        c.skip_rival = skip::is_rival_enabled();
-        c.skip_scene_cutt = skip::is_scene_enabled();
-        c.race_result = skip::is_race_result_enabled();
-        c.fps = fps::current();
-        c.ui_tempo = crate::ui_tempo::tempo();
+        c.skip_training = skip_training;
+        c.skip_events = skip_events;
+        c.skip_shop = skip_shop;
+        c.skip_rival = skip_rival;
+        c.skip_scene_cutt = skip_scene_cutt;
+        c.race_result = race_result;
+        c.fps = fps;
+        c.ui_tempo = ui_tempo;
         write_file(&c);
     }
 }
@@ -999,5 +1027,28 @@ pub fn set_skill_filter_preset(id: i32) {
     if let Ok(mut c) = cache().lock() {
         c.skill_filter_preset = id;
         write_file(&c);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The 1.0.8 / 1.0.9 public hang (issue #8): `save_current` held the settings mutex and called
+    /// getters that took it again. A `std::sync::Mutex` re-locked on its own thread waits forever,
+    /// on the render thread, so Present stopped and the whole game froze on every toggle. Run it on
+    /// a worker with a deadline: a regression shows up as a failed assertion, not a hung test run.
+    #[test]
+    fn save_current_never_reenters_the_settings_lock() {
+        APPLIED.store(true, Ordering::Relaxed);
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            save_current();
+            let _ = tx.send(());
+        });
+        assert!(
+            rx.recv_timeout(std::time::Duration::from_secs(5)).is_ok(),
+            "save_current deadlocked: something it calls re-enters the settings mutex"
+        );
     }
 }
