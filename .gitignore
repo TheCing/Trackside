@@ -41,3 +41,6 @@ Deploy-Trackside.ps1
 # The private release SCRIPT is deliberately not ignored: it lives on trackside-private,
 # which is never pushed, and merges only ever run main -> private.
 .trackside-update-token.txt
+
+# written next to the test binary by settings::tests (save_current persists off-thread)
+native/trackside-settings.json
