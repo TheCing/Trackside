@@ -1329,6 +1329,20 @@
   "skill_category": 5,
   "disp_order": 10
  },
+ "110211": {
+  "name": "Lightning Flare",
+  "rarity": 5,
+  "group_id": 11021,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
  "110221": {
   "name": "Best Day Ever",
   "rarity": 5,
@@ -1388,6 +1402,20 @@
   "disable_singlemode": 1,
   "tags": [],
   "icon_id": 20023,
+  "skill_category": 5,
+  "disp_order": 10
+ },
+ "110341": {
+  "name": "Firelight",
+  "rarity": 5,
+  "group_id": 11034,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20013,
   "skill_category": 5,
   "disp_order": 10
  },
@@ -8701,6 +8729,20 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "910211": {
+  "name": "Lightning Flare",
+  "rarity": 1,
+  "group_id": 91021,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "910221": {
   "name": "Best day ever",
   "rarity": 1,
@@ -8760,6 +8802,20 @@
   "disable_singlemode": 1,
   "tags": [],
   "icon_id": 20021,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "910341": {
+  "name": "Firelight",
+  "rarity": 1,
+  "group_id": 91034,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
   "skill_category": 5,
   "disp_order": 30
  },
