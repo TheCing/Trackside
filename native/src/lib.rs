@@ -84,6 +84,9 @@ mod career_log;
 mod selfupdate;
 mod settings;
 mod skill_advisor;
+mod ttplay;
+mod horseact;
+mod race_summary;
 // Event title lookup (story_id → title) for the SuperSkip event breadcrumb.
 mod event_titles;
 // Apply Optimal: drives the skill-learn screen to select the advisor's picks (scaffold —
@@ -129,6 +132,11 @@ impl HeavenOverlay {
         intro_player::spawn_capture();
         // Preview-host design aids (no-op unless the matching TRACKSIDE_*_MOCK env var is set).
         skill_advisor::mock_for_preview();
+        roomfinder::mock_for_preview();
+        roomwatch::mock_for_preview();
+        horseact::mock_for_preview();
+        race_summary::mock_for_preview();
+        ttplay::mock_for_preview();
         HeavenOverlay::new()
     }
 }

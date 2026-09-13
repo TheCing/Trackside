@@ -173,6 +173,11 @@ fn set_vet_status(msg: String) {
 }
 
 fn save(arr_addr: usize, count: usize) {
+    if crate::friendlyplugins::horseact_active() {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| crate::tools::log("[umas] horseACT is active - built-in export stands down"));
+        return;
+    }
     if count == 0 {
         return; // empty array — ignore (never blank out the file)
     }

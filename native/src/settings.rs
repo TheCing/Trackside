@@ -160,6 +160,8 @@ pub struct Settings {
     pub tele_winprob: bool,
     #[serde(default = "default_true")]
     pub tele_pace: bool,
+    /// Post-race summary window (finish order, stats, skill triggers). Default on.
+    pub race_summary: bool,
     #[serde(default = "default_true")]
     pub tele_battle: bool,
     #[serde(default = "default_true")]
@@ -295,6 +297,7 @@ impl Default for Settings {
             tele_tower: true,
             tele_winprob: true,
             tele_pace: true,
+            race_summary: true,
             tele_battle: true,
             tele_marker: true,
             tele_scale: 1.0,
@@ -819,6 +822,8 @@ pub fn tele_skills() -> bool { cache().lock().map(|c| c.tele_skills).unwrap_or(t
 pub fn tele_tower() -> bool { cache().lock().map(|c| c.tele_tower).unwrap_or(true) }
 pub fn tele_winprob() -> bool { cache().lock().map(|c| c.tele_winprob).unwrap_or(true) }
 pub fn tele_pace() -> bool { cache().lock().map(|c| c.tele_pace).unwrap_or(true) }
+pub fn race_summary() -> bool { cache().lock().map(|c| c.race_summary).unwrap_or(true) }
+pub fn set_race_summary(v: bool) { if let Ok(mut c) = cache().lock() { c.race_summary = v; write_file(&c); } }
 pub fn tele_battle() -> bool { cache().lock().map(|c| c.tele_battle).unwrap_or(true) }
 pub fn tele_marker() -> bool { cache().lock().map(|c| c.tele_marker).unwrap_or(true) }
 pub fn tele_scale() -> f32 { cache().lock().map(|c| c.tele_scale).unwrap_or(1.0) }

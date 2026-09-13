@@ -16,6 +16,12 @@
 
 #![allow(dead_code)]
 
+/// horseACT itself is running as a plugin this session (see `horseact`). The native race, Team
+/// Trials and veterans exporters stand down while this is true, so nothing is dumped twice.
+pub fn horseact_active() -> bool {
+    crate::horseact::active()
+}
+
 /// The CarrotBlender-equivalent companion feed (game responses → companion overlays over UDP).
 /// Default ON: it's passive (only does anything when an overlay actually connects).
 pub fn bridge_enabled() -> bool {

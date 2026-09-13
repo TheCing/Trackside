@@ -2007,13 +2007,16 @@ pub(crate) fn draw_keybinds_panel(ui: &hudhook::imgui::Ui, w: f32) {
             ui.same_line();
             ui.text_colored(BAD, "(dup)");
         }
-        ui.same_line_with_pos((w - 92.0).max(108.0));
-        ui.set_cursor_screen_pos([ui.cursor_screen_pos()[0], row_y]);
         let keytxt = if cap == idx as i32 {
             "press a key…".to_string()
         } else {
             vk_name(crate::settings::rd_key(idx))
         };
+        // Right-align: `btn` is text + 15 px padding a side, so end every key at the inner edge
+        // like the toggles do, instead of a fixed column with ragged right ends.
+        let bw = ui.calc_text_size(&keytxt)[0] + 30.0;
+        ui.same_line_with_pos((w - bw).max(108.0));
+        ui.set_cursor_screen_pos([ui.cursor_screen_pos()[0], row_y]);
         if btn(ui, &format!("##rdk{idx}"), &keytxt) {
             // toggle: clicking the armed one again cancels
             crate::freecam::rd_capture_start(if cap == idx as i32 { -1 } else { idx as i32 });

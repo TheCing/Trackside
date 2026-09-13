@@ -267,6 +267,11 @@ unsafe fn extract(response: *mut RawObject) -> Option<Value> {
 }
 
 fn save(val: Value) {
+    if crate::friendlyplugins::horseact_active() {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| crate::tools::log("[htt] horseACT is active - built-in export stands down"));
+        return;
+    }
     let trial_id = val.get("trial_id").and_then(|v| v.as_str()).unwrap_or("tt_unknown").to_string();
     // Write into the Heaven dashboard's own data folder (portable across PCs).
     let dir = crate::paths::tt_capture_dir();

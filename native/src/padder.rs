@@ -703,7 +703,7 @@ mod il2cpp_bridge {
 /// each Uma by its stable trained_chara_id, so they survive inventory reordering.
 pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
     use hudhook::imgui::Ui;
-    use crate::overlay::{accent, btn_primary, help_icon, icon_btn, status_dot, DIM, GOOD, TEXT, WARN};
+    use crate::overlay::{accent, help_icon, icon_btn, DIM, GOOD, TEXT, WARN};
     use std::cell::{Cell, RefCell};
     thread_local! {
         static NEWBUF: RefCell<String> = RefCell::new(String::new());
@@ -717,14 +717,31 @@ pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
     let profiles = crate::padder::list();
 
     ui.dummy([0.0, 4.0]);
-    if crate::padder::edit_screen_open() {
-        status_dot(ui, GOOD, "Edit screen ready");
-    } else {
-        status_dot(ui, WARN, "Open the team-edit screen");
+    {
+        use crate::overlay::{auto_card, auto_card_end, chip_row_right, pulse_label};
+        let ready = crate::padder::edit_screen_open();
+        let w = ui.content_region_avail()[0].min(w);
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let h = pad + lh + 10.0 + pad - 10.0;
+        let p = auto_card(ui, w, h, ready);
+        let x = p[0] + pad;
+        let y = p[1] + pad;
+        ui.set_cursor_screen_pos([x, y]);
+        let (col, label) = if ready {
+            (GOOD, "Ready \u{00b7} team editor open")
+        } else {
+            (WARN, "Open the team-edit screen")
+        };
+        pulse_label(ui, "pad_dot", col, false, if ready { TEXT } else { col }, label);
+        ui.same_line();
+        help_icon(ui, "Save your team as a profile, then Apply to swap all 15 Umas in the in-game editor (then press the game's Confirm to save). Profiles pin each Uma by id, so they survive inventory changes.");
+        let n = profiles.len();
+        let chips = vec![format!("{n} profile{}", if n == 1 { "" } else { "s" })];
+        chip_row_right(ui, &chips, iw, y - 1.0);
+        auto_card_end(ui, p, h);
     }
-    ui.same_line();
-    help_icon(ui, "Save your team as a profile, then Apply to swap all 15 Umas in the in-game editor (then press the game's Confirm to save). Profiles pin each Uma by id, so they survive inventory changes.");
-    ui.dummy([0.0, 8.0]);
 
     // ── existing profiles ──
     for (i, (name, n)) in profiles.iter().enumerate() {
@@ -804,7 +821,7 @@ pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
             let _ = ui.input_text("##ttnew", &mut s).hint("profile name").build();
         });
         ui.same_line();
-        if btn_primary(ui, "##ttsave", "Save current") {
+        if crate::overlay::btn_primary_sized(ui, "##ttsave", "Save current", ui.frame_height()) {
             let name = NEWBUF.with(|b| b.borrow().clone());
             match crate::padder::save_current(&name) {
                 Ok(saved) => {

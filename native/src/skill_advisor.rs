@@ -13,7 +13,10 @@ use std::sync::{Mutex, OnceLock};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 
-use crate::overlay::{accent, btn_primary_enabled, help_icon, status_dot, text_wrapped_colored, DIM, GOOD, TEXT, WARN};
+use crate::overlay::{
+    accent, auto_card, auto_card_end, btn_primary_enabled, chip_row_right, help_icon, opt_chip, opt_semibold,
+    pulse_label, rule, status_dot, text_wrapped_colored, DIM, GOOD, TEXT, WARN,
+};
 
 const RANK_RANGES_JSON: &str = include_str!("../../data/rank_ranges.json");
 const CARD_CHARA_JSON: &str = include_str!("../../data/card_chara.json");
@@ -1630,86 +1633,130 @@ pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
     // Clone out so the worker never contends with a frame mid-draw.
     let res = result_slot().lock().ok().and_then(|guard| guard.clone());
     if let Some(res) = res {
-        draw_results(ui, &res);
+        draw_results(ui, &res, w);
     }
 }
 
-fn draw_results(ui: &hudhook::imgui::Ui, res: &RecommendResult) {
+/// One result row: name (+ dim detail) on the left, chips flush right. Rows are 26 px tall so a
+/// following `via` line or the next row never collides with the chips.
+fn result_row(ui: &hudhook::imgui::Ui, name_col: [f32; 4], name: &str, detail: &str, chips: &[String], w: f32) {
+    let row_y = ui.cursor_screen_pos()[1];
+    let x = ui.cursor_screen_pos()[0];
+    // Leave room for the chips so a long skill name is clipped instead of running under them.
+    let chips_w: f32 = chips.iter().map(|s| ui.calc_text_size(s)[0] + 16.0 + 6.0).sum();
+    let name_w = (w - chips_w - 8.0).max(60.0);
+    {
+        // Draw-list text under a clip rect (imgui-rs 0.11 has no cursor-level clip push).
+        let dl = ui.get_window_draw_list();
+        let ty = row_y + 2.0;
+        dl.with_clip_rect_intersect([x, row_y - 2.0], [x + name_w, row_y + 24.0], || {
+            let _t = opt_semibold(ui, false);
+            dl.add_text([x, ty], name_col, name);
+            if !detail.is_empty() {
+                let nw = ui.calc_text_size(name)[0];
+                drop(_t);
+                dl.add_text([x + nw + 6.0, ty], DIM, detail);
+            }
+        });
+    }
+    chip_row_right(ui, chips, w, row_y);
+    ui.set_cursor_screen_pos([x, row_y + 26.0]);
+}
+
+fn draw_results(ui: &hudhook::imgui::Ui, res: &RecommendResult, w: f32) {
     ui.dummy([0.0, 8.0]);
+    let w = ui.content_region_avail()[0].min(w);
     let delta = res.projected.total - res.current.total;
-    text_wrapped_colored(
-        ui,
-        TEXT,
-        &format!(
-            "Rating {} → {} (+{})  |  SP {} / spent {} / left {}",
-            res.current.total,
-            res.projected.total,
-            delta,
-            res.budget,
-            res.spent,
-            res.budget - res.spent
-        ),
-    );
-    text_wrapped_colored(
-        ui,
-        DIM,
-        &format!(
-            "stats {} + skills {} → {} + unique {}",
-            res.current.stats,
-            res.current.skills,
-            res.projected.skills,
-            res.current.unique
-        ),
-    );
-    ui.dummy([0.0, 6.0]);
+    let left = res.budget - res.spent;
+
+    // Summary card: the headline rating move, chips for the SP story, breakdown underneath.
+    {
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let h = pad + lh + 10.0 + lh + 6.0 + pad - 10.0;
+        let p = auto_card(ui, w, h, delta > 0);
+        let x = p[0] + pad;
+        let mut y = p[1] + pad;
+        ui.set_cursor_screen_pos([x, y]);
+        pulse_label(
+            ui,
+            "sk_dot",
+            if delta > 0 { GOOD } else { DIM },
+            false,
+            TEXT,
+            &format!("Rating {} \u{2192} {}", res.current.total, res.projected.total),
+        );
+        let chips = vec![format!("{delta:+}"), format!("{} / {} SP", res.spent, res.budget), format!("{left} left")];
+        chip_row_right(ui, &chips, iw, y - 1.0);
+        y += lh + 10.0;
+        ui.set_cursor_screen_pos([x, y]);
+        ui.text_colored(
+            DIM,
+            &format!(
+                "stats {} \u{00b7} skills {} \u{2192} {} \u{00b7} unique {}",
+                res.current.stats, res.current.skills, res.projected.skills, res.current.unique
+            ),
+        );
+        auto_card_end(ui, p, h);
+    }
+
     if res.selected.is_empty() && res.skipped.is_empty() {
         text_wrapped_colored(ui, WARN, "No purchasable skills found for these filters.");
-    } else {
-        if !res.selected.is_empty() {
-            ui.text_colored(accent(), "Buy:");
-            for it in res.selected.iter() {
-                let hint = if it.hint_level > 0 {
-                    format!(" (hint Lv{})", it.hint_level)
-                } else {
-                    String::new()
-                };
-                let role = if it.role.is_empty() {
-                    String::new()
-                } else {
-                    format!(" [{}]", it.role)
-                };
-                ui.text_colored(
-                    GOOD,
-                    &format!(
-                        "\u{00b7} {}{}{} — {} SP  +{}",
-                        it.name, hint, role, it.cost, it.grade
-                    ),
-                );
-                if it.chain.len() > 1 {
-                    let via: Vec<String> = it.chain[..it.chain.len() - 1]
-                        .iter()
-                        .map(|c| format!("{} ({})", c.name, c.cost))
-                        .collect();
-                    ui.text_colored(DIM, &format!("  via {}", via.join(" → ")));
+        return;
+    }
+    if !res.selected.is_empty() {
+        {
+            let _t = opt_semibold(ui, false);
+            ui.text_colored(accent(), "BUY");
+        }
+        ui.same_line_with_spacing(0.0, 8.0);
+        opt_chip(ui, &format!("{}", res.selected.len()), crate::theme::accent_a(0.14), TEXT, None);
+        ui.dummy([0.0, 2.0]);
+        rule(ui, w);
+        ui.dummy([0.0, 4.0]);
+        for it in res.selected.iter() {
+            let mut detail = String::new();
+            if it.hint_level > 0 {
+                detail.push_str(&format!("hint Lv{}", it.hint_level));
+            }
+            if !it.role.is_empty() {
+                if !detail.is_empty() {
+                    detail.push_str(" \u{00b7} ");
                 }
+                detail.push_str(&it.role);
+            }
+            let chips = vec![format!("{} SP", it.cost), format!("+{}", it.grade)];
+            result_row(ui, TEXT, &it.name, &detail, &chips, w);
+            if it.chain.len() > 1 {
+                let via: Vec<String> = it.chain[..it.chain.len() - 1]
+                    .iter()
+                    .map(|c| format!("{} ({})", c.name, c.cost))
+                    .collect();
+                let p = ui.cursor_screen_pos();
+                ui.set_cursor_screen_pos([p[0] + 14.0, p[1] - 4.0]);
+                ui.text_colored(DIM, &format!("via {}", via.join(" \u{2192} ")));
+                ui.dummy([0.0, 2.0]);
             }
         }
-        if !res.skipped.is_empty() {
-            ui.dummy([0.0, 4.0]);
-            ui.text_colored(DIM, "Not bought (top 10 by rating/SP):");
-            let bought_groups: HashSet<i32> = res.selected.iter().map(|it| it.group_id).collect();
-            for it in res.skipped.iter().take(10) {
-                // Same group as a buy = excluded by the chain mutex, not by budget.
-                let mutex = if bought_groups.contains(&it.group_id) {
-                    "  (other tier of a buy)"
-                } else {
-                    ""
-                };
-                ui.text_colored(
-                    TEXT,
-                    &format!("\u{00b7} {} — {} SP  +{}{}", it.name, it.cost, it.grade, mutex),
-                );
-            }
+    }
+    if !res.skipped.is_empty() {
+        ui.dummy([0.0, 6.0]);
+        {
+            let _t = opt_semibold(ui, false);
+            ui.text_colored(DIM, "NOT BOUGHT");
+        }
+        ui.same_line_with_spacing(0.0, 8.0);
+        ui.text_colored(DIM, "top 10 by rating per SP");
+        ui.dummy([0.0, 2.0]);
+        rule(ui, w);
+        ui.dummy([0.0, 4.0]);
+        let bought_groups: HashSet<i32> = res.selected.iter().map(|it| it.group_id).collect();
+        for it in res.skipped.iter().take(10) {
+            // Same group as a buy = excluded by the chain mutex, not by budget.
+            let detail = if bought_groups.contains(&it.group_id) { "other tier of a buy" } else { "" };
+            let chips = vec![format!("{} SP", it.cost), format!("+{}", it.grade)];
+            result_row(ui, [0.78, 0.78, 0.84, 1.0], &it.name, detail, &chips, w);
         }
     }
 }

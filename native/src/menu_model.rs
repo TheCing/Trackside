@@ -50,6 +50,10 @@ pub enum Ctrl {
     },
     /// Static descriptive line under a section header.
     Note(&'static str),
+    /// Info icon with this tooltip, attached to the control just before it (a Toggle gets the icon
+    /// beside its label; anything else gets it on the same row). Long explanations belong here,
+    /// not in a `Note` paragraph.
+    Help(&'static str),
     /// Hand-drawn block the renderer dispatches to its own bespoke code (preserves
     /// every premium custom widget unchanged).
     Custom(Custom),
@@ -64,11 +68,14 @@ pub enum Custom {
     TeamTrials,      // capture toggle + "N saved" count
     TtPadder,        // Team Trials deck profiles — snapshot + 1-click swap
     TtHunter,        // Team Trials opponent hunter — auto-refresh until a target appears
+    TtPlayer,        // Team Trials auto-player — run races back to back until race points run out
     Followers,       // Follower pruner — preview + paced removal of oldest-inactive followers
     RoomFinder,      // Room Match finder — auto-refresh the room list until a room matches the filters
     RoomWatcher,     // Room Match watcher — run every signed-up race that is ready, back to back
     SkillAdvisor,    // End-of-career skill buy optimizer (manual Gameplay tab)
     CareerLog,
+    HorseAct,        // horseACT plugin manager — install / update / active state
+    RaceSummary,     // post-race summary — reopen button + last race line
     ResetRun,        // Give up the current career and start the next (two-click confirm)
     ScreenProbe,     // Dev: dump the live screen's classes + buttons (About -> Diagnostics)       // Career Log — toggle + on-disk/session status
     UmaExtract,      // Veterans data.json export (UmaExtractor format) — button + live status
@@ -90,11 +97,14 @@ impl Custom {
             Custom::TeamTrials => "ui:teamtrials",
             Custom::TtPadder => "ui:ttpadder",
             Custom::TtHunter => "ui:tthunter",
+            Custom::TtPlayer => "ui:ttplayer",
             Custom::Followers => "ui:followers",
             Custom::RoomFinder => "ui:roomfinder",
             Custom::RoomWatcher => "ui:roomwatch",
             Custom::SkillAdvisor => "ui:skilladvisor",
             Custom::CareerLog => "ui:careerlog",
+            Custom::HorseAct => "ui:horseact",
+            Custom::RaceSummary => "ui:racesummary",
             Custom::ResetRun => "ui:resetrun",
             Custom::ScreenProbe => "ui:screenprobe",
             Custom::UmaExtract => "ui:umaextract",
@@ -256,9 +266,15 @@ pub fn model() -> Vec<Tab> {
                 controls: vec![Ctrl::Custom(Custom::TtHunter)],
             },
             Section {
+                title: "Auto player",
+                icon: '\u{E768}',
+                blurb: "Run Team Trials races back to back until your race points run out.",
+                controls: vec![Ctrl::Custom(Custom::TtPlayer)],
+            },
+            Section {
                 title: "TT Capture",
                 icon: '\u{E74E}',
-                blurb: "Saved results are read by the Trackside dashboard.",
+                blurb: "Saves every Team Trials result to your local Trackside data folder for later analysis.",
                 controls: vec![Ctrl::Custom(Custom::TeamTrials)],
             },
         ],
@@ -315,6 +331,16 @@ pub fn model() -> Vec<Tab> {
                 controls: vec![Ctrl::Custom(Custom::KeyBinds)],
             },
             // 3) Telemetry — the whole broadcast HUD (independent of freecam), with its panels.
+            Section {
+                title: "Race summary",
+                icon: '\u{E9D9}',
+                blurb: "After every race: finish order, each runner's stats, and the skills that fired.",
+                controls: vec![
+                    Ctrl::Toggle { id: "rsum", label: "Show after each race", get: crate::settings::race_summary, set: crate::settings::set_race_summary },
+                    Ctrl::Help("Built from the game's own race simulation the moment the result panel appears - watched or skipped. Click a runner to see when and where each skill fired; debuffs show who they hit. Close it with the X; it comes back after the next race."),
+                    Ctrl::Custom(Custom::RaceSummary),
+                ],
+            },
             Section {
                 title: "Telemetry",
                 icon: '\u{E9D9}',
@@ -455,10 +481,11 @@ pub fn model() -> Vec<Tab> {
         sections: vec![Section {
             title: "Companion plugins",
             icon: '\u{E7C3}',
-            blurb: "Built-in stand-ins for horseACT and CarrotBlender — no external DLLs needed.",
+            blurb: "horseACT runs here as a plugin, straight from its own releases. The built-in exporters stay as a fallback and stand down while it is active.",
             controls: vec![
-                Ctrl::Toggle { id: "rex", label: "Export races (horseACT)", get: crate::settings::race_export, set: crate::settings::set_race_export },
-                Ctrl::Toggle { id: "vex", label: "Export veterans (Hakuraku)", get: crate::settings::umas_export, set: crate::settings::set_umas_export },
+                Ctrl::Custom(Custom::HorseAct),
+                Ctrl::Toggle { id: "rex", label: "Legacy race export (built-in)", get: crate::settings::race_export, set: crate::settings::set_race_export },
+                Ctrl::Toggle { id: "vex", label: "Legacy veterans export (built-in)", get: crate::settings::umas_export, set: crate::settings::set_umas_export },
                 Ctrl::Toggle { id: "cbr", label: "Companion feed (CarrotBlender)", get: crate::friendlyplugins::bridge_enabled, set: crate::friendlyplugins::set_bridge_enabled },
                 Ctrl::Custom(Custom::UmaExtract),
             ],

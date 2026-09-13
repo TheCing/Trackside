@@ -141,7 +141,7 @@ pub fn course_distance() -> i32 {
     COURSE_DIST.load(Ordering::Relaxed)
 }
 
-fn track_name(id: i32) -> String {
+pub(crate) fn track_name(id: i32) -> String {
     match id {
         10001 => "Sapporo",
         10002 => "Hakodate",

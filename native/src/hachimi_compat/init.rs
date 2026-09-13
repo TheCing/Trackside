@@ -7,8 +7,9 @@ use std::ffi::OsStr;
 use std::os::windows::ffi::OsStrExt;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Mutex;
 
-use windows_sys::Win32::System::LibraryLoader::{GetModuleHandleW, LoadLibraryW};
+use windows_sys::Win32::System::LibraryLoader::{GetModuleFileNameW, GetModuleHandleW, LoadLibraryW};
 
 use super::il2cpp_api::api;
 use super::vtable::VTABLE;
@@ -20,6 +21,31 @@ use super::{plog, sym, HachimiInitFn, InitResult, SDK_VERSION};
 static SDK_LOADED: AtomicU32 = AtomicU32::new(0);
 pub fn sdk_plugins_loaded() -> u32 {
     SDK_LOADED.load(Ordering::Relaxed)
+}
+
+/// File names of the plugins whose `hachimi_init` returned Ok this session.
+static ACTIVE: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+/// Did a plugin with this file name (case-insensitive) initialise this session?
+pub fn plugin_active(name: &str) -> bool {
+    ACTIVE.lock().map(|v| v.iter().any(|n| n.eq_ignore_ascii_case(name))).unwrap_or(false)
+}
+
+/// Did any plugin OTHER than the named one initialise this session?
+pub fn other_plugin_active(except: &str) -> bool {
+    ACTIVE.lock().map(|v| v.iter().any(|n| !n.eq_ignore_ascii_case(except))).unwrap_or(false)
+}
+
+/// Full path of the module already loaded under this file name, if any.
+fn loaded_module_path(file_name: &str) -> Option<String> {
+    let w = wide(OsStr::new(file_name));
+    let h = unsafe { GetModuleHandleW(w.as_ptr()) };
+    if h.is_null() {
+        return None;
+    }
+    let mut buf = [0u16; 1024];
+    let n = unsafe { GetModuleFileNameW(h, buf.as_mut_ptr(), buf.len() as u32) } as usize;
+    (n > 0).then(|| String::from_utf16_lossy(&buf[..n]))
 }
 
 fn wide(s: &OsStr) -> Vec<u16> {
@@ -53,6 +79,17 @@ pub fn init_plugins() -> String {
     let mut notes = String::new();
     for path in &dlls {
         let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("?").to_string();
+        // A module with this name already loaded from SOMEWHERE ELSE is being hosted by another
+        // loader (Hachimi's `load_libraries`, in the Hachimi build). Initialising our copy too
+        // would install every hook twice. Leave it to them.
+        if let Some(loaded) = loaded_module_path(&name) {
+            let ours = path.to_string_lossy().to_ascii_lowercase();
+            if loaded.to_ascii_lowercase() != ours {
+                plog(&format!("{name}: already loaded from {loaded} - hosted elsewhere, skipped"));
+                notes.push_str(&format!(" [{name}: hosted elsewhere, skipped]"));
+                continue;
+            }
+        }
         let w = wide(path.as_os_str());
         let mut handle = unsafe { GetModuleHandleW(w.as_ptr()) };
         if handle.is_null() {
@@ -70,6 +107,9 @@ pub fn init_plugins() -> String {
         let res = unsafe { init(&VTABLE, SDK_VERSION) };
         if res == InitResult::Ok {
             inited += 1;
+            if let Ok(mut v) = ACTIVE.lock() {
+                v.push(name.clone());
+            }
             plog(&format!("init OK: {name}"));
             notes.push_str(&format!(" [{name}: OK]"));
         } else {

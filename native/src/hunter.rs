@@ -570,7 +570,7 @@ pub fn install() -> String {
 
 // ── UI panel (Team Trials → Opponent Hunter), rendered by the overlay ──────────
 pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
-    use crate::overlay::{accent, btn, btn_primary, help_icon, status_dot, DIM, GOOD, TEXT, WARN};
+    use crate::overlay::{accent, btn, btn_primary, help_icon, DIM, GOOD, TEXT, WARN};
     use std::cell::{Cell, RefCell};
     thread_local! {
         static NAMEBUF: RefCell<String> = RefCell::new(String::new());
@@ -586,14 +586,45 @@ pub(crate) fn draw_panel(ui: &hudhook::imgui::Ui, w: f32) {
         VIDBUF.with(|b| *b.borrow_mut() = sv);
     }
     ui.dummy([0.0, 4.0]);
-    if crate::hunter::screen_open() {
-        status_dot(ui, GOOD, "Select Opponent ready");
-    } else {
-        status_dot(ui, WARN, "Open Select Opponent");
+    {
+        use crate::overlay::{auto_card, auto_card_end, chip_row_right, pulse_label};
+        let hunting_now = crate::hunter::is_hunting();
+        let found = crate::hunter::found();
+        let w = ui.content_region_avail()[0].min(w);
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let h = pad + lh + 10.0 + pad - 10.0;
+        let p = auto_card(ui, w, h, hunting_now);
+        let x = p[0] + pad;
+        let y = p[1] + pad;
+        ui.set_cursor_screen_pos([x, y]);
+        let (col, label) = if found {
+            (GOOD, format!("Found \u{00b7} {}", crate::hunter::found_name()))
+        } else if hunting_now {
+            (GOOD, format!("Hunting \u{00b7} roll {}", crate::hunter::rolls()))
+        } else if crate::hunter::screen_open() {
+            (GOOD, "Ready \u{00b7} Select Opponent open".to_string())
+        } else {
+            (WARN, "Open Select Opponent".to_string())
+        };
+        pulse_label(ui, "hunt_dot", col, hunting_now && !found, if hunting_now || found { TEXT } else { col }, &label);
+        ui.same_line();
+        help_icon(ui, "Auto-refreshes the opponent list until one of your targets shows up, then stops and alerts. Match by trainer name and/or exact viewer ID - list several of either, separated by commas, and the hunt stops on whichever appears first. The pool is random, so a single target may take many rolls (or not appear); more candidates means fewer rolls.");
+        let (names, vids) = crate::hunter::saved_target();
+        let mut chips: Vec<String> = names
+            .split(',')
+            .chain(vids.split(','))
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .take(3)
+            .collect();
+        if chips.is_empty() {
+            chips.push("no targets yet".into());
+        }
+        chip_row_right(ui, &chips, iw, y - 1.0);
+        auto_card_end(ui, p, h);
     }
-    ui.same_line();
-    help_icon(ui, "Auto-refreshes the opponent list until one of your targets shows up, then stops and alerts. Match by trainer name and/or exact viewer ID - list several of either, separated by commas, and the hunt stops on whichever appears first. The pool is random, so a single target may take many rolls (or not appear); more candidates means fewer rolls.");
-    ui.dummy([0.0, 8.0]);
 
     let hunting = crate::hunter::is_hunting();
     if !hunting {

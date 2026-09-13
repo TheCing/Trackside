@@ -225,15 +225,15 @@ fn reset_button(ui: &Ui) {
 /// the content width for the combo.
 fn version_switch_ui(ui: &Ui, w: f32) {
     use std::sync::atomic::Ordering::Relaxed;
-    ui.text_colored(DIM, "Switch / downgrade version");
     let vers = crate::selfupdate::versions();
     if vers.is_empty() {
-        ui.same_line();
-        if ui.small_button("Show##showvers") {
+        label_beside(ui, DIM, "Switch / downgrade version", 32.0);
+        if btn(ui, "##showvers", "Show") {
             crate::selfupdate::list_versions();
         }
         return;
     }
+    ui.text_colored(DIM, "Switch / downgrade version");
     let labels: Vec<&str> = vers.iter().map(|(t, _)| t.as_str()).collect();
     let mut sel = VERSION_SEL.load(Relaxed);
     if sel >= labels.len() {
@@ -446,6 +446,7 @@ pub struct HeavenOverlay {
     toggle_was_down: bool, // edge-detect the menu key so holding it doesn't toggle repeatedly
     tab: usize, // selected sidebar category
     prev_tab: usize, // last frame's tab — detects switches to trigger the content fade-in
+    preview_tab: Option<String>, // preview host only: tab to select on the first frame (by name)
     rail_right: bool,
     relayout: bool,
     fps_on: bool,
@@ -565,11 +566,15 @@ impl HeavenOverlay {
         crate::theme::apply_from_settings();
         let cur = crate::performance::fps::current();
         let (ex, ey) = crate::settings::energy_pos();
+        // Preview host: TRACKSIDE_PREVIEW_OPEN=<tab name> starts with the menu open on that tab, so
+        // a capture needs no clicking. Inert in-game (the var is never set there).
+        let preview_open = std::env::var("TRACKSIDE_PREVIEW_OPEN").ok().filter(|s| !s.is_empty());
         Self {
-            show: false,
+            show: preview_open.is_some(),
             toggle_was_down: false,
             tab: 0,
             prev_tab: 0,
+            preview_tab: preview_open,
             rail_right: crate::settings::rail_right(),
             relayout: true, // snap to the rail on first frame
             fps_on: cur > 0,
@@ -1099,6 +1104,10 @@ impl ImguiRenderLoop for HeavenOverlay {
         if crate::skill_advisor::window_open() {
             draw_skill_optimizer(ui);
         }
+        // Race summary — floating, auto-shown when the result panel comes up after a race.
+        if crate::race_summary::window_open() {
+            draw_race_summary_window(ui);
+        }
 
         // First-launch hint: until the user opens the menu once, show which key opens it
         // (otherwise a closed menu with an unknown key leaves them stuck).
@@ -1222,6 +1231,12 @@ impl HeavenOverlay {
         let menu = crate::menu_model::model();
         #[allow(unused_mut)]
         let mut tabs: Vec<&str> = menu.iter().map(|t| t.name).collect();
+        if let Some(name) = self.preview_tab.take() {
+            if let Some(i) = tabs.iter().position(|t| t.eq_ignore_ascii_case(&name)) {
+                self.tab = i;
+                self.prev_tab = i;
+            }
+        }
         if self.tab >= tabs.len() {
             self.tab = 0;
         }
@@ -1595,16 +1610,18 @@ impl HeavenOverlay {
                             let last = si + 1 == n_sec;
                             let title_up = sec.title.to_uppercase();
                             let glyph = sec.icon.to_string();
-                            card(ui, cw, sec.title, first, last, || {
+                            card(ui, cw, sec.title, first, last, |cw| {
                                 use crate::menu_model::{Ctrl, Custom};
-                                // Wrap ALL text in this card at the content edge — plain
-                                // text_colored (blurbs, notes, values) otherwise bleeds off.
-                                let _wrap = ui.push_text_wrap_pos();
-                                section(ui, icon_font, &glyph, &title_up);
+                                // Wrap ALL text in this card at the INNER right edge (not the
+                                // window edge) so prose keeps the same margin as the widgets.
+                                let _wrap = ui.push_text_wrap_pos_with_pos(ui.cursor_pos()[0] + cw);
+                                section(ui, icon_font, &glyph, &title_up, cw);
                                 if !sec.blurb.is_empty() {
                                     ui.text_colored(DIM, sec.blurb);
                                 }
-                                for c in &sec.controls {
+                                for (ci, c) in sec.controls.iter().enumerate() {
+                                    let prev = ci.checked_sub(1).and_then(|i| sec.controls.get(i));
+                                    let next = sec.controls.get(ci + 1);
                                     // Name whatever control is DRAWING for the hang watchdog: a static str store,
                                     // no allocation, no IL2CPP, no locks (render-thread rule).
                                     if let Ctrl::Custom(cu) = c {
@@ -1614,8 +1631,12 @@ impl HeavenOverlay {
                                         Ctrl::Toggle { id, label, get, set } => {
                                             let g = *get;
                                             let s = *set;
+                                            let help = match next {
+                                                Some(Ctrl::Help(t)) => Some(*t),
+                                                _ => None,
+                                            };
                                             ui.dummy([0.0, 6.0]);
-                                            if toggle_row(ui, id, label, g(), cw) {
+                                            if toggle_row_help(ui, id, label, g(), cw, help) {
                                                 s(!g());
                                                 crate::settings::save_current();
                                             }
@@ -1639,8 +1660,7 @@ impl HeavenOverlay {
                                             let lo = *label_of;
                                             let nx = *next;
                                             ui.dummy([0.0, 8.0]);
-                                            ui.text_colored(DIM, *label);
-                                            ui.same_line();
+                                            label_beside(ui, DIM, *label, 32.0);
                                             if btn(ui, id, lo()) {
                                                 nx();
                                                 crate::settings::save_current();
@@ -1648,7 +1668,13 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Button { id, label, action } => {
                                             let a = *action;
-                                            ui.dummy([0.0, 6.0]);
+                                            // Adjacent buttons form one row (Telemetry's two presets
+                                            // stacked as a ragged column otherwise).
+                                            if matches!(prev, Some(Ctrl::Button { .. })) {
+                                                ui.same_line_with_spacing(0.0, 8.0);
+                                            } else {
+                                                ui.dummy([0.0, 6.0]);
+                                            }
                                             if btn(ui, id, label) {
                                                 a();
                                             }
@@ -1656,6 +1682,13 @@ impl HeavenOverlay {
                                         Ctrl::Note(t) => {
                                             ui.dummy([0.0, 4.0]);
                                             ui.text_colored(DIM, *t);
+                                        }
+                                        Ctrl::Help(t) => {
+                                            // A Toggle already drew this beside its label.
+                                            if !matches!(prev, Some(Ctrl::Toggle { .. })) {
+                                                ui.same_line();
+                                                help_icon(ui, t);
+                                            }
                                         }
                                         Ctrl::Custom(Custom::Fps) => {
                                             let cur = crate::performance::fps::current();
@@ -1767,15 +1800,15 @@ impl HeavenOverlay {
                                             }
                                             ui.dummy([0.0, 10.0]);
                                             // Manual check ignores the "don't ask again" skip (force = true).
-                                            if btn(ui, "##chk", "Check for updates") {
+                                            if btn_primary_sized(ui, "##chk", "Check for updates", 32.0) {
                                                 crate::selfupdate::check(true);
                                             }
-                                            ui.dummy([0.0, 4.0]);
+                                            ui.same_line();
                                             if btn(ui, "##rel", "Releases") {
                                                 open_url(crate::update::RELEASES_URL);
                                             }
                                             ui.dummy([0.0, 10.0]);
-                                            ui.separator();
+                                            rule(ui, cw);
                                             ui.dummy([0.0, 6.0]);
                                             version_switch_ui(ui, cw);
                                         }
@@ -1796,11 +1829,10 @@ impl HeavenOverlay {
                                                 }
                                             }
                                             ui.dummy([0.0, 8.0]);
-                                            ui.text_colored(DIM, "Open / close key");
-                                            ui.same_line();
+                                            label_beside(ui, DIM, "Open / close key", 32.0);
                                             menu_key_button(ui, true);
                                             ui.same_line();
-                                            ui.text_colored(DIM, "(click, then press a key)");
+                                            hint_beside(ui, DIM, "(click, then press a key)", 32.0);
                                             ui.dummy([0.0, 8.0]);
                                             let classic = crate::settings::classic_menu();
                                             if toggle_row(ui, "##classic", "Classic menu", classic, cw) {
@@ -1819,7 +1851,7 @@ impl HeavenOverlay {
                                                 open_url(crate::update::RELEASES_URL);
                                             }
                                             ui.dummy([0.0, 10.0]);
-                                            ui.separator();
+                                            rule(ui, cw);
                                             ui.dummy([0.0, 6.0]);
                                             reset_button(ui);
                                             ui.dummy([0.0, 8.0]);
@@ -1832,7 +1864,10 @@ impl HeavenOverlay {
                                             if toggle_row(ui, "##tt", "Capture results", tt, cw) {
                                                 crate::settings::set_tt_capture(!tt);
                                             }
-                                            if tt {
+                                            if crate::friendlyplugins::horseact_active() {
+                                                ui.dummy([0.0, 2.0]);
+                                                ui.text_colored(DIM, "Handled by horseACT this session");
+                                            } else if tt {
                                                 ui.dummy([0.0, 2.0]);
                                                 val(ui, GOOD, &format!("{} saved", crate::htt::saved()));
                                             }
@@ -1842,6 +1877,9 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Custom(Custom::TtHunter) => {
                                             crate::hunter::draw_panel(ui, cw);
+                                        }
+                                        Ctrl::Custom(Custom::TtPlayer) => {
+                                            draw_tt_player(ui, cw);
                                         }
                                         Ctrl::Custom(Custom::Followers) => {
                                             draw_followers(ui, cw);
@@ -1869,6 +1907,11 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Custom(Custom::CareerLog) => {
                                             career_log_panel(ui);
+                                        Ctrl::Custom(Custom::HorseAct) => {
+                                            draw_horseact(ui, cw);
+                                        }
+                                        Ctrl::Custom(Custom::RaceSummary) => {
+                                            draw_race_summary_panel(ui, cw);
                                         }
                                         Ctrl::Custom(Custom::UmaExtract) => {
                                             draw_uma_extract(ui);
@@ -1993,7 +2036,8 @@ impl HeavenOverlay {
                             // Wrap all descriptive text at the content edge (classic renderer).
                             let _wrap = ui.push_text_wrap_pos();
                             ui.text_colored(DIM, sec.title);
-                            for c in &sec.controls {
+                            for (ci, c) in sec.controls.iter().enumerate() {
+                                let prev = ci.checked_sub(1).and_then(|i| sec.controls.get(i));
                                 // Name whatever control is DRAWING for the hang watchdog: a static str store,
                                 // no allocation, no IL2CPP, no locks (render-thread rule).
                                 if let Ctrl::Custom(cu) = c {
@@ -2026,6 +2070,7 @@ impl HeavenOverlay {
                                     Ctrl::Cycle { id, label, label_of, next } => {
                                         let lo = *label_of;
                                         let nx = *next;
+                                        ui.align_text_to_frame_padding();
                                         ui.text_colored(DIM, *label);
                                         ui.same_line();
                                         if ui.button(&format!("{}##{}", lo(), id)) {
@@ -2035,12 +2080,19 @@ impl HeavenOverlay {
                                     }
                                     Ctrl::Button { id, label, action } => {
                                         let a = *action;
+                                        if matches!(prev, Some(Ctrl::Button { .. })) {
+                                            ui.same_line();
+                                        }
                                         if ui.button(&format!("{label}##{id}")) {
                                             a();
                                         }
                                     }
                                     Ctrl::Note(t) => {
                                         ui.text_colored(DIM, *t);
+                                    }
+                                    Ctrl::Help(t) => {
+                                        ui.same_line();
+                                        help_icon(ui, t);
                                     }
                                     Ctrl::Custom(Custom::Fps) => {
                                         let cur = crate::performance::fps::current();
@@ -2151,6 +2203,7 @@ impl HeavenOverlay {
                                                 *relayout = true;
                                             }
                                         }
+                                        ui.align_text_to_frame_padding();
                                         ui.text_colored(DIM, "Open / close key");
                                         ui.same_line();
                                         menu_key_button(ui, false);
@@ -2178,6 +2231,10 @@ impl HeavenOverlay {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         crate::hunter::draw_panel(ui, w);
                                     }
+                                    Ctrl::Custom(Custom::TtPlayer) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_tt_player(ui, w);
+                                    }
                                     Ctrl::Custom(Custom::Followers) => {
                                         let w = ui.content_region_avail()[0].max(180.0);
                                         draw_followers(ui, w);
@@ -2196,6 +2253,14 @@ impl HeavenOverlay {
                                     }
                                     Ctrl::Custom(Custom::CareerLog) => {
                                         career_log_panel(ui);
+                                    }
+                                    Ctrl::Custom(Custom::HorseAct) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_horseact(ui, w);
+                                    }
+                                    Ctrl::Custom(Custom::RaceSummary) => {
+                                        let w = ui.content_region_avail()[0].max(180.0);
+                                        draw_race_summary_panel(ui, w);
                                     }
                                     Ctrl::Custom(Custom::UmaExtract) => {
                                         draw_uma_extract(ui);
@@ -2385,7 +2450,10 @@ thread_local! {
 /// no per-card shadow) sharing a single continuous background, separated by a basic divider
 /// line. Only the very first/last sections round their outer corners, so the whole group reads
 /// as a single streamlined card. `first`/`last` mark the ends of the current tab's list.
-fn card<F: FnOnce()>(ui: &Ui, w: f32, key: &'static str, first: bool, last: bool, body: F) {
+/// Section frame. The body is indented `CARD_PAD` on the left and receives the INNER width so it
+/// can leave the same margin on the right - it used to get the full width and ran to the edge.
+const CARD_PAD: f32 = 22.0;
+fn card<F: FnOnce(f32)>(ui: &Ui, w: f32, key: &'static str, first: bool, last: bool, body: F) {
     let start = ui.cursor_screen_pos();
     let cached = CARD_H.with(|m| m.borrow().get(key).copied()).unwrap_or(60.0);
     let end = [start[0] + w, start[1] + cached];
@@ -2418,8 +2486,9 @@ fn card<F: FnOnce()>(ui: &Ui, w: f32, key: &'static str, first: bool, last: bool
             .build();
         }
     } // release the draw list before the body draws its own widgets
-    ui.set_cursor_screen_pos([start[0] + 22.0, start[1] + 16.0]);
-    ui.group(body);
+    ui.set_cursor_screen_pos([start[0] + CARD_PAD, start[1] + 16.0]);
+    let inner = w - CARD_PAD * 2.0;
+    ui.group(|| body(inner));
     let measured = (ui.item_rect_max()[1] - start[1]) + 16.0;
     CARD_H.with(|m| {
         m.borrow_mut().insert(key, measured);
@@ -2429,7 +2498,7 @@ fn card<F: FnOnce()>(ui: &Ui, w: f32, key: &'static str, first: bool, last: bool
 }
 
 /// A section header: an icon in a soft rounded badge, then an accent-coloured title.
-fn section(ui: &Ui, icon_font: Option<imgui::FontId>, glyph: &str, title: &str) {
+fn section(ui: &Ui, icon_font: Option<imgui::FontId>, glyph: &str, title: &str, w: f32) {
     if let Some(f) = icon_font {
         let p = ui.cursor_screen_pos();
         let b = 26.0; // badge size
@@ -2453,7 +2522,7 @@ fn section(ui: &Ui, icon_font: Option<imgui::FontId>, glyph: &str, title: &str) 
     }
     // Clean 1px accent hairline under the title.
     ui.new_line();
-    let aw = ui.content_region_avail()[0];
+    let aw = w.min(ui.content_region_avail()[0]);
     let p = ui.cursor_screen_pos();
     ui.get_window_draw_list()
         .add_line([p[0], p[1] + 2.0], [p[0] + aw, p[1] + 2.0], crate::theme::accent_a(0.22))
@@ -2504,16 +2573,27 @@ fn pill_toggle(ui: &Ui, id: &str, on: bool) -> bool {
 
 /// A label row with a pill toggle right-aligned at `row_w`. Returns true if clicked.
 /// The toggle is 54 px wide plus a glow halo, so it sits ~28 px in from the card's right edge.
-fn toggle_row(ui: &Ui, id: &str, label: &str, on: bool, row_w: f32) -> bool {
+pub(crate) fn toggle_row(ui: &Ui, id: &str, label: &str, on: bool, row_w: f32) -> bool {
+    toggle_row_help(ui, id, label, on, row_w, None)
+}
+
+/// [`toggle_row`] with an optional info icon right after the label (tooltip = `help`).
+pub(crate) fn toggle_row_help(ui: &Ui, id: &str, label: &str, on: bool, row_w: f32, help: Option<&str>) -> bool {
     ui.text(label);
-    ui.same_line_with_pos(row_w - 82.0);
+    if let Some(t) = help {
+        ui.same_line_with_spacing(0.0, 6.0);
+        help_icon(ui, t);
+    }
+    // The pill is 54 wide; end it exactly at the row's right edge so toggles line up with the
+    // cards and hairlines (the old 82 left a 28 px ragged margin once bodies got the inner width).
+    ui.same_line_with_pos(row_w - 54.0);
     let cp = ui.cursor_screen_pos();
     ui.set_cursor_screen_pos([cp[0], cp[1] - 3.0]);
     pill_toggle(ui, id, on)
 }
 
 /// Pink gradient slider drawn at the cursor. Mutates `val` while dragged; returns true on change.
-fn pink_slider_f32(ui: &Ui, id: &str, min: f32, max: f32, val: &mut f32, w: f32) -> bool {
+pub(crate) fn pink_slider_f32(ui: &Ui, id: &str, min: f32, max: f32, val: &mut f32, w: f32) -> bool {
     let h = 20.0;
     let p = ui.cursor_screen_pos();
     ui.invisible_button(id, [w, h]);
@@ -2549,6 +2629,42 @@ fn pink_slider_f32(ui: &Ui, id: &str, min: f32, max: f32, val: &mut f32, w: f32)
 
 /// Rounded button with an accent border + hover, auto-sized to its label. Returns clicked.
 
+
+/// A label that a framed control (button/combo) follows on the same line. Text was drawn at the
+/// line's top while the control is 32-34 px tall, so labels sat visibly higher than the control
+/// they describe. Centre the text on `h`, then put the cursor back on the control's baseline.
+pub(crate) fn label_beside(ui: &Ui, col: [f32; 4], text: &str, h: f32) {
+    let th = ui.text_line_height();
+    let p = ui.cursor_pos();
+    ui.set_cursor_pos([p[0], p[1] + ((h - th) * 0.5).max(0.0)]);
+    ui.text_colored(col, text);
+    ui.same_line();
+    let c = ui.cursor_pos();
+    ui.set_cursor_pos([c[0], p[1]]);
+}
+
+/// Thin divider across `w` at the cursor. `ui.separator()` ignores the section's inner margins
+/// and runs to the window edge; this stops where the content does.
+pub(crate) fn rule(ui: &Ui, w: f32) {
+    let p = ui.cursor_screen_pos();
+    ui.get_window_draw_list()
+        .add_line([p[0], p[1]], [p[0] + w, p[1]], [1.0, 1.0, 1.0, 0.07])
+        .thickness(1.0)
+        .build();
+    ui.dummy([w, 1.0]);
+}
+
+/// Text that FOLLOWS a framed control of height `h` on the same line: centred on it.
+fn hint_beside(ui: &Ui, col: [f32; 4], text: &str, h: f32) {
+    // Anchor to the PREVIOUS item's top (the control), not the cursor: imgui measures a same-line
+    // row from the first item's y, and a centred label shifted that y, so cursor-relative maths
+    // landed the hint ~7 px low.
+    let th = ui.text_line_height();
+    let top = ui.item_rect_min()[1];
+    let x = ui.cursor_screen_pos()[0];
+    ui.set_cursor_screen_pos([x, top + ((h - th) * 0.5).max(0.0)]);
+    ui.text_colored(col, text);
+}
 
 pub(crate) fn btn(ui: &Ui, id: &str, label: &str) -> bool {
     let (pad, h) = (15.0, 32.0);
@@ -2728,16 +2844,221 @@ pub(crate) fn text_wrapped_colored(ui: &Ui, col: [f32; 4], text: &str) {
 }
 
 /// A small colored status dot followed by short text (replaces full-sentence status lines).
-pub(crate) fn status_dot(ui: &Ui, color: [f32; 4], text: &str) {
+// ── Automation cards ─────────────────────────────────────────────────────────────────────
+//
+// The Automation tab's panels were bare text next to the Optimizer's cards. These are the
+// cookbook rules applied to a status surface: a rounded body that is never flat (accent wash off
+// the left edge), a breathing status dot, chips for state, a gradient pill for progress, pips
+// for a capped count, every changing number eased.
+
+/// Rounded card body with the house wash at the cursor. Draws the background only; the caller
+/// positions content inside and advances past it with `auto_card_end`.
+pub(crate) fn auto_card(ui: &Ui, w: f32, h: f32, live: bool) -> [f32; 2] {
+    let p = ui.cursor_screen_pos();
+    let dl = ui.get_window_draw_list();
+    dl.add_rect(p, [p[0] + w, p[1] + h], [1.0, 1.0, 1.0, 0.040]).filled(true).rounding(12.0).build();
+    let acc = accent();
+    let a = if live { 0.18 } else { 0.08 };
+    let (wl, wr) = ([acc[0], acc[1], acc[2], a], [acc[0], acc[1], acc[2], 0.0]);
+    dl.add_rect(p, [p[0] + 24.0, p[1] + h], wl)
+        .filled(true)
+        .rounding(12.0)
+        .round_top_right(false)
+        .round_bot_right(false)
+        .build();
+    dl.add_rect_filled_multicolor([p[0] + 24.0, p[1]], [p[0] + w * 0.72, p[1] + h], wl, wr, wr, wl);
+    let edge = if live { crate::theme::accent_a(0.35) } else { [1.0, 1.0, 1.0, 0.09] };
+    dl.add_rect(p, [p[0] + w, p[1] + h], edge).rounding(12.0).thickness(1.0).build();
+    p
+}
+pub(crate) fn auto_card_end(ui: &Ui, p: [f32; 2], h: f32) {
+    ui.set_cursor_screen_pos([p[0], p[1] + h]);
+    ui.dummy([1.0, 8.0]);
+}
+
+/// Status dot that breathes while `live`, with a soft halo. Advances the cursor like status_dot.
+pub(crate) fn pulse_dot(ui: &Ui, key: &str, color: [f32; 4], live: bool) {
     let p = ui.cursor_screen_pos();
     let h = ui.text_line_height_with_spacing();
-    ui.get_window_draw_list()
-        .add_circle([p[0] + 5.0, p[1] + h * 0.5], 4.0, color)
-        .filled(true)
-        .build();
-    ui.dummy([14.0, h]);
+    let c = [p[0] + 6.0, p[1] + h * 0.5];
+    let a = if live {
+        advance_flow_phase(key);
+        let ph = anim_get(key);
+        0.55 + 0.45 * ((ph * std::f32::consts::TAU).sin() * 0.5 + 0.5)
+    } else {
+        0.75
+    };
+    let dl = ui.get_window_draw_list();
+    if live {
+        dl.add_circle(c, 8.5, [color[0], color[1], color[2], 0.10 + 0.12 * a]).filled(true).build();
+    }
+    dl.add_circle(c, 4.2, [color[0], color[1], color[2], a]).filled(true).build();
+    ui.dummy([16.0, h]);
+}
+
+/// Gradient progress pill on a dim track, eased. `label_l` sits above-left, `label_r` above-right.
+pub(crate) fn progress_pill(ui: &Ui, key: &str, w: f32, frac: f32, label_l: &str, label_r: &str) {
+    let f = anim_step(key, frac.clamp(0.0, 1.0), 9.0);
+    let p = ui.cursor_screen_pos();
+    let lh = ui.text_line_height();
+    {
+        let dl = ui.get_window_draw_list();
+        dl.add_text([p[0], p[1]], DIM, label_l);
+        let ts = ui.calc_text_size(label_r);
+        dl.add_text([p[0] + w - ts[0], p[1]], DIM, label_r);
+        let bar_y = p[1] + lh + 5.0;
+        let h = 8.0;
+        dl.add_rect([p[0], bar_y], [p[0] + w, bar_y + h], [1.0, 1.0, 1.0, 0.08]).filled(true).rounding(4.0).build();
+        let fw = (w * f).max(if f > 0.0 { 8.0 } else { 0.0 });
+        if fw > 0.0 {
+            let (l, r) = opt_grad_colors();
+            opt_gradient_pill(&dl, [p[0], bar_y], fw, h, 4.0, l, r);
+        }
+    }
+    ui.dummy([w, lh + 5.0 + 8.0]);
+}
+
+/// A row of small chips acting as one choice; returns the index clicked. For a handful of discrete
+/// values a slider cannot land on precisely - six stops inside 100 px is a control you fight.
+pub(crate) fn chip_choice(ui: &Ui, id: &str, labels: &[&str], sel: usize) -> Option<usize> {
+    let (h, pad, gap) = (22.0, 9.0, 5.0);
+    let mut clicked = None;
+    // Every chip is placed at ONE y, taken once at entry. `same_line` would not do it: imgui
+    // carries a line's y from the first item on it, and a preceding `label_beside` has already
+    // nudged that down to centre its label - so the first chip landed on the cursor and the rest
+    // landed 3 px lower. Measured, not theorised.
+    let start = ui.cursor_screen_pos();
+    let (mut x, y) = (start[0], start[1]);
+    for (i, l) in labels.iter().enumerate() {
+        let ts = ui.calc_text_size(l);
+        let w = ts[0] + pad * 2.0;
+        let p = [x, y];
+        ui.set_cursor_screen_pos(p);
+        if ui.invisible_button(&format!("{id}{i}"), [w, h]) {
+            clicked = Some(i);
+        }
+        x += w + gap;
+        let hov = ui.is_item_hovered();
+        let on = i == sel;
+        let dl = ui.get_window_draw_list();
+        let plate = if on { accent() } else if hov { BTN_HI } else { BTN_BG };
+        dl.add_rect(p, [p[0] + w, p[1] + h], plate).filled(true).rounding(h * 0.5).build();
+        if !on {
+            dl.add_rect(p, [p[0] + w, p[1] + h], crate::theme::accent_a(if hov { 0.5 } else { 0.22 }))
+                .rounding(h * 0.5)
+                .thickness(1.0)
+                .build();
+        }
+        let ink = if on { crate::theme::on_accent() } else { TEXT };
+        dl.add_text([p[0] + pad, p[1] + (h - ts[1]) * 0.5], ink, *l);
+    }
+    clicked
+}
+
+/// A capped count as pips: `n` lit of `max`, eased in as they light. `None` = unknown (all dim).
+fn count_pips(ui: &Ui, key: &str, label: &str, n: Option<usize>, max: usize, w: f32) {
+    let p = ui.cursor_screen_pos();
+    let lh = ui.text_line_height();
+    let gap = 5.0;
+    let pill_w = ((w - gap * (max as f32 - 1.0)) / max as f32).max(6.0);
+    let h = 8.0;
+    let lit = anim_step(key, n.map(|v| v as f32).unwrap_or(0.0), 9.0);
+    let full = n.map(|v| v >= max).unwrap_or(false);
+    {
+        let dl = ui.get_window_draw_list();
+        dl.add_text([p[0], p[1]], DIM, label);
+        let val = match n {
+            Some(v) => format!("{v} / {max}"),
+            None => "? / ".to_string() + &max.to_string(),
+        };
+        let ts = ui.calc_text_size(&val);
+        dl.add_text([p[0] + w - ts[0], p[1]], if full { WARN } else { TEXT }, &val);
+        let y = p[1] + lh + 5.0;
+        let acc = accent();
+        for i in 0..max {
+            let x = p[0] + i as f32 * (pill_w + gap);
+            let t = (lit - i as f32).clamp(0.0, 1.0);
+            let base = [1.0, 1.0, 1.0, 0.10];
+            let on = if full { WARN } else { acc };
+            let c = lerp_col(base, [on[0], on[1], on[2], 0.95], t);
+            dl.add_rect([x, y], [x + pill_w, y + h], c).filled(true).rounding(4.0).build();
+        }
+    }
+    ui.dummy([w, lh + 5.0 + h]);
+}
+
+/// The active filters as chips, right-aligned within `w` from the current cursor row.
+pub(crate) fn chip_row_right(ui: &Ui, parts: &[String], w: f32, row_y: f32) {
+    let pad = 8.0;
+    let gap = 6.0;
+    let total: f32 = parts.iter().map(|s| ui.calc_text_size(s)[0] + pad * 2.0).sum::<f32>() + gap * (parts.len().max(1) as f32 - 1.0);
+    let start_x = ui.cursor_screen_pos()[0] + w - total;
+    let mut x = start_x;
+    for s in parts {
+        ui.set_cursor_screen_pos([x, row_y]);
+        opt_chip(ui, s, crate::theme::accent_a(0.14), TEXT, None);
+        x += ui.calc_text_size(s)[0] + pad * 2.0 + gap;
+    }
+}
+
+/// Where a dot sitting beside a line of text belongs vertically, given the text's own box
+/// (`top`, height `h`).
+///
+/// Not `h * 0.5`. A line box reserves its bottom fifth for descenders, which most labels never
+/// use, so a dot centred on the box reads low against the letters. The eye lines a dot up with
+/// the CAP centre, and that sits a little above the box centre.
+///
+/// 0.47 is measured, not guessed: captures at two ratios give `top` and `h` by solving the pair,
+/// and the target is the ink extent of a capital with no descender. Both menu fonts land within
+/// half a pixel of their cap centre - 16 px semibold (card headers) and 17 px body (status
+/// lines). Measure the SAME way if this is ever retuned: a window wide enough to catch the "p"
+/// of "Open" drags the apparent cap centre down 1.5 px and will send you chasing a phantom.
+fn text_dot_cy(top: f32, h: f32) -> f32 {
+    top + h * 0.47
+}
+
+pub(crate) fn status_dot(ui: &Ui, color: [f32; 4], text: &str) {
+    let p = ui.cursor_screen_pos();
+    // Reserve the dot's column, draw the text, THEN place the dot on the rect the text actually
+    // occupied. Positioning it from the cursor instead guesses at a line height that the text may
+    // not have - which is exactly how it drifted out of line.
+    ui.dummy([14.0, 1.0]);
     ui.same_line();
     ui.text_colored(color, text);
+    let top = ui.item_rect_min()[1];
+    let h = ui.item_rect_max()[1] - top;
+    ui.get_window_draw_list()
+        .add_circle([p[0] + 5.0, text_dot_cy(top, h)], 4.0, color)
+        .filled(true)
+        .build();
+}
+
+/// Breathing dot plus its label, drawn together so the dot can be aligned to the label's real
+/// box. The card headers all pair the two, and every one of them had the dot 2 px low while the
+/// dot was placed before the text and guessed at its height.
+pub(crate) fn pulse_label(ui: &Ui, key: &str, dot: [f32; 4], live: bool, ink: [f32; 4], label: &str) {
+    let p = ui.cursor_screen_pos();
+    ui.dummy([16.0, 1.0]);
+    ui.same_line();
+    {
+        let _t = opt_semibold(ui, false);
+        ui.text_colored(ink, label);
+    }
+    let top = ui.item_rect_min()[1];
+    let h = ui.item_rect_max()[1] - top;
+    let c = [p[0] + 6.0, text_dot_cy(top, h)];
+    let a = if live {
+        advance_flow_phase(key);
+        let ph = anim_get(key);
+        0.55 + 0.45 * ((ph * std::f32::consts::TAU).sin() * 0.5 + 0.5)
+    } else {
+        0.75
+    };
+    let dl = ui.get_window_draw_list();
+    if live {
+        dl.add_circle(c, 8.5, [dot[0], dot[1], dot[2], 0.10 + 0.12 * a]).filled(true).build();
+    }
+    dl.add_circle(c, 4.2, [dot[0], dot[1], dot[2], a]).filled(true).build();
 }
 
 
@@ -2754,24 +3075,53 @@ fn draw_followers(ui: &Ui, w: f32) {
 
     ui.dummy([0.0, 4.0]);
     let live = pruner::live_count();
-    if live > 0 {
-        let col = if live >= pruner::FOLLOWER_CAP { WARN } else { GOOD };
-        status_dot(ui, col, &format!("{live} / {} followers", pruner::FOLLOWER_CAP));
-    } else {
-        status_dot(ui, WARN, "Open the follower list, then Preview");
-    }
-    ui.same_line();
-    help_icon(ui, "Removes your oldest-inactive followers (longest since last login) down to the target, so new padders can follow you. Preview always shows the exact list first - nothing is removed until you press Start. Pinned trainers are never touched. Removals are paced like a human tapping the button.");
-    ui.dummy([0.0, 8.0]);
-
     let phase = pruner::current_phase();
+    {
+        let w = ui.content_region_avail()[0].min(w);
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let busy = matches!(phase, Phase::Reading | Phase::Pruning);
+        let show_pill = phase == Phase::Pruning;
+        let h = pad + lh + 10.0 + if show_pill { lh + 13.0 + 10.0 } else { 0.0 } + pad - 10.0;
+        let p = auto_card(ui, w, h, busy);
+        let x = p[0] + pad;
+        let mut y = p[1] + pad;
+        ui.set_cursor_screen_pos([x, y]);
+        let total = pruner::candidates().len();
+        let (col, label) = match phase {
+            Phase::Reading => (GOOD, "Reading the follower list\u{2026}".to_string()),
+            Phase::Preview => (GOOD, format!("Preview ready \u{00b7} {total} to prune")),
+            Phase::Pruning => (GOOD, format!("Pruning \u{00b7} {} of {total}", pruner::removed())),
+            _ if live > 0 => (if live >= pruner::FOLLOWER_CAP { WARN } else { GOOD }, "Ready \u{00b7} follower list open".to_string()),
+            _ => (WARN, "Open the follower list, then Preview".to_string()),
+        };
+        pulse_label(ui, "pr_dot", col, busy, if busy || live > 0 { TEXT } else { col }, &label);
+        ui.same_line();
+        help_icon(ui, "Removes your oldest-inactive followers (longest since last login) down to the target, so new padders can follow you. Preview always shows the exact list first - nothing is removed until you press Start. Pinned trainers are never touched. Removals are paced like a human tapping the button.");
+        let mut chips: Vec<String> = Vec::new();
+        if live > 0 {
+            chips.push(format!("{live} / {} followers", pruner::FOLLOWER_CAP));
+        }
+        chips.push(format!("target {}", pruner::target()));
+        let pins = pruner::whitelist().len();
+        if pins > 0 {
+            chips.push(format!("{pins} pinned"));
+        }
+        chip_row_right(ui, &chips, iw, y - 1.0);
+        y += lh + 10.0;
+        if show_pill {
+            ui.set_cursor_screen_pos([x, y]);
+            let done = pruner::removed();
+            progress_pill(ui, "pr_prog", iw, done as f32 / total.max(1) as f32, &format!("Removed {done} of {total}"), "paced like a human");
+        }
+        auto_card_end(ui, p, h);
+    }
 
     // ── target size ──
     if phase == Phase::Idle || phase == Phase::Preview {
-        ui.text_colored(DIM, "Prune down to:");
-        ui.same_line();
+        label_beside(ui, DIM, "Prune down to:", 20.0);
         let mut t = pruner::target() as f32;
-        ui.same_line();
         if pink_slider_f32(ui, "##prtarget", 500.0, 990.0, &mut t, w * 0.45) {
             pruner::set_target((t / 10.0).round() as usize * 10); // steps of 10
         }
@@ -2787,13 +3137,13 @@ fn draw_followers(ui: &Ui, w: f32) {
                 pruner::request_preview();
             }
             ui.same_line();
+            #[cfg(feature = "devtools")]
             if btn(ui, "##prscan", "Scan (RE log)") {
                 pruner::request_scan();
             }
         }
         Phase::Reading => {
-            ui.text_colored(accent(), "Reading follower list…");
-            ui.same_line();
+            label_beside(ui, accent(), "Reading follower list…", 32.0);
             if btn(ui, "##prcancelread", "Cancel") {
                 pruner::stop();
             }
@@ -2808,8 +3158,7 @@ fn draw_followers(ui: &Ui, w: f32) {
             }
         }
         Phase::Pruning => {
-            ui.text_colored(accent(), "Pruning…");
-            ui.same_line();
+            label_beside(ui, accent(), "Pruning…", 32.0);
             if btn(ui, "##prstop", "Stop") {
                 pruner::stop();
             }
@@ -2893,7 +3242,7 @@ fn draw_followers(ui: &Ui, w: f32) {
         add();
     }
     ui.same_line();
-    if btn_primary(ui, "##prwladd", "Add") {
+    if btn_primary_sized(ui, "##prwladd", "Add", ui.frame_height()) {
         add();
     }
 
@@ -2928,35 +3277,154 @@ fn draw_room_watcher(ui: &Ui, w: f32) {
 
     ui.dummy([0.0, 4.0]);
     let running = rw::is_running();
-    if running {
-        status_dot(ui, GOOD, &format!("Running \u{2014} {} watched this run", rw::done_count()));
-    } else if rw::on_top_screen() {
-        status_dot(ui, GOOD, "Room Match top \u{2014} ready to start");
-    } else {
-        status_dot(ui, WARN, "Open Race > Room Match first");
+    let progress = rw::replay_progress();
+    {
+        let w = ui.content_region_avail()[0].min(w);
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let h = pad + lh + 10.0 + if progress.is_some() { lh + 13.0 + 10.0 } else { 0.0 } + ui.frame_height() + pad;
+        let p = auto_card(ui, w, h, running);
+        let x = p[0] + pad;
+        let mut y = p[1] + pad;
+        ui.set_cursor_screen_pos([x, y]);
+        let (col, label) = if running {
+            (GOOD, "Running".to_string())
+        } else if rw::on_top_screen() {
+            (GOOD, "Ready \u{00b7} Room Match top".to_string())
+        } else {
+            (WARN, "Open Race \u{203a} Room Match first".to_string())
+        };
+        pulse_label(ui, "rw_dot", col, running, if running { TEXT } else { col }, &label);
+        ui.same_line();
+        help_icon(ui, "From the Room Match top screen: opens Sign-Ups, takes the first race marked Ready to race!, goes To Waiting Room, presses Race!, runs it, dismisses the save prompt, returns to the top and repeats until nothing is ready. Every step is the game's own button. Stop at any time; the current race finishes normally.");
+        let done = rw::done_count();
+        let mut chips: Vec<String> = Vec::new();
+        if running || done > 0 {
+            chips.push(format!("{done} watched"));
+        }
+        if rw::skip_race() {
+            chips.push("skipping races".into());
+        }
+        if !chips.is_empty() {
+            chip_row_right(ui, &chips, iw, y - 1.0);
+        }
+        y += lh + 10.0;
+        if let Some((cur, total)) = progress {
+            ui.set_cursor_screen_pos([x, y]);
+            let st = rw::status();
+            let step = st.split(": ").nth(1).unwrap_or("").trim_end_matches('\u{2026}');
+            progress_pill(ui, "rw_replay", iw, cur as f32 / total.max(1) as f32, &format!("Step {cur} of {total}"), step);
+            y += lh + 13.0 + 10.0;
+        }
+        ui.set_cursor_screen_pos([x, y]);
+        if running {
+            if btn_primary_sized(ui, "##rwstop", "Stop", ui.frame_height()) {
+                rw::request_stop();
+            }
+            ui.same_line();
+            hint_beside(ui, DIM, "The current race finishes normally.", ui.frame_height());
+        } else if btn_primary_sized(ui, "##rwstart", "Watch ready races", ui.frame_height()) {
+            rw::request_start();
+        }
+        auto_card_end(ui, p, h);
     }
-    ui.same_line();
-    help_icon(ui, "From the Room Match top screen: opens Sign-Ups, takes the first race marked Ready to race!, goes To Waiting Room, presses Race!, runs it, dismisses the save prompt, returns to the top and repeats until nothing is ready. Every step is the game's own button. Stop at any time; the current race finishes normally.");
-    ui.dummy([0.0, 6.0]);
 
     let skip = rw::skip_race();
     if toggle_row(ui, "##rwskip", "Skip race playback (results only)", skip, w) {
         rw::set_skip_race(!skip);
     }
-    ui.dummy([0.0, 6.0]);
-
-
-    if running {
-        if btn_primary(ui, "##rwstop", "Stop") {
-            rw::request_stop();
-        }
-    } else if btn_primary(ui, "##rwstart", "Watch ready races") {
-        rw::request_start();
-    }
     let st = rw::status();
-    if !st.is_empty() {
+    if !st.is_empty() && progress.is_none() {
         ui.dummy([0.0, 4.0]);
         let col = if st.starts_with("Stopped") { WARN } else if st.starts_with("Nothing") { TEXT } else { GOOD };
+        text_wrapped_colored(ui, col, &st);
+    }
+}
+
+/// Team Trials auto-player panel. Same contract as the room watcher: this only sets flags and
+/// reads status strings; every press happens on the game main thread in ttplay::pump().
+fn draw_tt_player(ui: &Ui, w: f32) {
+    use crate::ttplay as tp;
+
+    ui.dummy([0.0, 4.0]);
+    let running = tp::is_running();
+    let progress = tp::progress();
+    {
+        let w = ui.content_region_avail()[0].min(w);
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let h = pad + lh + 10.0 + if progress.is_some() { lh + 13.0 + 10.0 } else { 0.0 } + ui.frame_height() + pad;
+        let p = auto_card(ui, w, h, running);
+        let x = p[0] + pad;
+        let mut y = p[1] + pad;
+        ui.set_cursor_screen_pos([x, y]);
+        let (col, label) = if running {
+            (GOOD, "Running".to_string())
+        } else if tp::on_top_screen() {
+            (GOOD, "Ready \u{00b7} Team Trials open".to_string())
+        } else {
+            (WARN, "Open Race \u{203a} Team Trials first".to_string())
+        };
+        pulse_label(ui, "tp_dot", col, running, if running { TEXT } else { col }, &label);
+        ui.same_line();
+        help_icon(
+            ui,
+            "Plays Team Trials on repeat: Team Race, the top opponent of the three, the leftmost \
+             item in the list, Race!, then skips the result cut-in and presses Race Again. Each \
+             race spends 1 RP, and the run ends by itself when your race points are gone. Every \
+             step is the game's own button, pressed on the sequence recorded from real play \u{2014} \
+             it never sends a request the game would not send itself. Stop at any time; the race \
+             in progress finishes normally.",
+        );
+        let done = tp::laps();
+        let limit = tp::lap_limit();
+        let mut chips: Vec<String> = Vec::new();
+        if running || done > 0 {
+            chips.push(if limit > 0 { format!("{done} of {limit}") } else { format!("{done} run") });
+        }
+        if !chips.is_empty() {
+            chip_row_right(ui, &chips, iw, y - 1.0);
+        }
+        y += lh + 10.0;
+        if let Some((cur, total)) = progress {
+            ui.set_cursor_screen_pos([x, y]);
+            let st = tp::status();
+            let step = st.split(": ").nth(1).unwrap_or("").trim_end_matches('\u{2026}');
+            progress_pill(ui, "tp_step", iw, cur as f32 / total.max(1) as f32, &format!("Step {cur} of {total}"), step);
+            y += lh + 13.0 + 10.0;
+        }
+        ui.set_cursor_screen_pos([x, y]);
+        if running {
+            if btn_primary_sized(ui, "##tpstop", "Stop", ui.frame_height()) {
+                tp::request_stop();
+            }
+            ui.same_line();
+            hint_beside(ui, DIM, "The race in progress finishes normally.", ui.frame_height());
+        } else if btn_primary_sized(ui, "##tpstart", "Race until out of RP", ui.frame_height()) {
+            tp::request_start();
+        }
+        auto_card_end(ui, p, h);
+    }
+
+    // Optional cap, for spending only part of the bar. Race points top out at 5, so the whole
+    // range fits in a row of chips - a slider would be six stops wide and land on none of them.
+    let limit = tp::lap_limit();
+    let labels: Vec<String> =
+        std::iter::once("All".to_string()).chain((1..=crate::ttplay::MAX_RP).map(|n| n.to_string())).collect();
+    let refs: Vec<&str> = labels.iter().map(|s| s.as_str()).collect();
+    label_beside(ui, DIM, "Stop after", 22.0);
+    if let Some(i) = chip_choice(ui, "##tplimit", &refs, limit.clamp(0, crate::ttplay::MAX_RP) as usize) {
+        tp::set_lap_limit(i as i32);
+    }
+    ui.same_line();
+    hint_beside(ui, DIM, "races", 22.0);
+
+    let st = tp::status();
+    if !st.is_empty() && progress.is_none() {
+        ui.dummy([0.0, 4.0]);
+        let col = if st.starts_with("Stalled") { BAD } else if st.starts_with("Stopped") { WARN } else { GOOD };
         text_wrapped_colored(ui, col, &st);
     }
 }
@@ -2966,20 +3434,74 @@ fn draw_room_finder(ui: &Ui, w: f32) {
 
     ui.dummy([0.0, 4.0]);
     let hunting = rf::is_hunting();
-    if hunting {
-        status_dot(ui, GOOD, &format!("Hunting \u{2014} check {}/{}", rf::checks(), rf::MAX_CHECKS));
-    } else if rf::found_room() != 0 {
-        status_dot(ui, GOOD, "Room found");
-    } else if rf::screen_open() {
-        status_dot(ui, GOOD, "Room list ready");
-    } else if rf::entry_screen_open() {
-        status_dot(ui, GOOD, "Runner entry \u{2014} load a team below");
-    } else {
-        status_dot(ui, WARN, "Open Room Match > Join Room");
+    // ── status card ── the one surface that says what the finder is doing right now.
+    {
+        // The section's nominal width overshoots the scroll region by a few px; the card must
+        // end where the toggles end or its right edge clips.
+        let w = ui.content_region_avail()[0].min(w);
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let h = if hunting { pad + lh + 10.0 + (lh + 13.0) + 10.0 + (lh + 13.0) + 10.0 + ui.frame_height() + pad }
+                else { pad + lh + 10.0 + (lh + 13.0) + pad };
+        let p = auto_card(ui, w, h, hunting);
+        let x = p[0] + pad;
+        let mut y = p[1] + pad;
+        // Row 1: dot + state, chips of the active filters on the right.
+        ui.set_cursor_screen_pos([x, y]);
+        let (col, label, live) = if hunting {
+            (GOOD, format!("Hunting \u{00b7} check {} of {}", rf::checks(), rf::MAX_CHECKS), true)
+        } else if rf::found_room() != 0 {
+            (GOOD, "Room found".to_string(), false)
+        } else if rf::screen_open() {
+            (GOOD, "Ready \u{00b7} room list open".to_string(), false)
+        } else if rf::entry_screen_open() {
+            (GOOD, "Runner entry \u{00b7} load a team below".to_string(), false)
+        } else {
+            (WARN, "Open Room Match \u{203a} Join Room".to_string(), false)
+        };
+        pulse_label(ui, "rf_dot", col, live, if live { TEXT } else { col }, &label);
+        ui.same_line();
+        help_icon(ui, "Auto-refreshes the Room Match room list (the game's own reload button, paced like a human) until a room matches your filters, then stops and alerts. Auto-open jumps straight to the room's Join Race entry screen \u{2014} you just pick your runners and Confirm. Filters left on 'Any' are ignored \u{2014} set at least one.");
+        let parts: Vec<String> = rf::filters()
+            .summary()
+            .split(" \u{00b7} ")
+            .filter(|s| !s.starts_with("auto-load") && *s != "any room")
+            .take(4)
+            .map(|s| s.to_string())
+            .collect();
+        if !parts.is_empty() {
+            let take = if hunting { 3 } else { 4 };
+            let shown: Vec<String> = parts.into_iter().take(take).collect();
+            chip_row_right(ui, &shown, iw, y - 1.0);
+        }
+        y += lh + 10.0;
+        if hunting {
+            // Row 2: the check cycle as a pill, the countdown on the right.
+            ui.set_cursor_screen_pos([x, y]);
+            let frac = rf::checks() as f32 / rf::MAX_CHECKS as f32;
+            let right = match rf::next_refresh_secs() {
+                Some(s) if s > 0.05 => format!("next refresh in {s:.1}s"),
+                Some(_) => "refreshing\u{2026}".to_string(),
+                None => String::new(),
+            };
+            progress_pill(ui, "rf_checks", iw, frac, &format!("{} rooms seen", rf::last_rooms().len()), &right);
+            y += lh + 13.0 + 10.0;
+        }
+        // Sign-ups as pips: the cap is the thing auto-repeat is racing toward.
+        ui.set_cursor_screen_pos([x, y]);
+        count_pips(ui, "rf_signups", "Signed up", rf::signups(), rf::ENTRY_LIMIT, iw);
+        y += lh + 13.0 + 10.0;
+        if hunting {
+            ui.set_cursor_screen_pos([x, y]);
+            if btn_primary_sized(ui, "##rfstop", "Stop hunting", ui.frame_height()) {
+                rf::stop();
+            }
+            ui.same_line();
+            hint_beside(ui, DIM, "Filters are locked while hunting.", ui.frame_height());
+        }
+        auto_card_end(ui, p, h);
     }
-    ui.same_line();
-    help_icon(ui, "Auto-refreshes the Room Match room list (the game's own reload button, paced like a human) until a room matches your filters, then stops and alerts. Auto-open jumps straight to the room's Join Race entry screen \u{2014} you just pick your runners and Confirm. Filters left on 'Any' are ignored \u{2014} set at least one.");
-    ui.dummy([0.0, 8.0]);
 
     // ── Saved-team loader ── shown on the runner-entry screen ("select your runners"): pick a
     // My Runners team (1–5) and load it in one click, same as the dialog's "Load List" button.
@@ -3023,6 +3545,11 @@ fn draw_room_finder(ui: &Ui, w: f32) {
     if !hunting {
         let mut f = rf::filters();
         let mut changed = false;
+        {
+            let _t = opt_semibold(ui, false);
+            ui.text_colored(DIM, "Filters");
+        }
+        ui.dummy([0.0, 2.0]);
 
         // Track
         let mut track_items: Vec<&str> = vec!["Any track"];
@@ -3070,8 +3597,7 @@ fn draw_room_finder(ui: &Ui, w: f32) {
         }
         ui.dummy([0.0, 3.0]);
         // Open slots
-        ui.text_colored(DIM, "Open slots \u{2265}");
-        ui.same_line();
+        label_beside(ui, DIM, "Open slots, at least", 20.0);
         let mut open = f.min_open as f32;
         if pink_slider_f32(ui, "##rfopen", 0.0, 8.0, &mut open, w * 0.40) {
             f.min_open = open.round() as i32;
@@ -3102,8 +3628,7 @@ fn draw_room_finder(ui: &Ui, w: f32) {
         ui.dummy([0.0, 3.0]);
         let team_items = ["Don't preload", "Team 1", "Team 2", "Team 3", "Team 4", "Team 5"];
         let mut pi = f.preset_slot.clamp(0, 5) as usize;
-        ui.text_colored(DIM, "Preload team");
-        ui.same_line();
+        label_beside(ui, DIM, "Preload team", ui.frame_height());
         ui.set_next_item_width(w * 0.42);
         if ui.combo_simple_string("##rfpreset", &mut pi, &team_items) {
             f.preset_slot = pi as i32;
@@ -3142,9 +3667,12 @@ fn draw_room_finder(ui: &Ui, w: f32) {
                 Err(e) => ERR.with(|x| *x.borrow_mut() = e),
             }
         }
-        ui.same_line();
-        if btn(ui, "##rfscan", "Scan (RE log)") {
-            rf::request_scan();
+        #[cfg(feature = "devtools")]
+        {
+            ui.same_line();
+            if btn(ui, "##rfscan", "Scan (RE log)") {
+                rf::request_scan();
+            }
         }
         ERR.with(|e| {
             let s = e.borrow();
@@ -3153,17 +3681,12 @@ fn draw_room_finder(ui: &Ui, w: f32) {
                 text_wrapped_colored(ui, WARN, &s);
             }
         });
-    } else {
-        ui.text_colored(accent(), "Hunting\u{2026}");
-        ui.same_line();
-        if btn(ui, "##rfstop", "Stop") {
-            rf::stop();
-        }
     }
 
-    // ── status line ── (wrapped: resolve errors run long)
+    // ── status line ── (wrapped: resolve errors run long). While hunting the card already says
+    // all of this; the line is for FOUND / Stopped / errors.
     let st = rf::status();
-    if !st.is_empty() {
+    if !st.is_empty() && !(hunting && st.starts_with("Checking")) {
         ui.dummy([0.0, 6.0]);
         let col = if st.starts_with("FOUND") {
             GOOD
@@ -3287,13 +3810,13 @@ fn opt_rank_tex(rank_id: i32) -> Option<imgui::TextureId> {
 }
 
 /// Push the SemiBold face (18px title / 16px value). None if fonts failed to load.
-fn opt_semibold(ui: &Ui, title: bool) -> Option<imgui::FontStackToken<'_>> {
+pub(crate) fn opt_semibold(ui: &Ui, title: bool) -> Option<imgui::FontStackToken<'_>> {
     let f = if title { TITLE_FONT.with(|c| c.get()) } else { VALUE_FONT.with(|c| c.get()) };
     f.map(|f| ui.push_font(f))
 }
 
 /// Small rounded chip; the optimizer window's pill primitive. `border` = outlined pill.
-fn opt_chip(ui: &Ui, label: &str, plate: [f32; 4], ink: [f32; 4], border: Option<[f32; 4]>) {
+pub(crate) fn opt_chip(ui: &Ui, label: &str, plate: [f32; 4], ink: [f32; 4], border: Option<[f32; 4]>) {
     let (pad, h) = (8.0, 20.0);
     let ts = ui.calc_text_size(label);
     let p = ui.cursor_screen_pos();
@@ -3582,10 +4105,208 @@ fn career_log_panel(ui: &Ui) {
     ui.text_colored(DIM, "Folder: trackside-careers (next to the game .exe)");
 }
 
+/// horseACT plugin card: whether it is running, what is installed, what is current upstream, and
+/// the one button that installs or updates it. All network and disk work is on horseact's worker;
+/// this only reads state and flips requests.
+fn draw_horseact(ui: &Ui, w: f32) {
+    use crate::horseact as ha;
+    if !ha::checked() {
+        ha::check_latest(); // lazy: one request per session, only once this tab is looked at
+    }
+    ui.dummy([0.0, 4.0]);
+    let installed = ha::installed();
+    let active = ha::active();
+    let busy = ha::phase() != ha::PHASE_IDLE;
+    let cur = ha::installed_tag();
+    let latest = ha::latest_tag();
+    let upd = ha::update_available();
+    let msg = ha::message();
+    {
+        let w = ui.content_region_avail()[0].min(w);
+        let pad = 12.0;
+        let iw = w - pad * 2.0;
+        let lh = ui.text_line_height();
+        let h = pad + lh + 10.0 + ui.frame_height() + if msg.is_empty() { 0.0 } else { lh + 8.0 } + pad;
+        let p = auto_card(ui, w, h, active);
+        let x = p[0] + pad;
+        let mut y = p[1] + pad;
+        ui.set_cursor_screen_pos([x, y]);
+        let ver = cur.clone().unwrap_or_else(|| "installed".into());
+        // Kept short on purpose: the version chips share this line, and a long label ran under
+        // them in the first capture.
+        let (col, label) = if active {
+            (GOOD, format!("horseACT {ver} \u{00b7} active"))
+        } else if ha::pending_restart() {
+            (WARN, "horseACT installed \u{00b7} restart to activate".to_string())
+        } else if installed {
+            (WARN, format!("horseACT {ver} \u{00b7} not running"))
+        } else {
+            (DIM, "horseACT not installed".to_string())
+        };
+        pulse_label(ui, "ha_dot", col, busy, if active { TEXT } else { col }, &label);
+        ui.same_line();
+        help_icon(
+            ui,
+            "horseACT by ayaliz, run as a plugin through Trackside's built-in host. It is downloaded \
+             from its own GitHub releases, never bundled, so what you run is always the current \
+             upstream format that Hakuraku expects. Races, Team Trials results and veterans.json \
+             land in trackside-races\\Saved races. While it is active the built-in exporters below \
+             stand down.",
+        );
+        let mut chips: Vec<String> = Vec::new();
+        if let Some(l) = &latest {
+            chips.push(if upd { format!("{l} available") } else { format!("latest {l}") });
+        }
+        if !chips.is_empty() {
+            chip_row_right(ui, &chips, iw, y - 1.0);
+        }
+        y += lh + 10.0;
+        ui.set_cursor_screen_pos([x, y]);
+        let fh = ui.frame_height();
+        if busy {
+            let what = if ha::phase() == ha::PHASE_DOWNLOADING { "Downloading\u{2026}" } else { "Checking GitHub\u{2026}" };
+            label_beside(ui, DIM, what, fh);
+            ui.dummy([1.0, fh]);
+        } else if !installed {
+            if btn_primary_sized(ui, "##hainst", "Install horseACT", fh) {
+                ha::install();
+            }
+            ui.same_line();
+            hint_beside(ui, DIM, "from github.com/ayaliz/horseACT", fh);
+        } else if upd {
+            let l = latest.clone().unwrap_or_default();
+            if btn_primary_sized(ui, "##haupd", &format!("Update to {l}"), fh) {
+                ha::install();
+            }
+            ui.same_line();
+            hint_beside(ui, DIM, "applies at the next launch", fh);
+        } else if btn(ui, "##hachk", "Check for updates") {
+            ha::recheck();
+        }
+        if !msg.is_empty() {
+            y += fh + 8.0;
+            ui.set_cursor_screen_pos([x, y]);
+            let col = if msg.starts_with("Install failed") || msg.starts_with("Could not") { BAD } else { GOOD };
+            ui.text_colored(col, &msg);
+        }
+        auto_card_end(ui, p, h);
+    }
+    if installed {
+        draw_horseact_settings(ui, w);
+    }
+}
+
+thread_local! {
+    /// Edit buffers for horseACT's text settings, seeded from the config once. imgui edits in
+    /// place across frames, so these cannot be rebuilt from the config every frame.
+    static HA_BUF: std::cell::RefCell<Option<[String; 4]>> = const { std::cell::RefCell::new(None) };
+}
+
+/// horseACT's own config, edited here and written back to `hachimi/horseACTConfig.json`. horseACT
+/// reads that file once at init, so everything in this block applies at the next launch.
+fn draw_horseact_settings(ui: &Ui, w: f32) {
+    use crate::horseact as ha;
+    let mut c = ha::config();
+    let mut changed = false;
+
+    ui.dummy([0.0, 8.0]);
+    {
+        let _t = opt_semibold(ui, false);
+        ui.text_colored(DIM, "HORSEACT SETTINGS");
+    }
+    ui.same_line_with_spacing(0.0, 8.0);
+    ui.text_colored(DIM, "written to hachimi\\horseACTConfig.json");
+    ui.dummy([0.0, 2.0]);
+    rule(ui, w);
+    ui.dummy([0.0, 4.0]);
+
+    if toggle_row(ui, "##ha_career", "Save career races", c.save_career_races, w) {
+        c.save_career_races = !c.save_career_races;
+        changed = true;
+    }
+    ui.dummy([0.0, 6.0]);
+    if toggle_row(ui, "##ha_tt", "Save Team Trials results", c.save_tt_races, w) {
+        c.save_tt_races = !c.save_tt_races;
+        changed = true;
+    }
+    ui.dummy([0.0, 8.0]);
+
+    // Text fields commit when the field is left, not per keystroke: each commit is a file write.
+    HA_BUF.with(|b| {
+        let mut b = b.borrow_mut();
+        let bufs = b.get_or_insert_with(|| {
+            [c.output_path.clone(), c.server_url.clone(), c.api_key.clone(), c.field_blacklist.clone()]
+        });
+        let iw = w * 0.92;
+
+        ui.text_colored(DIM, "Output folder");
+        ui.same_line_with_spacing(0.0, 8.0);
+        ui.text_colored(DIM, "(horseACT adds \\Saved races inside it)");
+        // "Default" sits at the right end of the label line so the field below keeps its width.
+        let bw = ui.calc_text_size("Default")[0] + 16.0;
+        ui.same_line_with_pos(w - bw);
+        if ui.small_button("Default##ha_outdef") {
+            bufs[0] = ha::default_output_path();
+            changed = true;
+        }
+        ui.set_next_item_width(iw);
+        ui.input_text("##ha_out", &mut bufs[0]).hint("folder next to the game").build();
+        if ui.is_item_deactivated_after_edit() {
+            changed = true;
+        }
+        ui.dummy([0.0, 6.0]);
+
+        ui.text_colored(DIM, "Upload server");
+        ui.same_line_with_spacing(0.0, 8.0);
+        ui.text_colored(DIM, "(optional - leave empty for local files only)");
+        ui.set_next_item_width(iw);
+        ui.input_text("##ha_srv", &mut bufs[1]).hint("https://").build();
+        if ui.is_item_deactivated_after_edit() {
+            changed = true;
+        }
+        ui.dummy([0.0, 6.0]);
+
+        ui.text_colored(DIM, "API key");
+        ui.set_next_item_width(iw);
+        ui.input_text("##ha_key", &mut bufs[2]).hint("for the upload server").password(true).build();
+        if ui.is_item_deactivated_after_edit() {
+            changed = true;
+        }
+        ui.dummy([0.0, 6.0]);
+
+        ui.text_colored(DIM, "Fields left out of every file");
+        ui.same_line_with_spacing(0.0, 8.0);
+        ui.text_colored(DIM, "(comma-separated)");
+        ui.set_next_item_width(iw);
+        ui.input_text("##ha_bl", &mut bufs[3]).hint("viewer_id, CreateTime, \u{2026}").build();
+        if ui.is_item_deactivated_after_edit() {
+            changed = true;
+        }
+
+        if changed {
+            c.output_path = bufs[0].clone();
+            c.server_url = bufs[1].clone();
+            c.api_key = bufs[2].clone();
+            c.field_blacklist = bufs[3].clone();
+        }
+    });
+
+    if changed {
+        ha::set_config(c);
+    }
+    ui.dummy([0.0, 6.0]);
+    if ha::config_dirty() {
+        status_dot(ui, WARN, "Changed - horseACT reads this at launch, so restart the game to apply");
+    } else {
+        ui.text_colored(DIM, "horseACT reads these once at launch; changes apply the next time the game starts.");
+    }
+}
+
 fn draw_uma_extract(ui: &Ui) {
     let _wrap = ui.push_text_wrap_pos();
     // The export runs on a worker thread now (multi-MB write - never on the render thread), so the
     // button has to show that it is working; otherwise a slow disk looks like a dead button.
+    ui.dummy([0.0, 6.0]);
     if crate::umas::exporting() {
         ui.text_colored(DIM, "Exporting\u{2026}");
     } else if btn_primary(ui, "##umaextract", "Export veterans (data.json)") {
@@ -3603,6 +4324,333 @@ fn draw_uma_extract(ui: &Ui) {
     );
 }
 
+/// Post-race summary window. Finish order down the left, stats across, skill triggers under any
+/// runner you click. Same scaffold as the Oracle window: floating, remembered position, no title
+/// bar, plated close.
+fn draw_race_summary_window(ui: &Ui) {
+    use crate::race_summary as rs;
+    let Some(sum) = rs::current() else {
+        rs::set_window_open(false);
+        return;
+    };
+    let d = dpi(ui);
+    let (bw, bh) = (760.0 * d, 520.0 * d);
+    let [dw, dh] = ui.io().display_size;
+    let (px, py, sw, sh) = crate::settings::win_rect("racesum")
+        .map(|r| (r[0], r[1], r[2], r[3]))
+        .unwrap_or((((dw - bw) * 0.5).max(10.0), ((dh - bh) * 0.5).max(20.0), bw, bh));
+    let _style = panel_style(ui);
+    let _widgets = opt_widget_style(ui);
+    let _rounding = ui.push_style_var(StyleVar::WindowRounding(16.0));
+    let _noborder = ui.push_style_color(StyleColor::Border, [0.0, 0.0, 0.0, 0.0]);
+    ui.window("Trackside \u{00b7} Race summary")
+        .position([px, py], Condition::FirstUseEver)
+        .size([sw, sh], Condition::FirstUseEver)
+        .title_bar(false)
+        .scroll_bar(true)
+        .resizable(true)
+        .build(|| {
+            persist_window(ui, "racesum");
+            {
+                let (gl, gr) = opt_grad_colors();
+                opt_gradient_border(ui, ui.window_pos(), ui.window_size(), 16.0, [gl[0], gl[1], gl[2], 0.55], [gr[0], gr[1], gr[2], 0.55]);
+            }
+            let w = ui.window_size()[0];
+            let s = (w / bw).clamp(0.75, 1.6);
+            ui.set_window_font_scale(s);
+            let pad = 18.0 * s;
+            ui.set_cursor_pos([pad, pad]);
+            let cw = (ui.content_region_avail()[0] - pad).max(300.0 * s);
+
+            // ── header: brand line, race line, close ──
+            {
+                let p = ui.cursor_screen_pos();
+                {
+                    let dl = ui.get_window_draw_list();
+                    ui.set_window_font_scale(s * 0.72);
+                    dl.add_text([p[0], p[1] - 1.0 * s], crate::theme::accent(), "R A C E   S U M M A R Y");
+                    ui.set_window_font_scale(s);
+                }
+                {
+                    let _t = opt_semibold(ui, true);
+                    let mut title = String::new();
+                    if !sum.track.is_empty() {
+                        title.push_str(&sum.track);
+                        title.push(' ');
+                    }
+                    if sum.distance_m > 0 {
+                        title.push_str(&format!("{}m", sum.distance_m));
+                    }
+                    if !sum.ground.is_empty() {
+                        title.push_str(&format!(" {}", sum.ground));
+                    }
+                    if title.is_empty() {
+                        title = "Race".into();
+                    }
+                    let dl = ui.get_window_draw_list();
+                    dl.add_text([p[0], p[1] + 14.0 * s], TEXT, &title);
+                }
+                // chips: condition · weather · season · type
+                {
+                    let mut chips: Vec<String> = Vec::new();
+                    for c in [&sum.condition, &sum.weather, &sum.season] {
+                        if !c.is_empty() {
+                            chips.push(c.clone());
+                        }
+                    }
+                    match sum.race_type.as_str() {
+                        "RoomMatch" => chips.push("Room Match".into()),
+                        "Champions" | "ChampionsMeeting" => chips.push("Champions Meeting".into()),
+                        "" => {}
+                        other => chips.push(other.to_string()),
+                    }
+                    let xsz = 28.0 * s;
+                    ui.set_cursor_screen_pos([p[0], p[1] + 14.0 * s]);
+                    chip_row_right(ui, &chips, cw - xsz - 10.0 * s, p[1] + 14.0 * s);
+                }
+                let xsz = 28.0 * s;
+                let xp = [p[0] + cw - xsz, p[1]];
+                ui.set_cursor_screen_pos(xp);
+                let clicked = ui.invisible_button("##rsum_x", [xsz, xsz]);
+                let hov = ui.is_item_hovered();
+                {
+                    let dl = ui.get_window_draw_list();
+                    let bg = if hov { [1.0, 1.0, 1.0, 0.13] } else { [1.0, 1.0, 1.0, 0.06] };
+                    dl.add_rect(xp, [xp[0] + xsz, xp[1] + xsz], bg).filled(true).rounding(9.0).build();
+                    let c = if hov { TEXT } else { DIM };
+                    let (m, e2) = (xsz * 0.34, xsz * 0.66);
+                    dl.add_line([xp[0] + m, xp[1] + m], [xp[0] + e2, xp[1] + e2], c).thickness(1.7).build();
+                    dl.add_line([xp[0] + e2, xp[1] + m], [xp[0] + m, xp[1] + e2], c).thickness(1.7).build();
+                }
+                if clicked {
+                    rs::set_window_open(false);
+                }
+                ui.set_cursor_screen_pos([p[0], p[1] + 46.0 * s]);
+            }
+
+            // ── column layout (fractions of the content width) ──
+            let x0 = ui.cursor_screen_pos()[0];
+            let col_place = x0;
+            let col_name = x0 + 34.0 * s;
+            // Stats get 40% of the width: five four-digit numbers need ~46 px each at 1x.
+            let col_style = x0 + cw * 0.30;
+            let col_time = x0 + cw * 0.385;
+            let col_gap = x0 + cw * 0.475;
+            let col_pop = x0 + cw * 0.545;
+            let col_stats = x0 + cw * 0.585;
+            let stat_w = (cw * 0.34) / 5.0;
+            let col_skills = x0 + cw - 44.0 * s;
+            let lh = ui.text_line_height();
+            {
+                let y = ui.cursor_screen_pos()[1];
+                ui.set_window_font_scale(s * 0.78);
+                // Scoped: `rule` below takes the window draw list itself, and imgui-rs allows
+                // exactly one live handle - a second one panics the render thread.
+                let dl = ui.get_window_draw_list();
+                for (x, label) in [
+                    (col_place, "#"),
+                    (col_name, "RUNNER"),
+                    (col_style, "STYLE"),
+                    (col_time, "TIME"),
+                    (col_gap, "GAP"),
+                    (col_pop, "POP"),
+                    (col_stats + stat_w - ui.calc_text_size("SPD")[0], "SPD"),
+                    (col_stats + stat_w * 2.0 - ui.calc_text_size("STA")[0], "STA"),
+                    (col_stats + stat_w * 3.0 - ui.calc_text_size("POW")[0], "POW"),
+                    (col_stats + stat_w * 4.0 - ui.calc_text_size("GUT")[0], "GUT"),
+                    (col_stats + stat_w * 5.0 - ui.calc_text_size("WIT")[0], "WIT"),
+                    (col_skills, "SKILLS"),
+                ] {
+                    dl.add_text([x, y], DIM, label);
+                }
+                drop(dl);
+                ui.set_window_font_scale(s);
+                ui.dummy([cw, lh * 0.9]);
+                rule(ui, cw);
+                ui.dummy([0.0, 4.0 * s]);
+            }
+
+            // ── rows ──
+            let row_h = 36.0 * s;
+            RSUM_OPEN.with(|open| {
+                let mut open = open.borrow_mut();
+                // First time this race is shown: the player's runner starts expanded.
+                if open.1 != sum.built_at_ms {
+                    open.1 = sum.built_at_ms;
+                    open.0.clear();
+                    if let Some(p) = sum.player_index {
+                        open.0.push(p);
+                    }
+                }
+                for r in &sum.runners {
+                    let top = ui.cursor_screen_pos();
+                    let clicked = ui.invisible_button(&format!("##rsum_row{}", r.horse_index), [cw, row_h]);
+                    let hov = ui.is_item_hovered();
+                    let expanded = open.0.contains(&r.horse_index);
+                    {
+                        let dl = ui.get_window_draw_list();
+                        let plate = if r.is_player {
+                            crate::theme::accent_a(if hov { 0.20 } else { 0.13 })
+                        } else if hov || expanded {
+                            [1.0, 1.0, 1.0, 0.06]
+                        } else {
+                            [1.0, 1.0, 1.0, 0.025]
+                        };
+                        dl.add_rect(top, [top[0] + cw, top[1] + row_h], plate).filled(true).rounding(9.0 * s).build();
+                        let ty = top[1] + (row_h - lh) * 0.5;
+                        // place
+                        {
+                            let _t = opt_semibold(ui, false);
+                            let col = match r.place {
+                                1 => GOLD,
+                                2 | 3 => TEXT,
+                                _ => DIM,
+                            };
+                            dl.add_text([col_place + 6.0 * s, ty], col, &r.place.to_string());
+                        }
+                        // portrait + name (+ trainer)
+                        let mut nx = col_name;
+                        if let Some(tex) = opt_portrait(r.chara_id) {
+                            let ps = row_h - 8.0 * s;
+                            dl.add_image(tex, [nx, top[1] + 4.0 * s], [nx + ps, top[1] + 4.0 * s + ps]).build();
+                            nx += ps + 8.0 * s;
+                        }
+                        {
+                            let _t = opt_semibold(ui, false);
+                            dl.add_text([nx, ty], if r.is_player { TEXT } else { [0.86, 0.86, 0.91, 1.0] }, &r.name);
+                        }
+                        if !r.trainer.is_empty() {
+                            let nw = ui.calc_text_size(&r.name)[0];
+                            ui.set_window_font_scale(s * 0.8);
+                            dl.add_text([nx + nw + 6.0 * s, ty + 2.0 * s], DIM, &r.trainer);
+                            ui.set_window_font_scale(s);
+                        }
+                        dl.add_text([col_style, ty], DIM, crate::race_summary::style_label(r.style));
+                        dl.add_text([col_time, ty], TEXT, &crate::race_summary::fmt_time(r.finish_time));
+                        if r.place > 1 {
+                            dl.add_text([col_gap, ty], DIM, &format!("+{:.2}", r.gap_prev));
+                        }
+                        if r.popularity > 0 {
+                            dl.add_text([col_pop, ty], DIM, &r.popularity.to_string());
+                        }
+                        for (k, v) in [r.speed, r.stamina, r.power, r.guts, r.wit].iter().enumerate() {
+                            let col = if *v >= 1200 { GOOD } else if *v >= 800 { TEXT } else { DIM };
+                            let txt = v.to_string();
+                            let tw = ui.calc_text_size(&txt)[0];
+                            dl.add_text([col_stats + stat_w * (k as f32 + 1.0) - tw, ty], col, &txt);
+                        }
+                        let n = r.skills.len();
+                        let sx = col_skills;
+                        if n > 0 {
+                            dl.add_text([sx, ty], if expanded { crate::theme::accent() } else { TEXT }, &n.to_string());
+                        } else {
+                            dl.add_text([sx, ty], DIM, "0");
+                        }
+                        // expand caret
+                        let cx = top[0] + cw - 14.0 * s;
+                        let cy = top[1] + row_h * 0.5;
+                        let c = if expanded { crate::theme::accent() } else { DIM };
+                        if expanded {
+                            dl.add_triangle([cx - 4.0 * s, cy - 2.0 * s], [cx + 4.0 * s, cy - 2.0 * s], [cx, cy + 3.0 * s], c).filled(true).build();
+                        } else {
+                            dl.add_triangle([cx - 2.0 * s, cy - 4.0 * s], [cx - 2.0 * s, cy + 4.0 * s], [cx + 3.0 * s, cy], c).filled(true).build();
+                        }
+                    }
+                    if clicked {
+                        if expanded {
+                            open.0.retain(|v| *v != r.horse_index);
+                        } else {
+                            open.0.push(r.horse_index);
+                        }
+                    }
+                    ui.set_cursor_screen_pos([top[0], top[1] + row_h + 4.0 * s]);
+
+                    if expanded {
+                        let ix = col_name;
+                        if r.skills.is_empty() && r.hit_by.is_empty() {
+                            ui.set_cursor_screen_pos([ix, ui.cursor_screen_pos()[1]]);
+                            ui.text_colored(DIM, "No skills fired.");
+                        }
+                        for h in &r.skills {
+                            let p = ui.cursor_screen_pos();
+                            let ih = 20.0 * s;
+                            let mut x = ix;
+                            {
+                                let dl = ui.get_window_draw_list();
+                                if let Some(tex) = opt_skill_icon(h.skill_id) {
+                                    dl.add_image(tex, [x, p[1]], [x + ih, p[1] + ih]).build();
+                                }
+                                x += ih + 8.0 * s;
+                                dl.add_text([x, p[1] + (ih - lh) * 0.5], TEXT, &h.name);
+                                x += ui.calc_text_size(&h.name)[0] + 10.0 * s;
+                                let when = if h.distance > 0.0 {
+                                    format!("{:.0}m \u{00b7} {:.1}s", h.distance, h.time)
+                                } else {
+                                    "at the start".to_string()
+                                };
+                                dl.add_text([x, p[1] + (ih - lh) * 0.5], DIM, &when);
+                                x += ui.calc_text_size(&when)[0] + 10.0 * s;
+                                if !h.targets.is_empty() {
+                                    let names: Vec<String> = h
+                                        .targets
+                                        .iter()
+                                        .filter_map(|t| sum.runners.iter().find(|q| q.horse_index == *t).map(|q| q.name.clone()))
+                                        .collect();
+                                    dl.add_text([x, p[1] + (ih - lh) * 0.5], WARN, &format!("\u{2192} {}", names.join(", ")));
+                                }
+                            }
+                            ui.dummy([cw, ih + 3.0 * s]);
+                        }
+                        for (caster, h) in &r.hit_by {
+                            let p = ui.cursor_screen_pos();
+                            let who = sum.runners.iter().find(|q| q.horse_index == *caster).map(|q| q.name.clone()).unwrap_or_default();
+                            let line = format!("hit by {who}'s {} \u{00b7} {:.0}m", h.name, h.distance);
+                            let dl = ui.get_window_draw_list();
+                            dl.add_text([ix, p[1]], WARN, &line);
+                            ui.dummy([cw, lh + 3.0 * s]);
+                        }
+                        ui.dummy([0.0, 4.0 * s]);
+                    }
+                }
+            });
+            ui.dummy([0.0, 6.0 * s]);
+            ui.set_window_font_scale(s * 0.8);
+            ui.text_colored(DIM, "From the game's own race simulation. Click a runner for its skills.");
+            ui.set_window_font_scale(s);
+        });
+}
+
+thread_local! {
+    /// Expanded runners in the summary window, keyed to the race they belong to.
+    static RSUM_OPEN: std::cell::RefCell<(Vec<usize>, u64)> = const { std::cell::RefCell::new((Vec::new(), u64::MAX)) };
+}
+
+/// Menu control under Race Director > Race summary: the last race in one line, and a way back
+/// into the window after closing it.
+fn draw_race_summary_panel(ui: &Ui, _w: f32) {
+    use crate::race_summary as rs;
+    ui.dummy([0.0, 6.0]);
+    match rs::current() {
+        Some(sum) => {
+            let winner = sum.runners.first().map(|r| r.name.clone()).unwrap_or_default();
+            let you = sum.runners.iter().find(|r| r.is_player).map(|r| r.place).unwrap_or(0);
+            let line = if you > 0 {
+                format!("Last race: {} {}m \u{00b7} you placed {} \u{00b7} {} won", sum.track, sum.distance_m, you, winner)
+            } else {
+                format!("Last race: {} {}m \u{00b7} {} won", sum.track, sum.distance_m, winner)
+            };
+            status_dot(ui, GOOD, &line);
+            ui.dummy([0.0, 4.0]);
+            if !rs::window_open() && btn(ui, "##rsum_open", "Show last race") {
+                rs::set_window_open(true);
+            }
+            if rs::pending() {
+                ui.text_colored(DIM, "A summary is ready and will appear on the result panel.");
+            }
+        }
+        None => status_dot(ui, DIM, "No race yet this session"),
+    }
+}
 /// Silk-themed widget palette for the optimizer window. It draws BEFORE the menu's global
 /// style push (it must render with the menu closed), so without this the combos, their
 /// popups and the list scrollbar leak stock imgui grey into the clean UI.
@@ -4899,4 +5947,6 @@ fn draw_freecam_telemetry(ui: &Ui, x: f32, y: f32, cond: Condition) {
             persist_window(ui, "telemetry");
         });
 }
+
+
 

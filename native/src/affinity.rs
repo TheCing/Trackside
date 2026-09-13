@@ -447,22 +447,26 @@ pub(crate) fn draw_tt_panel(ui: &hudhook::imgui::Ui, w: f32) {
     );
     ui.dummy([0.0, 8.0]);
 
-    let mut en = crate::affinity::is_enabled();
-    if ui.checkbox("Show affinity numbers", &mut en) {
-        crate::affinity::set_enabled(en);
+    let en = crate::affinity::is_enabled();
+    if crate::overlay::toggle_row(ui, "##affon", "Show affinity numbers", en, w) {
+        crate::affinity::set_enabled(!en);
     }
-    let mut ed = crate::affinity::edit_mode();
-    if ui.checkbox("Edit \u{2014} drag numbers to place them", &mut ed) {
-        crate::affinity::set_edit_mode(ed);
+    let ed = crate::affinity::edit_mode();
+    if crate::overlay::toggle_row(ui, "##affedit", "Edit \u{2014} drag numbers to place them", ed, w) {
+        crate::affinity::set_edit_mode(!ed);
     }
     if ed {
-        ui.text_colored(DIM, "Drag each number on screen. Uncheck Edit to save.");
+        ui.text_colored(DIM, "Drag each number on screen. Switch Edit off to save.");
     }
+    ui.dummy([0.0, 4.0]);
     let mut sz = crate::affinity::size();
-    ui.set_next_item_width(w * 0.8);
-    if ui.slider("Size", 0.8, 4.0, &mut sz) {
+    crate::overlay::label_beside(ui, DIM, "Size", 20.0);
+    ui.same_line_with_spacing(0.0, 12.0);
+    if crate::overlay::pink_slider_f32(ui, "##affsize", 0.8, 4.0, &mut sz, w * 0.5) {
         crate::affinity::set_size(sz);
     }
+    ui.same_line();
+    ui.text_colored(DIM, &format!("{sz:.1}x"));
 
     if let Some((t, a, b)) = crate::affinity::values() {
         ui.dummy([0.0, 6.0]);

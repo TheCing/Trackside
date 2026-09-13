@@ -122,6 +122,12 @@ fn signature(v: &J) -> u64 {
 
 /// Called for every decompressed response. Writes an export when the race payload is present.
 pub fn note_response(bytes: &[u8]) {
+    if crate::friendlyplugins::horseact_active() {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| crate::tools::log("[race-packet] horseACT is active - built-in export stands down"));
+        return;
+    }
+
     if !crate::settings::race_export() {
         return;
     }

@@ -110,7 +110,9 @@ fn elog(msg: &str) {
 /// compares; only walks + saves when a genuinely new race is detected and the
 /// export toggle is on. Safe to call from the (attached) game thread.
 pub fn maybe_dump(ri: *mut c_void) {
-    if ri.is_null() || !ENABLED.load(Ordering::Relaxed) {
+    // The walk serves two consumers now: the legacy export file (this module) and the post-race
+    // summary window. Walk if either wants it; `save` checks its own toggle.
+    if ri.is_null() || (!ENABLED.load(Ordering::Relaxed) && !crate::race_summary::enabled()) {
         return;
     }
     let addr = ri as usize;
@@ -161,13 +163,20 @@ unsafe fn dump_inner(ri: *mut c_void) {
     }
     LAST_RI.store(ri as usize, Ordering::Relaxed);
     LAST_SIM.store(sim_ptr, Ordering::Relaxed);
+    crate::race_summary::on_new_race();
 
     let mut visited: HashSet<usize> = HashSet::new();
     let val = crate::il2cpp_json::convert_object(ri, 0, &mut visited);
     let base = crate::paths::local_dir_migrated("trackside-races", "heaven-races");
-    // Hand off the (pure-Rust) serialize + disk write to a worker thread so the
-    // game thread isn't blocked on I/O.
-    std::thread::spawn(move || save(val, base));
+    let want_file = ENABLED.load(Ordering::Relaxed);
+    // Hand off the (pure-Rust) work to a worker thread so the game thread isn't blocked: the
+    // summary is built from the graph first (small), then the legacy file is written if wanted.
+    std::thread::spawn(move || {
+        crate::race_summary::ingest(&val);
+        if want_file {
+            save(val, base);
+        }
+    });
 }
 
 fn sanitize(s: &str) -> String {
@@ -236,6 +245,11 @@ fn write_json(value: Value, dir: PathBuf, filename: String) {
 }
 
 fn save(mut value: Value, base: PathBuf) {
+    if crate::friendlyplugins::horseact_active() {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| crate::tools::log("[race-export] horseACT is active - built-in export stands down"));
+        return;
+    }
     // The visualizer needs the replay blob; skip empty races.
     match value.get("<SimDataBase64>k__BackingField") {
         Some(Value::String(s)) if !s.is_empty() => {}

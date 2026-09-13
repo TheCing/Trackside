@@ -184,6 +184,11 @@ unsafe extern "C" fn on_button_update(this: *mut c_void, m: *mut c_void) {
     // is how the career skip finds that panel; the watcher borrows it. One atomic load when idle.
     if !in_heaven() {
         crate::roomwatch::on_button_update(this);
+        // Team Trials auto-player: same per-button tick, same reason - the screens it walks have
+        // no controller we detour. Two atomic loads and a name compare when idle.
+        crate::ttplay::on_button_update(this);
+        // Race summary: reveal the pending post-race window once the result panel is on screen.
+        crate::race_summary::on_button_update(this);
     }
 }
 unsafe extern "C" fn on_pointer_click(this: *mut c_void, evt: *mut c_void, m: *mut c_void) {

@@ -131,9 +131,13 @@ pub fn spawn() {
         // runtime is ready, handing them a Heaven-backed compatible vtable. Self-contained mods
         // (no such export) are left untouched (already started by the early loader).
         log(&format!("plugins(sdk): {}", crate::hachimi_compat::init_plugins()));
-        // If an external SDK plugin (e.g. a companion feed) loaded from heaven_plugins/, it already
-        // owns the overlay UDP channel — stand our native feed down so the two don't double-send.
-        if crate::hachimi_compat::sdk_plugins_loaded() > 0 {
+        crate::horseact::note_boot();
+        // If an external SDK plugin (e.g. a companion feed) loaded from trackside_plugins/, it may
+        // own the overlay UDP channel — stand our native feed down so the two don't double-send.
+        // horseACT is the exception: it dumps files and never touches that channel, and it is the
+        // one plugin we install ourselves. Counting it here silently switched the feed off for
+        // everyone who installed it (seen in the first live run, 2026-09-13).
+        if crate::hachimi_compat::other_plugin_active("horseACT.dll") {
             crate::uma_bridge::set_external_active(true);
             log("companion feed: external SDK plugin present -> native feed deferred");
         }
