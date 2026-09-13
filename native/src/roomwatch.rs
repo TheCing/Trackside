@@ -290,6 +290,14 @@ fn is_done(room: i64) -> bool {
 pub fn is_running() -> bool {
     STATE.load(Ordering::Relaxed) != S_IDLE
 }
+/// (presses done, presses total) while replaying the recorded flow; None otherwise.
+pub fn replay_progress() -> Option<(usize, usize)> {
+    if STATE.load(Ordering::Relaxed) != S_REPLAY {
+        return None;
+    }
+    let total = REPLAY_STEPS.lock().ok().and_then(|g| g.as_ref().map(|v| v.len()))?;
+    Some((REPLAY_CURSOR.load(Ordering::Relaxed).min(total), total))
+}
 pub fn done_count() -> i32 {
     DONE_COUNT.load(Ordering::Relaxed)
 }
@@ -631,6 +639,21 @@ pub fn on_button_update(this: *mut c_void) {
             log(&format!("race result panel: button seen \"{name}\""));
         }
     }
+}
+
+/// Preview-host design aid: when TRACKSIDE_ROOMWATCH_MOCK is set, pose the panel mid-run.
+pub fn mock_for_preview() {
+    if std::env::var_os("TRACKSIDE_ROOMWATCH_MOCK").is_none() {
+        return;
+    }
+    SCREEN.store(SCR_TOP, Ordering::Relaxed);
+    STATE.store(S_REPLAY, Ordering::Relaxed);
+    DONE_COUNT.store(1, Ordering::Relaxed);
+    if let Ok(mut g) = REPLAY_STEPS.lock() {
+        *g = Some(FLOW.iter().filter(|(_, o)| !*o).map(|(p, o)| (p.to_string(), *o)).collect());
+    }
+    REPLAY_CURSOR.store(4, Ordering::Relaxed);
+    set_status("Replay 4/7: Race! pressed \u{2014} race running\u{2026}".into());
 }
 
 /// Main-thread tick (TweenManager.Update). No-op unless running or requested.
@@ -1176,7 +1199,7 @@ unsafe fn step(st: u8) {
 }
 
 // ── IL2CPP bridge ───────────────────────────────────────────────────────────────────────────────
-mod bridge {
+pub(crate) mod bridge {
     use super::*;
     use crate::pruner::bridge::{invoke0, plain_string, rd_ptr, unbox_i64, work_data_manager};
 
