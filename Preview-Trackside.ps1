@@ -42,8 +42,11 @@ param(
     [switch]$NoBanner,
     [string]$Features = '',
     # Open a window prepopulated with fabricated data for visual iteration (no game needed).
-    # One of: 'skopt' (Skill Optimizer). Empty = none.
-    [string]$Mock = ''
+    # One of: 'skopt' (Skill Optimizer), 'roomfinder', 'roomwatch', 'ttplay', 'horseact', 'rsum', 'all'. Empty = none.
+    [string]$Mock = '',
+    [string]$Background = '',   # draw the overlay over a game screenshot (path, or a name in Night's ShareX folder)
+    # Open the menu on this tab at start (e.g. 'Automation'), so a capture needs no clicking.
+    [string]$OpenTab = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -97,7 +100,23 @@ $exe = Join-Path $hostDir 'target\release\trackside-preview-host.exe'
 if (-not (Test-Path -LiteralPath $exe)) { Fail "host exe not found at $exe." }
 
 # --- mock data (read by the DLL at load; inherited by the host process) -----
-if ($Mock -eq 'skopt') { $env:TRACKSIDE_SKOPT_MOCK = '1' }
+if ($Mock -eq 'skopt'      -or $Mock -eq 'all') { $env:TRACKSIDE_SKOPT_MOCK = '1' }
+if ($Mock -eq 'roomfinder' -or $Mock -eq 'all') { $env:TRACKSIDE_ROOMFINDER_MOCK = '1' }
+if ($Mock -eq 'roomwatch'  -or $Mock -eq 'all') { $env:TRACKSIDE_ROOMWATCH_MOCK = '1' }
+if ($Mock -eq 'ttplay'     -or $Mock -eq 'all') { $env:TRACKSIDE_TTPLAY_MOCK = '1' }
+if ($Mock -eq 'horseact'   -or $Mock -eq 'all') { $env:TRACKSIDE_HORSEACT_MOCK = '1' }
+if ($Mock -eq 'rsum'       -or $Mock -eq 'all') { $env:TRACKSIDE_RSUM_MOCK = '1' }
+if ($OpenTab) { $env:TRACKSIDE_PREVIEW_OPEN = $OpenTab; Write-Host "  Opens on tab: $OpenTab" -ForegroundColor Magenta }
+if ($Background) {
+    # Capture-Trackside.ps1 owns the png->raw conversion; borrow it rather than keep two copies.
+    $conv = Join-Path $repoDir 'Capture-Trackside.ps1'
+    $fn = (Get-Command $conv).ScriptBlock.Ast.FindAll({ param($a) $a -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -eq 'Convert-Backdrop' }, $true) | Select-Object -First 1
+    if (-not $fn) { Fail "Convert-Backdrop not found in Capture-Trackside.ps1" }
+    Add-Type -AssemblyName System.Drawing
+    Invoke-Expression $fn.Extent.Text
+    $env:TRACKSIDE_PREVIEW_BG = (Convert-Backdrop $Background 'C:\Users\jptyn\OneDrive\Documents\ShareX\Screenshots\2026-09' | Select-Object -Last 1)
+    Write-Host "  Backdrop: $env:TRACKSIDE_PREVIEW_BG" -ForegroundColor Magenta
+} else { Remove-Item Env:\TRACKSIDE_PREVIEW_BG -ErrorAction SilentlyContinue }
 if ($Mock) { Write-Host "  Mock: $Mock" -ForegroundColor Magenta }
 
 # --- launch -----------------------------------------------------------------
@@ -109,3 +128,5 @@ Write-Host "  (Press Insert in the window for the menu; close the window to quit
 Write-Host ""
 
 & $exe $dllFull
+
+
