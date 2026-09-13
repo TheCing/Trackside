@@ -1907,6 +1907,7 @@ impl HeavenOverlay {
                                         }
                                         Ctrl::Custom(Custom::CareerLog) => {
                                             career_log_panel(ui);
+                                        }
                                         Ctrl::Custom(Custom::HorseAct) => {
                                             draw_horseact(ui, cw);
                                         }
