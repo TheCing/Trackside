@@ -36,11 +36,43 @@ pub const MAX_CHECKS: usize = 60;
 /// ExhibitionRaceDefine constants are per-ROOM entry counts, not a per-player cap, and there is no
 /// CanEntry/IsEntryFull guard to read. If the game ever changes it, this is the one number.
 pub const ENTRY_LIMIT: usize = 5;
+/// The player's current sign-up count as the GAME prints it, or -1 when we have not seen it yet.
+/// Two trustworthy sources, both on-screen text: the Sign-Up Complete dialog's "N / 5" after each
+/// registration, and the Room Match top screen's "Registered N/5" label, re-read while that screen
+/// is up. Never the cached entry list (wrong in both directions - see process_list).
+static KNOWN_SIGNUPS: AtomicI32 = AtomicI32::new(-1);
+static SIGNUPS_NEXT_MS: AtomicU64 = AtomicU64::new(0);
+
+/// Render-thread safe: Some(n) once the count has been seen on screen this session.
+pub fn signups() -> Option<usize> {
+    let n = KNOWN_SIGNUPS.load(Ordering::Relaxed);
+    if n < 0 { None } else { Some(n as usize) }
+}
+fn note_signups(n: usize) {
+    if KNOWN_SIGNUPS.swap(n as i32, Ordering::Relaxed) != n as i32 {
+        log(&format!("sign-ups: {n}/{ENTRY_LIMIT}"));
+    }
+}
 /// Auto-repeat armed and waiting for the room list to come back after a successful join.
 static REPEAT_PENDING: AtomicBool = AtomicBool::new(false);
 /// Set from the list hook, consumed by pump() on the main thread: restart the hunt. The hook runs
 /// inside the game's own call, so it only flips a flag - same discipline as the rest of this file.
 static REQ_RESUME: AtomicBool = AtomicBool::new(false);
+/// The list that triggered an auto-repeat resume has finished building (the original
+/// CreateRoomListUI returned), so the resumed hunt can read it right away instead of waiting a
+/// whole refresh cycle for the next one - the "+1 refresh" Night noticed.
+static RESUME_LIST_FRESH: AtomicBool = AtomicBool::new(false);
+/// When REPEAT_PENDING was armed. The resume normally rides the next CreateRoomListUI, but the
+/// game sometimes rebuilds the list BEFORE we dismiss the complete dialog - the hook has already
+/// fired by the time we arm, and nothing else ever fires. Measured 2026-09-06: resumed at 1/5,
+/// silently never resumed at 2/5 and 3/5. After this long with the list screen live, resume anyway.
+static REPEAT_ARMED_MS: AtomicU64 = AtomicU64::new(0);
+const REPEAT_FALLBACK_MS: u64 = 2500;
+/// Delayed read of a list that is already complete: set on resume so the first match is acted on
+/// once the complete dialog's close transition is over - acting in the same tick opened the room
+/// while the screen was still changing and the entry screen never appeared.
+static READ_AT_MS: AtomicU64 = AtomicU64::new(u64::MAX);
+const RESUME_SETTLE_MS: u64 = 1200;
 /// If a triggered refresh produces no fresh list within this window (cooldown, network),
 /// re-arm and try again rather than hanging forever.
 const REFRESH_TIMEOUT_MS: u64 = 15_000;
@@ -522,6 +554,18 @@ fn log(msg: &str) {
 
 // ── public API consumed by the overlay UI ─────────────────────────────────────
 
+/// Seconds until the next scheduled refresh while hunting; None when none is scheduled.
+pub fn next_refresh_secs() -> Option<f32> {
+    if !HUNTING.load(Ordering::Relaxed) {
+        return None;
+    }
+    let due = NEXT_MS.load(Ordering::Relaxed);
+    if due == u64::MAX {
+        return None;
+    }
+    Some((due.saturating_sub(now_ms())) as f32 / 1000.0)
+}
+
 pub fn is_hunting() -> bool {
     HUNTING.load(Ordering::Relaxed)
 }
@@ -568,7 +612,14 @@ pub fn filters() -> Filters {
 }
 pub fn set_filters(f: Filters) {
     if let Ok(mut g) = store().lock() {
+        // Log every change: "the season filter does nothing" could be the UI not committing the
+        // selection or the matcher ignoring it, and only the log can tell those apart.
+        let before = g.summary();
         *g = f;
+        let after = g.summary();
+        if before != after {
+            log(&format!("filters: {after}"));
+        }
         save_to_disk(&g);
     }
 }
@@ -607,9 +658,26 @@ pub fn start() -> Result<(), String> {
     Ok(())
 }
 
+/// Preview-host design aid: when TRACKSIDE_ROOMFINDER_MOCK is set, pose the panel mid-hunt with a
+/// known sign-up count so it can be styled in Preview-Trackside.ps1 without the game. The pump
+/// never runs in the host (no TweenManager), so these statics are display-only there.
+pub fn mock_for_preview() {
+    if std::env::var_os("TRACKSIDE_ROOMFINDER_MOCK").is_none() {
+        return;
+    }
+    VC.store(1, Ordering::Relaxed); // "list screen open" for the status dot
+    HUNTING.store(true, Ordering::Relaxed);
+    CHECKS.store(3, Ordering::Relaxed);
+    KNOWN_SIGNUPS.store(3, Ordering::Relaxed);
+    NEXT_MS.store(now_ms() + 2400, Ordering::Relaxed);
+    set_status("Checking\u{2026} 3/60 \u{00b7} 0 rooms seen \u{00b7} next refresh in 2.4s".into());
+}
+
 pub fn stop() {
     HUNTING.store(false, Ordering::Relaxed);
     NEXT_MS.store(u64::MAX, Ordering::Relaxed);
+    READ_AT_MS.store(u64::MAX, Ordering::Relaxed);
+    REPEAT_PENDING.store(false, Ordering::Relaxed);
     set_status("Stopped.".into());
 }
 
@@ -645,6 +713,10 @@ unsafe extern "C" fn create_list_hook(this: *mut c_void, list: *mut c_void, mi: 
     }
     if HUNTING.load(Ordering::Relaxed) {
         LIST_READY.store(true, Ordering::Relaxed);
+    } else if REQ_RESUME.load(Ordering::Relaxed) {
+        // Not hunting yet (the pump turns the resume into start() next tick), but THIS list is
+        // complete now - the game's own builder just returned - so it is safe and correct to read.
+        RESUME_LIST_FRESH.store(true, Ordering::Relaxed);
     }
 }
 
@@ -732,11 +804,37 @@ pub fn pump() {
     // Auto-repeat resume, on the main thread where start() is safe to call. Re-read the count here
     // too: the player may have joined or left rooms by hand between the join and the list coming
     // back, so the cap is enforced against the game's state rather than our own bookkeeping.
+    // Keep the sign-up count current from the Room Match top screen's own label while it is up
+    // (the player passes through it on the way to the list). Two seconds is plenty; it is one
+    // FindObjectsOfType + one text read, on the main thread.
+    if crate::roomwatch::on_top_screen() && now_ms() >= SIGNUPS_NEXT_MS.load(Ordering::Relaxed) {
+        SIGNUPS_NEXT_MS.store(now_ms() + 2000, Ordering::Relaxed);
+        if let Some(n) = unsafe { bridge::signups_from_top() } {
+            note_signups(n);
+        }
+    }
+    // Fallback resume: armed, list screen live, but no CreateRoomListUI came to carry it.
+    if REPEAT_PENDING.load(Ordering::Relaxed)
+        && !HUNTING.load(Ordering::Relaxed)
+        && screen_open()
+        && now_ms() > REPEAT_ARMED_MS.load(Ordering::Relaxed) + REPEAT_FALLBACK_MS
+    {
+        REPEAT_PENDING.store(false, Ordering::Relaxed);
+        REQ_RESUME.store(true, Ordering::Relaxed);
+        log("auto-repeat: list rebuilt before we armed - resuming by fallback");
+    }
+    // A complete list handed over by the resume: read it once the transition has settled.
+    let read_at = READ_AT_MS.load(Ordering::Relaxed);
+    if read_at != u64::MAX && now_ms() >= read_at {
+        READ_AT_MS.store(u64::MAX, Ordering::Relaxed);
+        if HUNTING.load(Ordering::Relaxed) {
+            LIST_READY.store(true, Ordering::Relaxed);
+        }
+    }
     if REQ_RESUME.swap(false, Ordering::Relaxed) {
-        let n = unsafe { bridge::my_entry_count() }.unwrap_or(0);
-        if n >= ENTRY_LIMIT {
-            set_status(format!("Auto-repeat: {n}/{ENTRY_LIMIT} sign-ups — limit reached, stopped."));
-        } else {
+        // Resume unconditionally: the dialog count already decided (REPEAT_PENDING is only set
+        // below the limit), and the cached list this used to consult is unreliable both ways.
+        {
             match start() {
                 Ok(()) => {
                     // start() arms CHECK_NOW, which reads whatever list is in work data RIGHT NOW.
@@ -747,11 +845,18 @@ pub fn pump() {
                     // instead - the only moment the list is known-complete - by scheduling a
                     // refresh rather than an immediate read.
                     CHECK_NOW.store(false, Ordering::Relaxed);
+                    // ...but the list that brought us here IS complete (flagged after the game's
+                    // builder returned), so hand it straight to this tick's process_list instead
+                    // of spending a refresh on it. The scheduled refresh below stays as the
+                    // fallback if nothing in it matches.
                     LIST_READY.store(false, Ordering::Relaxed);
+                    if RESUME_LIST_FRESH.swap(false, Ordering::Relaxed) {
+                        READ_AT_MS.store(now_ms() + RESUME_SETTLE_MS, Ordering::Relaxed);
+                    }
                     NEXT_MS.store(now_ms() + next_delay_ms(), Ordering::Relaxed);
                     let f = filters();
-                    set_status(format!("Auto-repeat ({n}/{ENTRY_LIMIT}): hunting {} …", f.summary()));
-                    log(&format!("auto-repeat resumed at {n}/{ENTRY_LIMIT}"));
+                    set_status(format!("Auto-repeat: hunting {} …", f.summary()));
+                    log("auto-repeat resumed");
                 }
                 Err(e) => set_status(format!("Auto-repeat could not resume: {e}")),
             }
@@ -967,12 +1072,14 @@ fn pump_auto_join() {
                         }
                         (true, Some(n)) => {
                             REPEAT_PENDING.store(true, Ordering::Relaxed);
+                            REPEAT_ARMED_MS.store(now_ms(), Ordering::Relaxed);
                             set_status(format!(
                                 "Auto-join: registered ({n}/{ENTRY_LIMIT}) — will keep hunting when the list returns."
                             ));
                         }
                         (true, None) => {
                             REPEAT_PENDING.store(true, Ordering::Relaxed);
+                            REPEAT_ARMED_MS.store(now_ms(), Ordering::Relaxed);
                             set_status("Auto-join: registered (count unread) — will keep hunting.".into());
                         }
                     }
@@ -1025,19 +1132,13 @@ fn process_list() {
             log(&format!("check {n}: {} rooms, rejected by {}", rooms.len(), parts.join(" ")));
         }
     }
-    // Cap check on every list, not just after our own join. The count is ~4s behind a
-    // registration (the local list is updated asynchronously), and the player can also reach the
-    // limit by signing up by hand - so checking only at resume left it rolling at 5/5 forever.
-    if f.auto_repeat {
-        if let Some(n) = unsafe { bridge::my_entry_count() } {
-            if n >= ENTRY_LIMIT {
-                HUNTING.store(false, Ordering::Relaxed);
-                NEXT_MS.store(u64::MAX, Ordering::Relaxed);
-                say(format!("Signed up for {n}/{ENTRY_LIMIT} room races — limit reached, stopped."));
-                return;
-            }
-        }
-    }
+    // NO cap pre-check here. `_myEntryRoomList` is a cache the game fills only when the Sign-Ups
+    // view fetches it: it read 0 at a real 2/5, and it reads a stale 5 after races have run and
+    // freed slots - which refused perfectly good joins at 3/5. The one trustworthy count is the
+    // "Registered N / 5" the Sign-Up Complete dialog prints AFTER a registration, and that is where
+    // the limit is enforced (pump_auto_join). Starting a hunt at a genuine 5/5 simply has the
+    // game refuse the entry, which surfaces as a confirm failure - honest, and never blocks a
+    // legitimate join.
     if let Some(hit) = rooms.iter().find(|r| f.matches(r)) {
         HUNTING.store(false, Ordering::Relaxed);
         NEXT_MS.store(u64::MAX, Ordering::Relaxed);
@@ -1829,8 +1930,48 @@ mod bridge {
         let parsed = n.parse::<usize>().ok();
         if let Some(v) = parsed {
             log(&format!("complete-dialog: registered {v}/{} (from \"{}\")", super::ENTRY_LIMIT, text.trim()));
+            super::note_signups(v);
         }
         parsed
+    }
+
+    /// The Room Match top screen's own "Registered N/5" label (`RoomMatchTop._registNum`), when
+    /// that screen is up. Same idea as the dialog read: the number the player sees, nothing cached.
+    pub unsafe fn signups_from_top() -> Option<usize> {
+        if !il2cpp::ready() {
+            return None;
+        }
+        let k = il2cpp::class("Gallop.RoomMatchTop");
+        let k_obj = il2cpp::class("UnityEngine.Object");
+        if k.is_null() || k_obj.is_null() {
+            return None;
+        }
+        let find = il2cpp::method_with_param_types(k_obj, "FindObjectsOfType", &["System.Type"]);
+        let ty = il2cpp::type_object(k);
+        if find.is_null() || ty.is_null() {
+            return None;
+        }
+        let mut args: [*mut c_void; 1] = [ty as *mut c_void];
+        let (arr, exc) = il2cpp::runtime_invoke_exc(find, std::ptr::null_mut(), &mut args);
+        if !exc.is_null() || arr.is_null() || crate::htt_il2cpp::array_len(arr as *mut _) == 0 {
+            return None;
+        }
+        let top = rd_ptr(arr as *mut c_void, 0x20);
+        if !plausible_obj(top) {
+            return None;
+        }
+        let off = il2cpp::field_offset(k, "_registNum")?;
+        let label = rd_ptr(top, off);
+        if !plausible_obj(label) {
+            return None;
+        }
+        let m = il2cpp::method(il2cpp::object_class(label), "get_text", 0);
+        if m.is_null() {
+            return None;
+        }
+        let text = il2cpp::read_string(il2cpp::runtime_invoke(m, label, &mut []));
+        let n: String = text.chars().skip_while(|c| !c.is_ascii_digit()).take_while(|c| c.is_ascii_digit()).collect();
+        n.parse::<usize>().ok()
     }
 
     /// Press "Race List" on the Sign-Up Complete dialog (`Gallop.DialogRoomMatchRoomComplete`).
