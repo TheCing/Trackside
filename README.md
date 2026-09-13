@@ -122,6 +122,13 @@ either one on its own):
 Toggle the whole HUD or any individual panel under *Race Director → Telemetry*. All windows are
 **resizable** — drag a corner to scale; sizes and positions are remembered.
 
+**Race summary** - the moment the result panel appears after any race, watched or skipped, a
+window shows the whole field in finish order: time and gap, popularity, the five stats, and under
+any runner you click, every skill that fired with the distance and time it fired at. Debuffs show
+who they hit. Built from the game's own race simulation, so it matches what actually happened,
+not an estimate. Toggle it under *Race Director -> Race summary*; the same panel reopens the last
+race after you close it.
+
 Full step-by-step guide (controls, presets, reading the HUD): **[race-director.md](race-director.md)**.
 
 ### Performance
@@ -200,17 +207,24 @@ placement and size are remembered. Turn it on under **Interface → Affinity num
 on the Legacy Select screen.
 
 ### Companion plugins
-Built-in, native stand-ins for the popular companion tools — so you get their functionality
-without loading any external DLLs. All toggles live under **Gameplay → Companion plugins**.
+Trackside can host the popular companion plugins itself — no Hachimi needed — and installs the
+one that matters most for you. Everything lives under **Plugins → Companion plugins**.
 
-- **Export races (horseACT)** — save each race you run to a JSON file (under a `trackside-races`
-  folder next to the game), grouped by race type, for web race viewers/analysis. Captures both
-  the races you watch in 3D **and** the ones you simulate/skip.
-- **Export veterans (Hakuraku)** — export your trained Umamusume — your "veterans" — to a local
-  file that the [Hakuraku](https://hakuraku.moe/veterans) site reads. The next time your
-  trained-uma roster loads in-game, Trackside writes `trackside_umas/veterans.json` next to the
-  game; upload that file to Hakuraku.
-- **Export veterans (data.json / UmaExtractor)** — the same roster in the format
+- **horseACT (races, Team Trials, veterans)** — the race dump that web viewers such as
+  [Hakuraku](https://hakuraku.moe) read, by [ayaliz](https://github.com/ayaliz/horseACT). Press
+  **Install horseACT** and Trackside downloads the current release straight from its author's
+  GitHub into `trackside_plugins/` and runs it as a plugin from the next launch. The same button
+  updates it when a new release appears, so what you run is always the current format the viewers
+  expect. Its files land under **`trackside-races\Saved races\`** (races by type, `Team trials\`,
+  and `veterans.json`), next to the game. Nothing is bundled: it is fetched from
+  github.com/ayaliz/horseACT and only on your say-so.
+  - Already run horseACT through Hachimi? Keep doing that. Trackside notices it is loaded and
+    stays out of its way.
+- **Legacy race export (built-in)** and **Legacy veterans export (built-in)** — Trackside's own
+  older reimplementation of the same dumps. They stay as a fallback for anyone who does not install
+  horseACT, and stand down automatically while horseACT is active. They may lag horseACT's format;
+  if a viewer says your file is outdated, install horseACT.
+- **Export veterans (data.json / UmaExtractor)** — your roster in the format
   [UmaExtractor](https://github.com/xancia/UmaExtractor) produces, for tools that read its
   `data.json`. Open the game's **Veteran List** once (the roster is captured automatically),
   then press **Export veterans (data.json)** — no separate extractor or memory scanning needed.
@@ -221,10 +235,10 @@ without loading any external DLLs. All toggles live under **Gameplay → Compani
     UmaLauncher's settings set **CarrotBlender Port** to **17229** (Trackside's feed port)
     and its training analytics, event helper and race logging run straight off Trackside.
 
-These replicate the race/veterans dump previously provided by the **horseACT** plugin and the
-response feed provided by **CarrotBlender**, natively in-process. Included in the original
-project with the kind permission of **ayaliz** ([horseACT](https://github.com/ayaliz/horseACT))
-and **qwcan** ([CarrotBlender](https://github.com/qwcan/CarrotBlender)) — thank you both.
+The legacy exporters and the feed replicate what the **horseACT** and **CarrotBlender** plugins
+provide, included in the original project with the kind permission of **ayaliz**
+([horseACT](https://github.com/ayaliz/horseACT)) and **qwcan**
+([CarrotBlender](https://github.com/qwcan/CarrotBlender)) — thank you both.
 
 ---
 
@@ -409,7 +423,7 @@ cd native && cargo build --release
 ```
 
 **UI iteration without the game:** `Preview-Trackside.ps1` opens the overlay in a
-standalone window (menu, themes, the optimizer with mock data via `TRACKSIDE_SKOPT_MOCK=1`).
+standalone window (menu, themes, the optimizer with mock data via `TRACKSIDE_SKOPT_MOCK=1`). `Capture-Trackside.ps1` screenshots it from that host with every panel posed mid-run, for design review without the game.
 
 ---
 
