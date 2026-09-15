@@ -698,6 +698,17 @@ pub fn pump() {
 
     // Item list: press the leftmost icon once every icon has had a chance to tick.
     if cur == ITEM_STEP {
+        // "Use Parfaits" off: race with what the team has. Wait for the icons to tick anyway -
+        // that is the proof the dialog has arrived - then move the cursor past them. Race! is in
+        // the same dialog, so the ordinary settle-and-press takes it from here.
+        if !crate::settings::tt_use_items() {
+            let seen = SEEN_AT.load(Ordering::Relaxed);
+            if seen != 0 && now >= seen + ITEM_COLLECT_MS {
+                log("item list: Use Parfaits is off - racing without one");
+                step_to(ITEM_STEP + 1);
+            }
+            return;
+        }
         let seen = SEEN_AT.load(Ordering::Relaxed);
         if seen != 0 && now >= seen + ITEM_COLLECT_MS && now >= LAST_PRESS.load(Ordering::Relaxed) + GAP_MS {
             let mut cands: Vec<(usize, i32)> =

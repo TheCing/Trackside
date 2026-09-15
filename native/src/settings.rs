@@ -196,6 +196,10 @@ pub struct Settings {
     pub skill_filter_style: String,
     #[serde(default = "default_skill_preset")]
     pub skill_filter_preset: i32,
+    /// Team Trials auto player: spend the leftmost item (a Parfait when you have one) each race.
+    /// On by default - the recorded flow always took one.
+    #[serde(default = "default_true")]
+    pub tt_use_items: bool,
 }
 
 /// Default Race Director key binds (VK codes), in RdKey order: orbit L/R, zoom in/out, height up/down,
@@ -310,6 +314,7 @@ impl Default for Settings {
             skill_filter_distance: String::new(),
             skill_filter_style: String::new(),
             skill_filter_preset: -1,
+            tt_use_items: true,
         }
     }
 }
@@ -557,6 +562,17 @@ pub fn set_rd_key(i: usize, vk: i32) {
         if let Some(slot) = c.rd_keys.get_mut(i) {
             *slot = vk;
         }
+        write_file(&c);
+    }
+}
+
+/// Team Trials auto player: spend the leftmost item each race.
+pub fn tt_use_items() -> bool {
+    cache().lock().map(|c| c.tt_use_items).unwrap_or(true)
+}
+pub fn set_tt_use_items(on: bool) {
+    if let Ok(mut c) = cache().lock() {
+        c.tt_use_items = on;
         write_file(&c);
     }
 }

@@ -3373,7 +3373,8 @@ fn draw_tt_player(ui: &Ui, w: f32) {
         help_icon(
             ui,
             "Plays Team Trials on repeat: Team Race, the top opponent of the three, the leftmost \
-             item in the list, Race!, then skips the result cut-in and presses Race Again. Each \
+             item in the list when Use Parfaits is on, Race!, then skips the result cut-in and \
+             presses Race Again. Each \
              race spends 1 RP, and the run ends by itself when your race points are gone. Every \
              step is the game's own button, pressed on the sequence recorded from real play \u{2014} \
              it never sends a request the game would not send itself. Stop at any time; the race \
@@ -3421,6 +3422,21 @@ fn draw_tt_player(ui: &Ui, w: f32) {
     }
     ui.same_line();
     hint_beside(ui, DIM, "races", 22.0);
+
+    ui.dummy([0.0, 2.0]);
+    let use_items = crate::settings::tt_use_items();
+    if toggle_row_help(
+        ui,
+        "##tpitem",
+        "Use Parfaits (if available)",
+        use_items,
+        w,
+        Some(
+            "ON spends the leftmost item in the list each race \u{2014} a Parfait when you have              one, whatever is leftmost when you do not. OFF races with the team as it stands and              keeps the items.",
+        ),
+    ) {
+        crate::settings::set_tt_use_items(!use_items);
+    }
 
     let st = tp::status();
     if !st.is_empty() && progress.is_none() {
