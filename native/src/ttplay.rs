@@ -151,8 +151,23 @@ static LAP_LIMIT: AtomicI32 = AtomicI32::new(0);
 static SEEN_AT: AtomicU64 = AtomicU64::new(0);
 static LAST_PRESS: AtomicU64 = AtomicU64::new(0);
 static OPT_PRESSES: AtomicI32 = AtomicI32::new(0);
-/// When we started waiting for the current step (for the stall timeout).
+/// When we started waiting for the current step. Reset on EVERY step entry, relocation included,
+/// so the relocation spacing stays honest.
 static STEP_SINCE: AtomicU64 = AtomicU64::new(0);
+/// When the run last made genuine progress - a step further into the lap than any reached since
+/// the lap began. Relocating back does not count, and neither does re-entering a step already
+/// reached. Drives the learn log and the stall timeout.
+///
+/// Both used to hang off `STEP_SINCE`, which every relocation reset. A lap that ping-ponged
+/// between the item step and Race! reset it every ~3.9 s, so the learn log (6 s) never fired and
+/// the stall timeout (90 s) never fired either: one run pressed the same item ~60 times across
+/// four minutes and stopped with no record of what was on the screen.
+static PROGRESS_SINCE: AtomicU64 = AtomicU64::new(0);
+/// Relocations since the last genuine progress. One is ordinary recovery from a swallowed press.
+static RELOCATES: AtomicI32 = AtomicI32::new(0);
+/// Furthest step reached since the lap began. A step at or behind it is somewhere the run has
+/// already been, so arriving there again is not progress however it happened.
+static HIGH_WATER: AtomicUsize = AtomicUsize::new(0);
 /// When the grand result screen was first seen this lap (0 = not yet).
 static GRAND_NO_RETRY_AT: AtomicU64 = AtomicU64::new(0);
 /// Set once Race Again has actually been seen live this lap - the difference between "the tally is
@@ -212,6 +227,10 @@ const RELOCATE_MS: u64 = 3_000;
 /// names whatever is in the way. The gap between Race! and the race list is ~4.5 s, so this stays
 /// quiet on an ordinary lap.
 const LEARN_AFTER_MS: u64 = 6_000;
+/// Relocations without progress before the run gives up. The screen and the flow disagreeing once
+/// is a swallowed press and recoverable; four times running means pressing again will not fix it,
+/// and by then the learn log (6 s) has named everything on the screen.
+const MAX_RELOCATES: i32 = 4;
 /// A press refused for this long gets reported: the button is up, the game will not take it.
 const LOCK_REPORT_MS: u64 = 2_000;
 /// Started with no screen of the loop in view: wait this long for one, then give up.
@@ -288,6 +307,9 @@ fn begin() {
     LAST_PRESS.store(0, Ordering::Relaxed);
     OPT_PRESSES.store(0, Ordering::Relaxed);
     STEP_SINCE.store(now, Ordering::Relaxed);
+    PROGRESS_SINCE.store(now, Ordering::Relaxed);
+    RELOCATES.store(0, Ordering::Relaxed);
+    HIGH_WATER.store(0, Ordering::Relaxed);
     START_AT.store(now, Ordering::Relaxed);
     GRAND_NO_RETRY_AT.store(0, Ordering::Relaxed);
     RETRY_SEEN.store(false, Ordering::Relaxed);
@@ -330,7 +352,39 @@ fn finish(msg: &str) {
     }
 }
 
+/// Genuine progress: restart the no-progress clock and forgive the relocations that came before.
+fn note_progress() {
+    PROGRESS_SINCE.store(now_ms(), Ordering::Relaxed);
+    RELOCATES.store(0, Ordering::Relaxed);
+}
+
+/// Move the cursor on. Only a step beyond this lap's high-water mark counts as progress: the item
+/// step advances to Race! on every re-press, and treating that as progress is what let a stuck lap
+/// run for four minutes with both safety nets held off.
 fn step_to(next: usize) {
+    if next > HIGH_WATER.load(Ordering::Relaxed) {
+        HIGH_WATER.store(next, Ordering::Relaxed);
+        note_progress();
+    }
+    enter_step(next);
+}
+
+/// Start of a lap (or the first placement of the run): unambiguous progress, and the high-water
+/// mark starts again from here.
+fn lap_to(next: usize) {
+    HIGH_WATER.store(next, Ordering::Relaxed);
+    note_progress();
+    enter_step(next);
+}
+
+/// Go where the screen says the run is. Never progress - the flow and the screen disagreed, and
+/// the count of how often that has happened is what ends a run that cannot get past a step.
+fn relocate_to(next: usize) {
+    RELOCATES.fetch_add(1, Ordering::Relaxed);
+    enter_step(next);
+}
+
+fn enter_step(next: usize) {
     CURSOR.store(next, Ordering::Relaxed);
     SEEN_AT.store(0, Ordering::Relaxed);
     OPT_PRESSES.store(0, Ordering::Relaxed);
@@ -456,7 +510,7 @@ pub fn on_button_update(this: *mut c_void) {
     // Which steps could this button be, by leaf name alone? (Two steps are plain "Button".)
     let by_leaf: Vec<usize> = (0..N).filter(|&i| leaf(FLOW[i].0) == name).collect();
     let on_grand = resolved && cur >= SKIP_STEP;
-    let overdue = resolved && now >= STEP_SINCE.load(Ordering::Relaxed) + LEARN_AFTER_MS;
+    let overdue = resolved && now >= PROGRESS_SINCE.load(Ordering::Relaxed) + LEARN_AFTER_MS;
     // The path walk costs a dozen calls; only pay it for a button that could matter.
     if by_leaf.is_empty() && !on_grand && !overdue {
         return;
@@ -572,7 +626,7 @@ fn press_if_settled(this: *mut c_void, idx: usize, expected: &'static str, now: 
         return;
     }
     if idx == LAST_STEP {
-        step_to(LAP_START);
+        lap_to(LAP_START);
         set_status("Next race starting\u{2026}".into());
         return;
     }
@@ -602,7 +656,7 @@ pub fn pump() {
     if cur == UNRESOLVED {
         if let Some(s) = stable_location(now) {
             log(&format!("located: the screen shows step {}/{} ({}) - starting there", s + 1, N, STEP_LABELS[s]));
-            step_to(s);
+            lap_to(s);
             set_status(format!("Step {}/{}: {} is up", s + 1, N, STEP_LABELS[s]));
         } else if now >= START_AT.load(Ordering::Relaxed) + WAIT_FOR_SCREEN_MS {
             finish("No Team Trials screen turned up");
@@ -625,7 +679,18 @@ pub fn pump() {
                     N,
                     STEP_LABELS[s]
                 ));
-                step_to(s);
+                relocate_to(s);
+                if RELOCATES.load(Ordering::Relaxed) >= MAX_RELOCATES {
+                    log(&format!(
+                        "stuck at step {}/{} ({}): the screen and the flow have disagreed {} times \
+                         running with no progress. Every live button on this screen is listed above.",
+                        s + 1,
+                        N,
+                        STEP_LABELS[s],
+                        MAX_RELOCATES
+                    ));
+                    finish("Stuck - see the log");
+                }
                 return;
             }
         }
@@ -671,7 +736,7 @@ pub fn pump() {
 
     // A step that never turns up. Log every live button once so the missing press can be encoded,
     // then stop - this run will not press something it does not recognise.
-    if now >= STEP_SINCE.load(Ordering::Relaxed) + STALL_MS {
+    if now >= PROGRESS_SINCE.load(Ordering::Relaxed) + STALL_MS {
         log(&format!(
             "stalled waiting for step {}/{} ({}). Buttons seen on this screen are logged above.",
             cur + 1,
@@ -767,5 +832,85 @@ mod bridge {
             return None;
         }
         Some(*((r as usize + 0x10) as *const i32))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Every test drives the same module-level state, so they take turns.
+    static TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    fn start_at(step: usize) {
+        HIGH_WATER.store(0, Ordering::Relaxed);
+        RELOCATES.store(0, Ordering::Relaxed);
+        lap_to(step);
+    }
+
+    /// The 2026-09-15 log: the item step advanced to Race!, Race! never turned up, the run
+    /// relocated back to the item step and pressed it again - ~60 times across four minutes.
+    /// Each re-press used to count as progress, which reset the clock the learn log (6 s) and the
+    /// stall timeout (90 s) both hang off, so neither ever fired and the run never gave up.
+    #[test]
+    fn an_item_ping_pong_makes_no_progress_and_ends_the_run() {
+        let _g = TEST_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        start_at(LAP_START);
+        for s in LAP_START..=ITEM_STEP {
+            step_to(s);
+        }
+        let clock = PROGRESS_SINCE.load(Ordering::Relaxed);
+        assert_eq!(RELOCATES.load(Ordering::Relaxed), 0);
+
+        for i in 1..=MAX_RELOCATES {
+            step_to(ITEM_STEP + 1); // the re-press: a step already reached, so not progress
+            relocate_to(ITEM_STEP); // Race! never showed; back where the screen says we are
+            assert_eq!(RELOCATES.load(Ordering::Relaxed), i, "relocation {i} must be counted");
+            assert_eq!(
+                PROGRESS_SINCE.load(Ordering::Relaxed),
+                clock,
+                "the no-progress clock must not restart on a re-press"
+            );
+        }
+        assert!(
+            RELOCATES.load(Ordering::Relaxed) >= MAX_RELOCATES,
+            "four fruitless relocations must end the run"
+        );
+    }
+
+    /// One swallowed press is ordinary. Relocating once and then getting past the step clears the
+    /// count, so a lap that stumbles does not spend its budget.
+    #[test]
+    fn one_swallowed_press_recovers() {
+        let _g = TEST_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        start_at(LAP_START);
+        for s in LAP_START..=ITEM_STEP {
+            step_to(s);
+        }
+        step_to(ITEM_STEP + 1);
+        relocate_to(ITEM_STEP);
+        assert_eq!(RELOCATES.load(Ordering::Relaxed), 1);
+        step_to(ITEM_STEP + 1); // the re-press, still not progress
+        assert_eq!(RELOCATES.load(Ordering::Relaxed), 1);
+        step_to(ITEM_STEP + 2); // past the high-water mark: real progress
+        assert_eq!(RELOCATES.load(Ordering::Relaxed), 0, "progress forgives the relocation");
+    }
+
+    /// The high-water mark is per lap. Without the reset the second lap could never progress,
+    /// because every step of it sits behind the first lap's mark.
+    #[test]
+    fn a_new_lap_starts_the_high_water_mark_again() {
+        let _g = TEST_LOCK.lock().unwrap_or_else(|p| p.into_inner());
+        start_at(LAP_START);
+        for s in LAP_START..N {
+            step_to(s);
+        }
+        assert_eq!(HIGH_WATER.load(Ordering::Relaxed), N - 1);
+        lap_to(LAP_START);
+        assert_eq!(HIGH_WATER.load(Ordering::Relaxed), LAP_START);
+        relocate_to(LAP_START + 1);
+        assert_eq!(RELOCATES.load(Ordering::Relaxed), 1);
+        step_to(LAP_START + 2);
+        assert_eq!(RELOCATES.load(Ordering::Relaxed), 0, "the new lap must be able to progress");
     }
 }
