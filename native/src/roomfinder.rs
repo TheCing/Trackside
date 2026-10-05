@@ -1055,6 +1055,26 @@ fn pump_auto_join() {
             if now_ms() < AJ_NEXT.load(Ordering::Relaxed) {
                 return;
             }
+            // Identify the dialog BEFORE pressing anything. The server can refuse the entry after
+            // OK (sign-up limit, room filled first), and then the dialog in front is the game's
+            // error dialog, not Sign-Up Complete. Pressing "the left/centre button" blind pressed
+            // its "Back to Menu" and counted that as a registration - with auto-repeat on, the
+            // hunt then carried on against a limit the game had just enforced.
+            if !unsafe { bridge::complete_dialog_up() } {
+                match unsafe { bridge::forefront_dialog_texts() } {
+                    Some(texts) if !texts.is_empty() => handle_refusal(&texts),
+                    // Nothing readable in front yet: the dialog is still fading in. Wait for it.
+                    _ => {
+                        if now_ms() > AJ_DEADLINE.load(Ordering::Relaxed) {
+                            reset_auto_join();
+                            log("after OK: no Sign-Up Complete and no readable dialog - tap it to continue");
+                        } else {
+                            AJ_NEXT.store(now_ms() + AJ_RETRY_MS, Ordering::Relaxed);
+                        }
+                    }
+                }
+                return;
+            }
             // Read the count BEFORE pressing - the dialog carrying it is about to close.
             let signed = unsafe { bridge::registered_from_dialog() };
             match unsafe { bridge::press_race_list() } {
@@ -1097,6 +1117,41 @@ fn pump_auto_join() {
             }
         }
         _ => {}
+    }
+}
+
+/// True when a refusal dialog's text is the sign-up cap ("Registration Full" / "...the registration
+/// limit has been reached."). English client text - the only client this runs against.
+fn refusal_is_limit(said: &str) -> bool {
+    let low = said.to_lowercase();
+    low.contains("registration limit") || low.contains("registration full")
+}
+
+/// The game refused an auto-confirmed entry: a dialog other than Sign-Up Complete came up after OK.
+///
+/// Night's rule: a refusal is a missed room, never the end of the hunt. "Registration Full" ("Could
+/// not register because the registration limit has been reached.") means all 5 sign-ups are in use
+/// right now - but signed-up races keep running and freeing slots, so the hunt carries on and the
+/// next join goes through once one frees. Any other refusal (room filled or closed between the list
+/// and our OK) is the same: close the dialog, keep hunting. The dialog's only button ("Back to
+/// Menu") is pressed, and the resume rides the next room list exactly like auto-repeat's.
+fn handle_refusal(texts: &[String]) {
+    let said = texts.iter().map(|t| t.trim()).filter(|t| !t.is_empty()).collect::<Vec<_>>().join(" / ");
+    log(&format!("entry refused - the game says: \"{said}\""));
+    let pressed = unsafe { bridge::press_race_list() };
+    reset_auto_join();
+    if refusal_is_limit(&said) {
+        // The game's own word on the cap - show it, but it only lasts until a race frees a slot.
+        note_signups(ENTRY_LIMIT);
+        set_status(format!("Sign-ups full ({ENTRY_LIMIT}/{ENTRY_LIMIT}) - closed the dialog, still hunting until a slot frees."));
+    } else {
+        set_status(format!("Couldn't join ({said}) - still hunting."));
+    }
+    REPEAT_PENDING.store(true, Ordering::Relaxed);
+    REPEAT_ARMED_MS.store(now_ms(), Ordering::Relaxed);
+    match pressed {
+        Ok(which) => log(&format!("refusal dialog: pressed {which} - hunt resumes on the next room list")),
+        Err(e) => log(&format!("refusal dialog: couldn't press it ({e}) - tap it to continue")),
     }
 }
 
@@ -1935,6 +1990,86 @@ mod bridge {
         parsed
     }
 
+    /// True while a Sign-Up Complete dialog (`Gallop.DialogRoomMatchRoomComplete`) is live.
+    pub unsafe fn complete_dialog_up() -> bool {
+        if !il2cpp::ready() {
+            return false;
+        }
+        let k = il2cpp::class("Gallop.DialogRoomMatchRoomComplete");
+        let k_obj = il2cpp::class("UnityEngine.Object");
+        if k.is_null() || k_obj.is_null() {
+            return false;
+        }
+        let find = il2cpp::method_with_param_types(k_obj, "FindObjectsOfType", &["System.Type"]);
+        let ty = il2cpp::type_object(k);
+        if find.is_null() || ty.is_null() {
+            return false;
+        }
+        let mut args: [*mut c_void; 1] = [ty as *mut c_void];
+        let (arr, exc) = il2cpp::runtime_invoke_exc(find, std::ptr::null_mut(), &mut args);
+        exc.is_null() && !arr.is_null() && crate::htt_il2cpp::array_len(arr as *mut _) > 0
+    }
+
+    /// Every active text label inside the forefront dialog (title, message, buttons), read through
+    /// Unity's own `GetComponentsInChildren(Text)` - Gallop.TextCommon derives from UI.Text - so no
+    /// dialog field names are guessed. None = no dialog in front, or the call is unavailable.
+    pub unsafe fn forefront_dialog_texts() -> Option<Vec<String>> {
+        if !il2cpp::ready() {
+            return None;
+        }
+        let dm = il2cpp::class("Gallop.DialogManager");
+        let m_front = if dm.is_null() { std::ptr::null_mut() } else { il2cpp::method(dm, "GetForeFrontDialog", 0) };
+        if m_front.is_null() {
+            return None;
+        }
+        let top = il2cpp::runtime_invoke(m_front, std::ptr::null_mut(), &mut []);
+        if !plausible_obj(top) {
+            return None;
+        }
+        let k_comp = il2cpp::class("UnityEngine.Component");
+        let k_go = il2cpp::class("UnityEngine.GameObject");
+        let k_text = il2cpp::class("UnityEngine.UI.Text");
+        if k_comp.is_null() || k_go.is_null() || k_text.is_null() {
+            return None;
+        }
+        let m_go = il2cpp::method(k_comp, "get_gameObject", 0);
+        let m_kids = il2cpp::method_with_param_types(k_go, "GetComponentsInChildren", &["System.Type", "System.Boolean"]);
+        let ty = il2cpp::type_object(k_text);
+        if m_go.is_null() || m_kids.is_null() || ty.is_null() {
+            return None;
+        }
+        let go = il2cpp::runtime_invoke(m_go, top, &mut []);
+        if !plausible_obj(go) {
+            return None;
+        }
+        let mut include_inactive = false;
+        let mut args: [*mut c_void; 2] = [ty as *mut c_void, &mut include_inactive as *mut bool as *mut c_void];
+        let (arr, exc) = il2cpp::runtime_invoke_exc(m_kids, go, &mut args);
+        if !exc.is_null() || arr.is_null() {
+            return None;
+        }
+        let n = crate::htt_il2cpp::array_len(arr as *mut _);
+        if n > 256 {
+            return None;
+        }
+        let mut out = Vec::new();
+        for i in 0..n {
+            let t = rd_ptr(arr as *mut c_void, 0x20 + i * 8);
+            if !plausible_obj(t) {
+                continue;
+            }
+            let m = il2cpp::method(il2cpp::object_class(t), "get_text", 0);
+            if m.is_null() {
+                continue;
+            }
+            let s = il2cpp::read_string(il2cpp::runtime_invoke(m, t, &mut []));
+            if !s.trim().is_empty() {
+                out.push(s);
+            }
+        }
+        Some(out)
+    }
+
     /// The Room Match top screen's own "Registered N/5" label (`RoomMatchTop._registNum`), when
     /// that screen is up. Same idea as the dialog read: the number the player sees, nothing cached.
     pub unsafe fn signups_from_top() -> Option<usize> {
@@ -2038,7 +2173,7 @@ mod bridge {
             return Err("dialog has no buttons".into());
         }
         log(&format!(
-            "complete-dialog buttons: {}",
+            "dialog buttons: {}",
             found
                 .iter()
                 .map(|(s, _, n)| format!("{s}=\"{n}\""))
