@@ -847,6 +847,20 @@
   "skill_category": 5,
   "disp_order": 10
  },
+ "100491": {
+  "name": "Laugh at the Odds",
+  "rarity": 5,
+  "group_id": 10049,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
  "100501": {
   "name": "Nemesis",
   "rarity": 5,
@@ -1125,6 +1139,18 @@
   "skill_category": 5,
   "disp_order": 10
  },
+ "101001": {
+  "name": "Never Say Never",
+  "rarity": 5,
+  "group_id": 10100,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
  "110011": {
   "name": "Dazzl'n ♪ Diver",
   "rarity": 5,
@@ -1197,6 +1223,32 @@
   "name": "564 Escapades",
   "rarity": 5,
   "group_id": 11007,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
+ "110081": {
+  "name": "Into High Gear!",
+  "rarity": 5,
+  "group_id": 11008,
+  "grade_value": 340,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20013,
+  "skill_category": 5,
+  "disp_order": 10
+ },
+ "110091": {
+  "name": "Queen's Lumination",
+  "rarity": 5,
+  "group_id": 11009,
   "grade_value": 340,
   "need_skill_point": 0,
   "disable_singlemode": 1,
@@ -5171,6 +5223,18 @@
   "skill_category": 4,
   "disp_order": 20870
  },
+ "201383": {
+  "name": "Sharp Streak",
+  "rarity": 2,
+  "group_id": 20138,
+  "grade_value": 508,
+  "need_skill_point": 150,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20012,
+  "skill_category": 4,
+  "disp_order": 20855
+ },
  "201391": {
   "name": "Late Surger Corners ◎",
   "rarity": 1,
@@ -7055,6 +7119,18 @@
   "skill_category": 0,
   "disp_order": 22135
  },
+ "202442": {
+  "name": "Risk-Taker",
+  "rarity": 1,
+  "group_id": 20244,
+  "grade_value": 217,
+  "need_skill_point": 180,
+  "disable_singlemode": 0,
+  "tags": [],
+  "icon_id": 10011,
+  "skill_category": 0,
+  "disp_order": 22136
+ },
  "202451": {
   "name": "Top Gear",
   "rarity": 2,
@@ -8257,6 +8333,20 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "900491": {
+  "name": "Laugh at the Odds",
+  "rarity": 1,
+  "group_id": 90049,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "900501": {
   "name": "Nemesis",
   "rarity": 1,
@@ -8525,6 +8615,18 @@
   "skill_category": 5,
   "disp_order": 30
  },
+ "901001": {
+  "name": "Never Say Never",
+  "rarity": 1,
+  "group_id": 90100,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
  "910011": {
   "name": "Dazzl'n ♪ Diver",
   "rarity": 1,
@@ -8597,6 +8699,32 @@
   "name": "564 Escapades",
   "rarity": 1,
   "group_id": 91007,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [
+   401
+  ],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "910081": {
+  "name": "Into High Gear!",
+  "rarity": 1,
+  "group_id": 91008,
+  "grade_value": 180,
+  "need_skill_point": 200,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 20011,
+  "skill_category": 5,
+  "disp_order": 30
+ },
+ "910091": {
+  "name": "Queen's Lumination",
+  "rarity": 1,
+  "group_id": 91009,
   "grade_value": 180,
   "need_skill_point": 200,
   "disable_singlemode": 1,
@@ -9094,5 +9222,29 @@
   "icon_id": 10031,
   "skill_category": 0,
   "disp_order": 120011
+ },
+ "1200041": {
+  "name": "Sprint Race Enthusiast",
+  "rarity": 1,
+  "group_id": 120004,
+  "grade_value": 508,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10011,
+  "skill_category": 0,
+  "disp_order": 120010
+ },
+ "1200051": {
+  "name": "Dirt Race Enthusiast",
+  "rarity": 1,
+  "group_id": 120005,
+  "grade_value": 508,
+  "need_skill_point": 0,
+  "disable_singlemode": 1,
+  "tags": [],
+  "icon_id": 10041,
+  "skill_category": 0,
+  "disp_order": 120015
  }
 }

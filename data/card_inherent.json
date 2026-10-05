@@ -449,6 +449,36 @@
    "need_rank": 5
   }
  ],
+ "100802": [
+  {
+   "skill_id": 202452,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 200492,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201112,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 202152,
+   "need_rank": 2
+  },
+  {
+   "skill_id": 200491,
+   "need_rank": 3
+  },
+  {
+   "skill_id": 201382,
+   "need_rank": 4
+  },
+  {
+   "skill_id": 202451,
+   "need_rank": 5
+  }
+ ],
  "100901": [
   {
    "skill_id": 200282,
@@ -476,6 +506,36 @@
   },
   {
    "skill_id": 200571,
+   "need_rank": 5
+  }
+ ],
+ "100902": [
+  {
+   "skill_id": 202462,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201282,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 202012,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201172,
+   "need_rank": 2
+  },
+  {
+   "skill_id": 201281,
+   "need_rank": 3
+  },
+  {
+   "skill_id": 201182,
+   "need_rank": 4
+  },
+  {
+   "skill_id": 202461,
    "need_rank": 5
   }
  ],
@@ -2279,6 +2339,36 @@
    "need_rank": 5
   }
  ],
+ "104901": [
+  {
+   "skill_id": 202442,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 202032,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201702,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201382,
+   "need_rank": 2
+  },
+  {
+   "skill_id": 202031,
+   "need_rank": 3
+  },
+  {
+   "skill_id": 201102,
+   "need_rank": 4
+  },
+  {
+   "skill_id": 202441,
+   "need_rank": 5
+  }
+ ],
  "105001": [
   {
    "skill_id": 201641,
@@ -3086,6 +3176,36 @@
   },
   {
    "skill_id": 202331,
+   "need_rank": 5
+  }
+ ],
+ "110001": [
+  {
+   "skill_id": 202302,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201532,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201072,
+   "need_rank": 0
+  },
+  {
+   "skill_id": 201032,
+   "need_rank": 2
+  },
+  {
+   "skill_id": 201071,
+   "need_rank": 3
+  },
+  {
+   "skill_id": 202332,
+   "need_rank": 4
+  },
+  {
+   "skill_id": 202301,
    "need_rank": 5
   }
  ],
