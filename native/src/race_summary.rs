@@ -106,7 +106,8 @@ pub fn enabled() -> bool {
 }
 
 pub fn window_open() -> bool {
-    WINDOW_OPEN.load(Ordering::Relaxed) && CURRENT.lock().map(|g| g.is_some()).unwrap_or(false)
+    // enabled(): switching the toggle off also stops a summary that was already built or showing.
+    WINDOW_OPEN.load(Ordering::Relaxed) && enabled() && CURRENT.lock().map(|g| g.is_some()).unwrap_or(false)
 }
 
 pub fn set_window_open(open: bool) {
@@ -153,7 +154,7 @@ pub fn on_button_update(this: *mut std::ffi::c_void) {
 }
 
 fn reveal() {
-    if !PENDING.swap(false, Ordering::Relaxed) {
+    if !PENDING.swap(false, Ordering::Relaxed) || !enabled() {
         return;
     }
     REVEALED_AT.store(now_ms(), Ordering::Relaxed);
