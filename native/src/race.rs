@@ -403,15 +403,17 @@ unsafe extern "C" fn on_player(this: *mut c_void, m: *mut c_void) -> i32 {
     } else {
         -1
     };
+    // Type-checked: a folded address entered with a foreign `this` returns that class's int, which
+    // is not a player index - and compute_header reads through RaceManager's fields.
+    if !il2cpp::object_is(this, K_RACE_MANAGER.load(Ordering::Relaxed) as il2cpp::Class) {
+        return idx;
+    }
     if idx >= 0 && PLAYER_INDEX.load(Ordering::Relaxed) != idx {
         PLAYER_INDEX.store(idx, Ordering::Relaxed);
         ipc::with_race(|r| r.player_index = idx as i64);
     }
-    // Build the race header (track/distance/type) once per race — `this` is RaceManager
-    // (type-checked: compute_header reads through its fields).
-    if il2cpp::object_is(this, K_RACE_MANAGER.load(Ordering::Relaxed) as il2cpp::Class) {
-        compute_header(this);
-    }
+    // Build the race header (track/distance/type) once per race — `this` is RaceManager.
+    compute_header(this);
     idx
 }
 
