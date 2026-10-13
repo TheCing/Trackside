@@ -117,12 +117,14 @@ static M_CDTYPE: AtomicUsize = AtomicUsize::new(0);
 static MI_CDTYPE: AtomicUsize = AtomicUsize::new(0);
 static M_GRADE: AtomicUsize = AtomicUsize::new(0);
 static MI_GRADE: AtomicUsize = AtomicUsize::new(0);
-// The classes on_player and the maybe_dump callers check `this` against before chasing its fields.
-// GetPlayerHorseIndex and get_RaceTrackId are tiny (an index lookup, a getter) - the kind GameAssembly
-// folds with other classes' identical bodies, so the address can be entered with a foreign `this`
+// The classes on_player, on_import and the maybe_dump callers check `this` against before
+// acting. GetPlayerHorseIndex and get_RaceTrackId are tiny (an index lookup, a getter) and
+// ImportDirect is a 16-byte stub (2026-09-11 table) - the kind GameAssembly folds with other
+// classes' identical bodies, so the address can be entered with a foreign `this`
 // (see il2cpp::object_is).
 static K_RACE_MANAGER: AtomicUsize = AtomicUsize::new(0);
 static K_RACE_INFO: AtomicUsize = AtomicUsize::new(0);
+static K_READER: AtomicUsize = AtomicUsize::new(0);
 static COURSE_DIST: AtomicI32 = AtomicI32::new(0);
 static TRACK_ID: AtomicI32 = AtomicI32::new(0);
 static RACE_GRADE: AtomicI32 = AtomicI32::new(0);
@@ -319,9 +321,20 @@ unsafe extern "C" fn on_frame(reader: *mut c_void, horse_idx: i32, m: *mut c_voi
     retval
 }
 
-// ImportDirect — race start (reset). NOTE: this hook may fail to resolve on some
-// builds (argc mismatch); the placement is also reset defensively in on_post.
-unsafe extern "C" fn on_import(this: *mut c_void, m: *mut c_void) {
+// ImportDirect(RaceSimulateData) — race start (reset). The placement is also reset
+// defensively in on_post. The original always runs.
+unsafe extern "C" fn on_import(this: *mut c_void, sim: *mut c_void, m: *mut c_void) {
+    if il2cpp::object_is(this, K_READER.load(Ordering::Relaxed) as il2cpp::Class) {
+        reset_for_import();
+    }
+    let t = TR_IMPORT.load(Ordering::Relaxed);
+    if t != 0 {
+        let f: VoidStrM = std::mem::transmute(t);
+        f(this, sim, m);
+    }
+}
+
+fn reset_for_import() {
     LAST_EMIT.store(0, Ordering::Relaxed);
     PLAYER_INDEX.store(-1, Ordering::Relaxed);
     PLAYER_FINISH_ORDER.store(0, Ordering::Relaxed);
@@ -336,7 +349,6 @@ unsafe extern "C" fn on_import(this: *mut c_void, m: *mut c_void) {
         *r = Default::default();
         r.active = true;
     });
-    call_void(&TR_IMPORT, this, m);
 }
 
 // _ImportPostProcess — sim info (horse count, duration) + finish placement.
@@ -502,7 +514,8 @@ pub fn install() -> String {
         if hook(reader, "GetFrameDataFromCache", 1, on_frame as *const (), &TR_FRAME, &D_FRAME) {
             got.push("frame");
         }
-        if hook(reader, "ImportDirect", 0, on_import as *const (), &TR_IMPORT, &D_IMPORT) {
+        K_READER.store(reader as usize, Ordering::Relaxed);
+        if hook(reader, "ImportDirect", 1, on_import as *const (), &TR_IMPORT, &D_IMPORT) {
             got.push("import");
         }
         if hook(reader, "_ImportPostProcess", 0, on_post as *const (), &TR_POST, &D_POST) {
