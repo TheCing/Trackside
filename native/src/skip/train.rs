@@ -3,7 +3,7 @@
 #![allow(dead_code)]
 
 use std::ffi::c_void;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::OnceLock;
 
 use crate::hooks::{in_heaven, ReentryGuard};
@@ -11,6 +11,8 @@ use crate::skip::{call_orig, is_enabled, rr_log, Invokable, TRAIN_SKIPS};
 
 // Invokable (set in install).
 pub(crate) static SKIP_RUNTIME: OnceLock<Invokable> = OnceLock::new(); // training
+// SingleModeTrainingCutInHelper: do_training_skip runs SkipRuntime only on one of these.
+pub(crate) static K_HELPER: AtomicUsize = AtomicUsize::new(0);
 
 crate::skip_hook_slot!(TR_START, D_START);
 crate::skip_hook_slot!(TR_PLAY, D_PLAY);
@@ -40,7 +42,9 @@ fn do_training_skip(this: *mut c_void, src: &str) {
         rr_log("[train] BAILED: in_heaven guard held (stuck? watchdog clears it next frame)");
         return;
     }
-    if this.is_null() {
+    // Type-checked (covers null too): SkipRuntime runs on `this`, and OnPlayMainCutIn is a 48-byte
+    // body - the kind GameAssembly folds with other classes' identical methods.
+    if !crate::il2cpp::object_is(this, K_HELPER.load(Ordering::Relaxed) as crate::il2cpp::Class) {
         return;
     }
     if PHOTO_CUT_ACTIVE.load(Ordering::Relaxed) {

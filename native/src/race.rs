@@ -117,6 +117,12 @@ static M_CDTYPE: AtomicUsize = AtomicUsize::new(0);
 static MI_CDTYPE: AtomicUsize = AtomicUsize::new(0);
 static M_GRADE: AtomicUsize = AtomicUsize::new(0);
 static MI_GRADE: AtomicUsize = AtomicUsize::new(0);
+// The classes on_player and the maybe_dump callers check `this` against before chasing its fields.
+// GetPlayerHorseIndex and get_RaceTrackId are tiny (an index lookup, a getter) - the kind GameAssembly
+// folds with other classes' identical bodies, so the address can be entered with a foreign `this`
+// (see il2cpp::object_is).
+static K_RACE_MANAGER: AtomicUsize = AtomicUsize::new(0);
+static K_RACE_INFO: AtomicUsize = AtomicUsize::new(0);
 static COURSE_DIST: AtomicI32 = AtomicI32::new(0);
 static TRACK_ID: AtomicI32 = AtomicI32::new(0);
 static RACE_GRADE: AtomicI32 = AtomicI32::new(0);
@@ -389,8 +395,11 @@ unsafe extern "C" fn on_player(this: *mut c_void, m: *mut c_void) -> i32 {
         PLAYER_INDEX.store(idx, Ordering::Relaxed);
         ipc::with_race(|r| r.player_index = idx as i64);
     }
-    // Build the race header (track/distance/type) once per race — `this` is RaceManager.
-    compute_header(this);
+    // Build the race header (track/distance/type) once per race — `this` is RaceManager
+    // (type-checked: compute_header reads through its fields).
+    if il2cpp::object_is(this, K_RACE_MANAGER.load(Ordering::Relaxed) as il2cpp::Class) {
+        compute_header(this);
+    }
     idx
 }
 
@@ -400,7 +409,10 @@ unsafe extern "C" fn on_player(this: *mut c_void, m: *mut c_void) -> i32 {
 // the exporter (which no-ops unless enabled + a genuinely new race), then return
 // the original value. Heaven's own track-id reads route through here transparently.
 unsafe extern "C" fn on_rt_export(this: *mut c_void, m: *mut c_void) -> i32 {
-    crate::race_export::maybe_dump(this);
+    // Type-checked: a foreign `this` would also poison maybe_dump's cached SimData offset.
+    if il2cpp::object_is(this, K_RACE_INFO.load(Ordering::Relaxed) as il2cpp::Class) {
+        crate::race_export::maybe_dump(this);
+    }
     let t = TR_RTEXP.load(Ordering::Relaxed);
     if t != 0 {
         let f: IntM = std::mem::transmute(t);
@@ -421,7 +433,9 @@ unsafe extern "C" fn on_set_deserialize(this: *mut c_void, s: *mut c_void, m: *m
         f(this, s, m);
     }
     rlog("[race-export] via SetAndDeserializeBase64 (3D path)");
-    crate::race_export::maybe_dump(this);
+    if il2cpp::object_is(this, K_RACE_INFO.load(Ordering::Relaxed) as il2cpp::Class) {
+        crate::race_export::maybe_dump(this);
+    }
 }
 
 // RaceInfo.SetupSimulateData(RaceSimulateData) — attaches an ALREADY-deserialized sim result to
@@ -435,7 +449,9 @@ unsafe extern "C" fn on_setup_sim(this: *mut c_void, sim: *mut c_void, m: *mut c
         f(this, sim, m);
     }
     rlog("[race-export] via SetupSimulateData (sim/skip path)");
-    crate::race_export::maybe_dump(this);
+    if il2cpp::object_is(this, K_RACE_INFO.load(Ordering::Relaxed) as il2cpp::Class) {
+        crate::race_export::maybe_dump(this);
+    }
 }
 
 unsafe fn hook(
@@ -480,6 +496,7 @@ pub fn install() -> String {
     if reader.is_null() {
         return "reader miss".into();
     }
+    K_RACE_MANAGER.store(mgr as usize, Ordering::Relaxed);
     let mut got = Vec::new();
     unsafe {
         if hook(reader, "GetFrameDataFromCache", 1, on_frame as *const (), &TR_FRAME, &D_FRAME) {
@@ -505,6 +522,7 @@ pub fn install() -> String {
             }
         }
         let ri = il2cpp::class("Gallop.RaceInfo");
+        K_RACE_INFO.store(ri as usize, Ordering::Relaxed);
         for (name, fnp, mip) in [
             ("get_RaceTrackId", &M_TRACKID, &MI_TRACKID),
             ("get_CourseDistance", &M_CDIST, &MI_CDIST),

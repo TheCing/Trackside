@@ -351,6 +351,7 @@ pub fn install() -> (bool, bool, String) {
         notes.push_str("train helper miss; ");
     } else {
         let _ = train::SKIP_RUNTIME.set(resolve(helper, "SkipRuntime", 0));
+        train::K_HELPER.store(helper as usize, Ordering::Relaxed);
         if !train::SKIP_RUNTIME.get().map(|i| i.ok()).unwrap_or(false) {
             notes.push_str("train skip miss; ");
         } else {
@@ -555,6 +556,7 @@ pub fn install() -> (bool, bool, String) {
         notes.push_str("story view miss; ");
     } else {
         let _ = event::SKIP_STORY.set(resolve(view, "SkipStory", 0));
+        event::K_STORY_VIEW.store(view as usize, Ordering::Relaxed);
         let _ = event::GET_TL.set(resolve(view, "get_TimelineController", 0));
         let _ = event::TRAIN_CUTT.set(resolve(view, "get_IsPlayingOrWillPlayTrainingCutt", 0));
         if !story.is_null() {

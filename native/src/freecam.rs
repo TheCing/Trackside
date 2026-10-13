@@ -827,6 +827,9 @@ unsafe fn log_start_cams() {
 // follow plumbing: field offsets + gate map
 static POS_OFF: AtomicUsize = AtomicUsize::new(0);
 static ROT_OFF: AtomicUsize = AtomicUsize::new(0);
+// HorseRaceInfo class: on_run_motion reads nothing unless `this` is one. get_RunMotionSpeed is a
+// 16-byte getter, the kind GameAssembly folds with other classes' identical bodies.
+static K_HRI: AtomicUsize = AtomicUsize::new(0);
 
 
 /// P key: save the current pose into the ACTIVE preset of this circuit. If the circuit has no
@@ -1398,6 +1401,9 @@ unsafe extern "C" fn on_run_motion(this: *mut c_void, mi: *mut c_void) -> f32 {
     if !(fc || crate::settings::telemetry()) {
         return ret;
     }
+    if !il2cpp::object_is(this, K_HRI.load(Ordering::Relaxed) as il2cpp::Class) {
+        return ret;
+    }
     let gate = gate_of(this);
     let target = TARGET_GATE.load(Ordering::Relaxed);
     // Live telemetry for EVERY horse (Race Director reads the followed Uma + its rival from this).
@@ -1815,6 +1821,7 @@ pub fn install() -> String {
     }
 
     // follow plumbing
+    K_HRI.store(il2cpp::class("Gallop.HorseRaceInfo") as usize, Ordering::Relaxed);
     if let Some(off) = il2cpp::field_offset(il2cpp::class("Gallop.HorseRaceInfo"), "_position") {
         POS_OFF.store(off, Ordering::Relaxed);
         got.push("posfield");

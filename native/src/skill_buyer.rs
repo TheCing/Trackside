@@ -42,6 +42,9 @@ static SETUP_TRAMP: AtomicUsize = AtomicUsize::new(0);
 static OUT_TRAMP: AtomicUsize = AtomicUsize::new(0);
 static SETUP_DETOUR: OnceLock<retour::RawDetour> = OnceLock::new();
 static OUT_DETOUR: OnceLock<retour::RawDetour> = OnceLock::new();
+// List-item class: the +/- detours remember an item only if it is one (rebuild_selected later calls
+// GetSkillId on it). The click handlers are 64/112-byte bodies, small enough for GameAssembly to fold.
+static K_ITEM: AtomicUsize = AtomicUsize::new(0);
 
 // Snapshot of the skill_ids the game is currently offering (main-thread producer, worker
 // consumer). Empty when not on the screen.
@@ -186,7 +189,7 @@ unsafe extern "C" fn on_click_plus(this: *mut c_void, item: *mut c_void, mi: *mu
         let orig: unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void) = std::mem::transmute(t);
         orig(this, item, mi);
     }
-    if !item.is_null() {
+    if il2cpp::object_is(item, K_ITEM.load(Ordering::Relaxed) as il2cpp::Class) {
         if let Ok(mut c) = clicks().lock() {
             *c.entry(item as usize).or_insert(0) += 1;
         }
@@ -200,7 +203,7 @@ unsafe extern "C" fn on_click_minus(this: *mut c_void, item: *mut c_void, mi: *m
         let orig: unsafe extern "C" fn(*mut c_void, *mut c_void, *mut c_void) = std::mem::transmute(t);
         orig(this, item, mi);
     }
-    if !item.is_null() {
+    if il2cpp::object_is(item, K_ITEM.load(Ordering::Relaxed) as il2cpp::Class) {
         if let Ok(mut c) = clicks().lock() {
             let e = c.entry(item as usize).or_insert(0);
             *e = (*e - 1).max(0);
@@ -255,6 +258,7 @@ pub fn install() -> String {
     if k.is_null() {
         return "view class not found (game update? re-scan)".into();
     }
+    K_ITEM.store(il2cpp::class(ITEM_CLASS_NAME) as usize, Ordering::Relaxed);
     let mut ok = 0;
     // Per-hook outcome logging — a partial failure here means a silently degraded feature
     // (e.g. clicks not tracked), so name exactly which method didn't resolve.

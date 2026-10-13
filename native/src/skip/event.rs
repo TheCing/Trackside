@@ -22,6 +22,8 @@ pub(crate) static SKIP_STORY: OnceLock<Invokable> = OnceLock::new(); // events
 pub(crate) static GET_TL: OnceLock<Invokable> = OnceLock::new(); // StoryViewController.get_TimelineController
 pub(crate) static IS_PLAYING: OnceLock<Invokable> = OnceLock::new(); // StoryTimelineController.get_IsPlaying
 pub(crate) static TRAIN_CUTT: OnceLock<Invokable> = OnceLock::new(); // get_IsPlayingOrWillPlayTrainingCutt
+// StoryViewController: try_event_skip invokes the view's methods only on one of these.
+pub(crate) static K_STORY_VIEW: AtomicUsize = AtomicUsize::new(0);
 
 crate::skip_hook_slot!(TR_TIMELINE, D_TIMELINE);
 crate::skip_hook_slot!(TR_TAGIN, D_TAGIN); // SingleModeMainViewTagTrainingCutInPlayer.PlayCutIn
@@ -147,7 +149,12 @@ pub(crate) fn note_event_appeared(story_id: i64) {
 // ── EVENTS: SkipStory on OnStartPlayingTimeline (guarded + debounced). ──────
 static LAST_EVENT_SKIP_MS: AtomicU64 = AtomicU64::new(0);
 fn try_event_skip(this: *mut c_void) {
-    if !is_event_enabled() || in_heaven() || this.is_null() {
+    if !is_event_enabled() || in_heaven() {
+        return;
+    }
+    // Type-checked (covers null too): everything below invokes StoryViewController methods on
+    // `this`, and the hooked OnStartPlayingTimeline is small enough for GameAssembly to fold.
+    if !crate::il2cpp::object_is(this, K_STORY_VIEW.load(Ordering::Relaxed) as crate::il2cpp::Class) {
         return;
     }
     // Never SkipStory during the Goal-Complete window (it hangs the game — see above).

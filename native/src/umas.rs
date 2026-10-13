@@ -23,6 +23,9 @@ use crate::htt_il2cpp::{RawMethod, RawObject};
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static ORIG: AtomicUsize = AtomicUsize::new(0);
 static DETOUR: OnceLock<RawDetour> = OnceLock::new();
+// Class declaring the hooked method: veteran_hook reads `arr` only when `this` is one. UpdateAll is a
+// 128-byte body, small enough for GameAssembly to fold with another class's identical method.
+static K_OWNER: AtomicUsize = AtomicUsize::new(0);
 // Human-readable "Class.method (params=N)" of the method we hooked — logged when it
 // fires so we can confirm which method it actually is and its real arity.
 static METHOD_DESC: OnceLock<String> = OnceLock::new();
@@ -63,6 +66,9 @@ unsafe extern "C" fn veteran_hook(this: *mut RawObject, arr: *mut RawObject, met
         f(this, arr, method);
     }
     if !ENABLED.load(Ordering::Relaxed) || arr.is_null() {
+        return;
+    }
+    if !crate::il2cpp::object_is(this as *mut c_void, K_OWNER.load(Ordering::Relaxed) as crate::il2cpp::Class) {
         return;
     }
     // UpdateAll fires many times now — full roster on load, filtered subsets from the new partner
@@ -237,6 +243,7 @@ pub fn install() -> String {
         // setter that fires many times; dumping on each froze the game.)
         let mut target: *mut RawMethod = std::ptr::null_mut();
         let mut fallback: *mut RawMethod = std::ptr::null_mut();
+        let (mut target_class, mut fallback_class) = (0usize, 0usize);
         let mut fallback_desc = String::new();
         'outer: for ci in 0..n {
             let klass = get_class(image, ci);
@@ -273,11 +280,13 @@ pub fn install() -> String {
                 let mname = h::METHOD_GET_NAME.map(|f| cstr(f(m))).unwrap_or_default();
                 if cname.contains("WorkTrainedCharaData") && mname.contains("UpdateAll") {
                     target = m;
+                    target_class = klass as usize;
                     let _ = METHOD_DESC.set(format!("{cname}.{mname} (params={pc})"));
                     break 'outer;
                 }
                 if fallback.is_null() {
                     fallback = m;
+                    fallback_class = klass as usize;
                     fallback_desc = format!("{cname}.{mname} (params={pc})");
                 }
             }
@@ -294,6 +303,7 @@ pub fn install() -> String {
         if found.is_null() {
             return "no TrainedChara[] method found".into();
         }
+        K_OWNER.store(if target.is_null() { fallback_class } else { target_class }, Ordering::Relaxed);
         let fnptr = h::method_addr(found);
         if fnptr == 0 {
             return "method pointer null".into();
