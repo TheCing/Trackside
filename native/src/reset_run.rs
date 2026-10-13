@@ -208,6 +208,9 @@ struct Api {
     /// Friend-card dialog + items.
     ty_friend_dialog: il2cpp::Object,
     ty_friend_item: il2cpp::Object,
+    /// The item and FriendCardInfo classes themselves, for the click hook's type guard.
+    k_friend_item: il2cpp::Class,
+    k_fci: il2cpp::Class,
     off_item_info: usize,
     off_fci_viewer: usize,
     off_fci_card: usize,
@@ -314,16 +317,24 @@ fn load_friend() {
 
 /// OnClickFrame detour: remember the picked card, then let the game do its thing. Main thread
 /// (it is a click handler), so reading managed fields here is safe; the file write is off-thread.
+///
+/// TYPE-GUARDED: this address is also entered with a `this` that is NOT a friend-card item - a
+/// Main Story chapter banner click crashed here on 2026-10-08 (GameAssembly folds identical tiny
+/// method bodies, so the hooked OnClickFrame is shared). Nothing is read unless `this`,
+/// `_selectInfo` and `UserName` are the classes the offsets belong to.
 unsafe extern "C" fn on_friend_frame(this: *mut c_void, mi: *const c_void) {
     if let Some(Some(api)) = API.get() {
-        if api.off_item_info != 0 {
+        if api.off_item_info != 0 && il2cpp::object_is(this as il2cpp::Object, api.k_friend_item) {
             let info = *((this as usize + api.off_item_info) as *const *mut c_void);
-            if !info.is_null() {
+            if il2cpp::object_is(info as il2cpp::Object, api.k_fci) {
                 let viewer = *((info as usize + api.off_fci_viewer) as *const i64);
                 let card = *((info as usize + api.off_fci_card) as *const i32);
                 let name_obj = *((info as usize + api.off_fci_name) as *const il2cpp::Object);
-                let name =
-                    if name_obj.is_null() { String::new() } else { il2cpp::read_string(name_obj) };
+                let name = if il2cpp::object_class_name(name_obj) == "String" {
+                    il2cpp::read_string(name_obj)
+                } else {
+                    String::new()
+                };
                 if card != 0 {
                     LAST_VIEWER.store(viewer, Ordering::Relaxed);
                     LAST_CARD.store(card, Ordering::Relaxed);
@@ -566,10 +577,11 @@ pub fn install() -> String {
         };
         // FriendCardInfo is nested two deep: ViewController -> EntryInfo -> FriendCardInfo.
         let (mut off_fci_viewer, mut off_fci_card, mut off_fci_name) = (0usize, 0usize, 0usize);
+        let mut k_fci = std::ptr::null_mut() as il2cpp::Class;
         if !k_vc.is_null() {
             let k_entry = il2cpp::nested_in(k_vc, "EntryInfo");
             if !k_entry.is_null() {
-                let k_fci = il2cpp::nested_in(k_entry, "FriendCardInfo");
+                k_fci = il2cpp::nested_in(k_entry, "FriendCardInfo");
                 if !k_fci.is_null() {
                     off_fci_viewer = il2cpp::field_offset(k_fci, "ViewerId").unwrap_or(0);
                     off_fci_card = il2cpp::field_offset(k_fci, "SupportCardId").unwrap_or(0);
@@ -667,6 +679,8 @@ pub fn install() -> String {
             } else {
                 il2cpp::type_object(k_friend_item)
             },
+            k_friend_item,
+            k_fci,
             off_item_info,
             off_fci_viewer,
             off_fci_card,

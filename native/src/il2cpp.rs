@@ -807,6 +807,26 @@ pub fn object_class(obj: Object) -> Class {
     unsafe { (api().object_get_class)(obj) }
 }
 
+/// True if `obj` is an instance of `klass` or of a class derived from it (false if either is null).
+///
+/// Guard for detours that read `this` fields: GameAssembly's linker folds identical tiny method
+/// bodies, so one hooked address can be entered with a `this` of an unrelated class. Reading our
+/// class's field offsets off that object is how a Main Story banner click crashed the game
+/// (2026-10-08, reset_run::on_friend_frame).
+pub fn object_is(obj: Object, klass: Class) -> bool {
+    if obj.is_null() || klass.is_null() {
+        return false;
+    }
+    let mut k = object_class(obj);
+    while !k.is_null() {
+        if k == klass {
+            return true;
+        }
+        k = class_parent(k);
+    }
+    false
+}
+
 /// Runtime class name of a managed object ("" if null). For type checks.
 pub fn object_class_name(obj: Object) -> String {
     if obj.is_null() {
